@@ -156,7 +156,7 @@ class EmailService {
   }
 
   async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string, userName?: string, userRole?: string, temporaryPassword?: string) {
-    const setupUrl = `${process.env.NEXTAUTH_URL}/auth/set-password?token=${invitationToken}`;
+    const setupUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/accept-invitation?token=${invitationToken}`;
     
     // Intentar usar template si está disponible
     const template = await EmailTemplateService.getTemplateByName('user_invitation');

@@ -25,15 +25,17 @@ export function useConfirmation() {
     onCancel?: () => void
   ) => {
     setConfirmationData({ options, onConfirm, onCancel });
-    setIsConfirming(true);
+    setIsConfirming(false); // Inicialmente false, solo true cuando se confirma
   }, []);
 
   const handleConfirm = useCallback(async () => {
     if (!confirmationData) return;
     
+    setIsConfirming(true); // Establecer como true cuando se inicia la acción
+    
     try {
       await confirmationData.onConfirm();
-      toast.success('Acción completada');
+      // No mostrar toast automático aquí, dejar que cada función maneje sus propios mensajes
     } catch (error) {
       console.error('Error in confirmation action:', error);
       toast.error('Error al completar la acción');

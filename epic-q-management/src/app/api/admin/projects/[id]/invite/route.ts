@@ -3,7 +3,9 @@ import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
 import { prisma } from '@/lib/database';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { projectInvitationService } from '@/lib/notifications/project-invitation-service';
+import { emailService } from '@/lib/notifications/email-service';
 
 const inviteCoordinatorSchema = z.object({
   email: z.string()
@@ -11,9 +13,9 @@ const inviteCoordinatorSchema = z.object({
     .min(1, 'El email es requerido')
     .max(255, 'El email es demasiado largo'),
   name: z.string()
-    .min(1, 'El nombre es requerido')
-    .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(255, 'El nombre es demasiado largo')
+    .min(1, 'El nombre completo es requerido')
+    .min(2, 'El nombre completo debe tener al menos 2 caracteres')
+    .max(255, 'El nombre completo es demasiado largo')
     .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras y espacios'),
   phone: z.string()
     .optional()
@@ -78,7 +80,13 @@ export async function POST(
       where: { email: validatedData.email }
     });
 
+    let tempPassword = null;
+    
     if (!user) {
+      // Generar contraseña temporal
+      tempPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(tempPassword, 12);
+      
       // Crear nuevo usuario
       user = await prisma.user.create({
         data: {
@@ -87,7 +95,8 @@ export async function POST(
           role: 'coordinator',
           isActive: true,
           isTemporaryPassword: true,
-          preferredLanguage: 'es'
+          preferredLanguage: 'es',
+          password: hashedPassword
         }
       });
 
@@ -163,17 +172,32 @@ export async function POST(
       }
     });
 
-    // Enviar email de invitación
-    const emailSent = await projectInvitationService.sendProjectInvitation({
-      projectName: project.name,
-      hospitalName: hospital.name,
-      coordinatorName: validatedData.name,
-      coordinatorEmail: validatedData.email,
+    // Enviar email de invitación con credenciales temporales
+    let emailSent = false;
+    
+    // Si es un usuario existente sin contraseña temporal, generar una nueva
+    if (!tempPassword && user.isTemporaryPassword) {
+      tempPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(tempPassword, 12);
+      
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          isTemporaryPassword: true
+        }
+      });
+    }
+    
+    // Enviar email con credenciales
+    emailSent = await emailService.sendInvitationEmail(
+      validatedData.email,
       invitationToken,
-      requiredPeriods: validatedData.required_periods,
-      projectDescription: project.description,
-      adminName: context.user.name
-    });
+      hospital.name,
+      validatedData.name,
+      'Coordinador',
+      tempPassword || 'Ya tienes una cuenta activa'
+    );
 
     if (!emailSent) {
       console.warn(`Failed to send invitation email to ${validatedData.email}`);

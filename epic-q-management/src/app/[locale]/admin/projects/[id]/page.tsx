@@ -121,7 +121,8 @@ export default function ProjectDetailPage() {
   // Invite form states
   const [inviteData, setInviteData] = useState({
     email: '',
-    name: '',
+    first_name: '',
+    last_name: '',
     phone: '',
     hospital_id: '',
     required_periods: 2
@@ -282,6 +283,8 @@ export default function ProjectDetailPage() {
       // Preparar datos para envío
       const dataToSend = {
         ...inviteData,
+        // Combinar nombre y apellido para el campo name
+        name: `${inviteData.first_name} ${inviteData.last_name}`.trim(),
         // Si hay un coordinador seleccionado, usar sus datos
         ...(selectedCoordinator && {
           email: selectedCoordinator.email,
@@ -314,7 +317,8 @@ export default function ProjectDetailPage() {
   const resetInviteForm = () => {
     setInviteData({ 
       email: '', 
-      name: '', 
+      first_name: '', 
+      last_name: '',
       phone: '',
       hospital_id: '', 
       required_periods: project?.default_required_periods || 2 
@@ -397,7 +401,7 @@ export default function ProjectDetailPage() {
     router.push(`/es/admin/hospitals/${hospitalId}`);
   };
 
-  const handleRemoveHospital = (projectHospitalId: string, hospitalName: string) => {
+  const handleRemoveHospital = (hospitalId: string, hospitalName: string) => {
     confirm(
       {
         title: 'Eliminar Hospital del Proyecto',
@@ -407,20 +411,18 @@ export default function ProjectDetailPage() {
         variant: 'destructive'
       },
       async () => {
-        await executeWithLoading(async () => {
-          const response = await fetch(`/api/admin/projects/${projectId}/hospitals/${projectHospitalId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-          });
-
-          if (response.ok) {
-            toast.success(`Hospital "${hospitalName}" eliminado del proyecto exitosamente`);
-            loadProject(); // Recargar datos del proyecto
-          } else {
-            const errorData = await response.json();
-            toast.error(errorData.error || 'Error al eliminar el hospital del proyecto');
-          }
+        const response = await fetch(`/api/admin/projects/${projectId}/hospitals/${hospitalId}`, {
+          method: 'DELETE',
+          credentials: 'include'
         });
+
+        if (response.ok) {
+          toast.success(`Hospital "${hospitalName}" eliminado del proyecto exitosamente`);
+          loadProject(); // Recargar datos del proyecto
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.error || 'Error al eliminar el hospital del proyecto');
+        }
       }
     );
   };
@@ -456,20 +458,18 @@ export default function ProjectDetailPage() {
         variant: 'destructive'
       },
       async () => {
-        await executeWithLoading(async () => {
-          const response = await fetch(`/api/admin/projects/${projectId}/coordinators/${projectCoordinatorId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-          });
-
-          if (response.ok) {
-            toast.success(`Coordinador "${coordinatorName}" eliminado del proyecto exitosamente`);
-            loadProject(); // Recargar datos del proyecto
-          } else {
-            const errorData = await response.json();
-            toast.error(errorData.error || 'Error al eliminar el coordinador del proyecto');
-          }
+        const response = await fetch(`/api/admin/projects/${projectId}/coordinators/${projectCoordinatorId}`, {
+          method: 'DELETE',
+          credentials: 'include'
         });
+
+        if (response.ok) {
+          toast.success(`Coordinador "${coordinatorName}" eliminado del proyecto exitosamente`);
+          loadProject(); // Recargar datos del proyecto
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.error || 'Error al eliminar el coordinador del proyecto');
+        }
       }
     );
   };
@@ -578,22 +578,20 @@ export default function ProjectDetailPage() {
             variant: 'destructive'
           },
           async () => {
-            for (const hospitalId of items) {
-              const hospital = paginatedHospitals.find(h => h.id === hospitalId);
-              if (hospital) {
-                await executeWithLoading(async () => {
-                  const response = await fetch(`/api/admin/projects/${projectId}/hospitals/${hospitalId}`, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                  });
-
-                  if (response.ok) {
-                    toast.success(`Hospital "${hospital.hospital.name}" eliminado del proyecto exitosamente`);
-                  } else {
-                    const errorData = await response.json();
-                    toast.error(errorData.error || 'Error al eliminar el hospital del proyecto');
-                  }
+            for (const projectHospitalId of items) {
+              const projectHospital = paginatedHospitals.find(h => h.id === projectHospitalId);
+              if (projectHospital) {
+                const response = await fetch(`/api/admin/projects/${projectId}/hospitals/${projectHospital.hospital.id}`, {
+                  method: 'DELETE',
+                  credentials: 'include'
                 });
+
+                if (response.ok) {
+                  toast.success(`Hospital "${projectHospital.hospital.name}" eliminado del proyecto exitosamente`);
+                } else {
+                  const errorData = await response.json();
+                  toast.error(errorData.error || 'Error al eliminar el hospital del proyecto');
+                }
               }
             }
             setSelectedHospitals([]);
@@ -628,19 +626,17 @@ export default function ProjectDetailPage() {
             for (const coordinatorId of items) {
               const coordinator = paginatedCoordinators.find(c => c.id === coordinatorId);
               if (coordinator) {
-                await executeWithLoading(async () => {
-                  const response = await fetch(`/api/admin/projects/${projectId}/coordinators/${coordinatorId}`, {
-                    method: 'DELETE',
-                    credentials: 'include'
-                  });
-
-                  if (response.ok) {
-                    toast.success(`Coordinador "${coordinator.user.name}" eliminado del proyecto exitosamente`);
-                  } else {
-                    const errorData = await response.json();
-                    toast.error(errorData.error || 'Error al eliminar el coordinador del proyecto');
-                  }
+                const response = await fetch(`/api/admin/projects/${projectId}/coordinators/${coordinatorId}`, {
+                  method: 'DELETE',
+                  credentials: 'include'
                 });
+
+                if (response.ok) {
+                  toast.success(`Coordinador "${coordinator.user.name}" eliminado del proyecto exitosamente`);
+                } else {
+                  const errorData = await response.json();
+                  toast.error(errorData.error || 'Error al eliminar el coordinador del proyecto');
+                }
               }
             }
             setSelectedCoordinators([]);
@@ -1067,7 +1063,7 @@ export default function ProjectDetailPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleRemoveHospital(ph.id, ph.hospital.name)}
+                                onClick={() => handleRemoveHospital(ph.hospital.id, ph.hospital.name)}
                                 className="text-red-600"
                               >
                                 <X className="mr-2 h-4 w-4" />
@@ -1136,10 +1132,16 @@ export default function ProjectDetailPage() {
                             setSelectedCoordinator(coordinator);
                             if (coordinator) {
                               setIsNewCoordinator(false);
+                              // Separar nombre y apellido
+                              const nameParts = coordinator.name.split(' ');
+                              const firstName = nameParts[0] || '';
+                              const lastName = nameParts.slice(1).join(' ') || '';
+                              
                               setInviteData(prev => ({
                                 ...prev,
                                 email: coordinator.email,
-                                name: coordinator.name
+                                first_name: firstName,
+                                last_name: lastName
                               }));
                             } else {
                               setIsNewCoordinator(true);
@@ -1165,14 +1167,25 @@ export default function ProjectDetailPage() {
                               placeholder="coordinador@hospital.com"
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="invite-name">Nombre Completo</Label>
-                            <Input
-                              id="invite-name"
-                              value={inviteData.name}
-                              onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
-                              placeholder="Nombre y Apellido del coordinador"
-                            />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="invite-first-name">Nombre</Label>
+                              <Input
+                                id="invite-first-name"
+                                value={inviteData.first_name}
+                                onChange={(e) => setInviteData({ ...inviteData, first_name: e.target.value })}
+                                placeholder="Nombre"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="invite-last-name">Apellido</Label>
+                              <Input
+                                id="invite-last-name"
+                                value={inviteData.last_name}
+                                onChange={(e) => setInviteData({ ...inviteData, last_name: e.target.value })}
+                                placeholder="Apellido"
+                              />
+                            </div>
                           </div>
                         </>
                       )}
@@ -1432,7 +1445,7 @@ export default function ProjectDetailPage() {
       {/* Confirmation Toast */}
       {confirmationData && (
         <ConfirmationToast
-          isOpen={isConfirming}
+          isOpen={true}
           options={confirmationData.options}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
