@@ -19,7 +19,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 
 export function CoordinatorHeader() {
   const { user, logout, isLoading } = useAuth();
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   const handleSignOut = () => {
     logout();
@@ -113,8 +113,12 @@ export function CoordinatorHeader() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{t('common.myAccount')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>{t('common.profile')}</DropdownMenuItem>
-              <DropdownMenuItem>{t('common.settings')}</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/${locale}/profile`}>{t('common.profile')}</a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/${locale}/settings`}>{t('common.settings')}</a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                 <LogOut className="h-4 w-4 mr-2" />

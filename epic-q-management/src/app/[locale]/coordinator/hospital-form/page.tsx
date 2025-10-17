@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { useProject } from '@/contexts/project-context';
 import { useTranslations } from '@/hooks/useTranslations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 
 export default function HospitalFormPage() {
   const { user } = useAuth();
+  const { currentProject } = useProject();
   const { t } = useTranslations();
   const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
@@ -36,6 +38,7 @@ export default function HospitalFormPage() {
     name: "",
     province: "",
     city: "",
+    isLocationEditable: true, // Por defecto editable hasta que se carguen los datos
     
     // Structural Data
     numBeds: "",
@@ -60,31 +63,25 @@ export default function HospitalFormPage() {
   const totalSteps = 3;
   const progress = (currentStep / totalSteps) * 100;
 
-  // Load hospital data
+  // Load hospital data from current project
   useEffect(() => {
-    const loadHospitalData = async () => {
-      if (!user?.hospitalId) return;
-      
-      try {
-        const response = await fetch(`/api/hospitals/${user.hospitalId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setHospitalData(data);
-          setFormData(prev => ({
-            ...prev,
-            name: data.name || "",
-            province: data.province || "",
-            city: data.city || "",
-            // Add other fields as needed
-          }));
-        }
-      } catch (error) {
-        console.error('Error loading hospital data:', error);
-      }
-    };
-
-    loadHospitalData();
-  }, [user?.hospitalId]);
+    if (!currentProject?.coordinatorInfo?.hospital) return;
+    
+    const hospital = currentProject.coordinatorInfo.hospital;
+    setHospitalData(hospital);
+    
+    // Determinar si los campos de provincia y ciudad deben ser editables
+    const hasLocationData = hospital.province && hospital.city;
+    
+    setFormData(prev => ({
+      ...prev,
+      name: hospital.name || "",
+      province: hospital.province || "",
+      city: hospital.city || "",
+      // Marcar si los campos de ubicación son editables
+      isLocationEditable: !hasLocationData
+    }));
+  }, [currentProject]);
 
   const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
@@ -119,6 +116,22 @@ export default function HospitalFormPage() {
       const value = formData[field as keyof typeof formData];
       return value !== '' && validateNumericInput(value.toString());
     });
+  };
+
+  // Función para validar el paso 1 (Información Básica)
+  const validateStep1 = (): { isValid: boolean; pendingFields: string[] } => {
+    const pending: string[] = [];
+    
+    // Solo validar campos de ubicación si son editables
+    if (formData.isLocationEditable) {
+      if (!formData.province.trim()) pending.push('province');
+      if (!formData.city.trim()) pending.push('city');
+    }
+
+    return {
+      isValid: pending.length === 0,
+      pendingFields: pending
+    };
   };
 
   // Función para validar el paso 2 (Datos Estructurales)
@@ -160,13 +173,13 @@ export default function HospitalFormPage() {
   };
 
   const handleSave = async () => {
-    if (!user?.hospitalId) {
+    if (!currentProject?.coordinatorInfo?.hospital?.id) {
       console.error('No hospital ID available');
       return;
     }
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${user.hospitalId}/form`, {
+      const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +210,9 @@ export default function HospitalFormPage() {
       let validation: { isValid: boolean; pendingFields: string[] } = { isValid: true, pendingFields: [] };
       
       // Validar según el paso actual
-      if (currentStep === 2) {
+      if (currentStep === 1) {
+        validation = validateStep1();
+      } else if (currentStep === 2) {
         validation = validateStep2();
       } else if (currentStep === 3) {
         validation = validateStep3();
@@ -232,7 +247,9 @@ export default function HospitalFormPage() {
     // Validar el paso actual antes de finalizar
     let validation: { isValid: boolean; pendingFields: string[] } = { isValid: true, pendingFields: [] };
     
-    if (currentStep === 2) {
+    if (currentStep === 1) {
+      validation = validateStep1();
+    } else if (currentStep === 2) {
       validation = validateStep2();
     } else if (currentStep === 3) {
       validation = validateStep3();
@@ -254,13 +271,13 @@ export default function HospitalFormPage() {
     // Si la validación es exitosa, proceder con el guardado
     setPendingFields([]);
     
-    if (!user?.hospitalId) {
+    if (!currentProject?.coordinatorInfo?.hospital?.id) {
       console.error('No hospital ID available');
       return;
     }
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${user.hospitalId}/form`, {
+      const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -303,7 +320,7 @@ export default function HospitalFormPage() {
       <div>
         <h3 className="text-lg font-semibold mb-4">Información Básica del Hospital</h3>
         <p className="text-sm text-gray-600 mb-6">
-          Esta información es de solo lectura y fue proporcionada por el administrador.
+          Completa la información básica de tu hospital. El nombre fue proporcionado por el administrador.
         </p>
       </div>
 
@@ -316,26 +333,87 @@ export default function HospitalFormPage() {
             disabled
             className="bg-gray-50"
           />
+          <p className="text-xs text-gray-500">Este campo fue proporcionado por el administrador</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="province">Provincia</Label>
-          <Input
-            id="province"
-            value={formData.province}
-            disabled
-            className="bg-gray-50"
-          />
+          <Label htmlFor="province" className={isFieldPending('province') ? 'text-red-600 font-medium' : ''}>
+            Provincia {isFieldPending('province') && <span className="text-red-500">*</span>}
+          </Label>
+          {formData.isLocationEditable ? (
+            <Select value={formData.province} onValueChange={(value) => handleInputChange('province', value)}>
+              <SelectTrigger className={getFieldClasses('province')}>
+                <SelectValue placeholder="Seleccionar provincia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Buenos Aires">Buenos Aires</SelectItem>
+                <SelectItem value="CABA">Ciudad Autónoma de Buenos Aires</SelectItem>
+                <SelectItem value="Catamarca">Catamarca</SelectItem>
+                <SelectItem value="Chaco">Chaco</SelectItem>
+                <SelectItem value="Chubut">Chubut</SelectItem>
+                <SelectItem value="Córdoba">Córdoba</SelectItem>
+                <SelectItem value="Corrientes">Corrientes</SelectItem>
+                <SelectItem value="Entre Ríos">Entre Ríos</SelectItem>
+                <SelectItem value="Formosa">Formosa</SelectItem>
+                <SelectItem value="Jujuy">Jujuy</SelectItem>
+                <SelectItem value="La Pampa">La Pampa</SelectItem>
+                <SelectItem value="La Rioja">La Rioja</SelectItem>
+                <SelectItem value="Mendoza">Mendoza</SelectItem>
+                <SelectItem value="Misiones">Misiones</SelectItem>
+                <SelectItem value="Neuquén">Neuquén</SelectItem>
+                <SelectItem value="Río Negro">Río Negro</SelectItem>
+                <SelectItem value="Salta">Salta</SelectItem>
+                <SelectItem value="San Juan">San Juan</SelectItem>
+                <SelectItem value="San Luis">San Luis</SelectItem>
+                <SelectItem value="Santa Cruz">Santa Cruz</SelectItem>
+                <SelectItem value="Santa Fe">Santa Fe</SelectItem>
+                <SelectItem value="Santiago del Estero">Santiago del Estero</SelectItem>
+                <SelectItem value="Tierra del Fuego">Tierra del Fuego</SelectItem>
+                <SelectItem value="Tucumán">Tucumán</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="province"
+              value={formData.province}
+              disabled
+              className="bg-gray-50"
+            />
+          )}
+          {isFieldPending('province') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
+          {!formData.isLocationEditable && (
+            <p className="text-xs text-gray-500">Esta información ya está cargada en el sistema</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="city">Ciudad</Label>
-          <Input
-            id="city"
-            value={formData.city}
-            disabled
-            className="bg-gray-50"
-          />
+          <Label htmlFor="city" className={isFieldPending('city') ? 'text-red-600 font-medium' : ''}>
+            Ciudad {isFieldPending('city') && <span className="text-red-500">*</span>}
+          </Label>
+          {formData.isLocationEditable ? (
+            <Input
+              id="city"
+              value={formData.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+              placeholder="Ej: Buenos Aires, Córdoba, Rosario..."
+              className={getFieldClasses('city')}
+            />
+          ) : (
+            <Input
+              id="city"
+              value={formData.city}
+              disabled
+              className="bg-gray-50"
+            />
+          )}
+          {isFieldPending('city') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
+          {!formData.isLocationEditable && (
+            <p className="text-xs text-gray-500">Esta información ya está cargada en el sistema</p>
+          )}
         </div>
       </div>
     </div>

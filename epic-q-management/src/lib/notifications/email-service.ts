@@ -156,7 +156,7 @@ class EmailService {
   }
 
   async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string, userName?: string, userRole?: string, temporaryPassword?: string) {
-    const setupUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/accept-invitation?token=${invitationToken}`;
+    const loginUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/auth/login`;
     
     // Intentar usar template si está disponible
     const template = await EmailTemplateService.getTemplateByName('user_invitation');
@@ -167,7 +167,7 @@ class EmailService {
         userEmail: email,
         userRole: userRole || 'Coordinador',
         hospitalName: hospitalName,
-        invitationLink: setupUrl,
+        invitationLink: loginUrl,
         systemName: process.env.EMAIL_FROM_NAME || 'EPIC-Q Management System',
         temporaryPassword: temporaryPassword || 'No disponible'
       };
@@ -204,7 +204,7 @@ class EmailService {
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${setupUrl}" 
+              <a href="${loginUrl}" 
                  style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 500;">
                 Configurar cuenta
               </a>
@@ -230,7 +230,7 @@ class EmailService {
         en el Estudio Perioperatorio Integral de Cuidados Quirúrgicos (EPIC-Q).
         
         Configura tu cuenta haciendo clic en el siguiente enlace:
-        ${setupUrl}
+        ${loginUrl}
         
         Una vez que configures tu contraseña, podrás acceder al sistema.
       `,

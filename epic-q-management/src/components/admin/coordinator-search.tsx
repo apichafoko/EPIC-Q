@@ -140,7 +140,7 @@ export function CoordinatorSearch({
       </div>
 
       {/* Resultados de búsqueda */}
-      {showResults && (coordinators.length > 0 || error) && (
+      {showResults && (coordinators.length > 0 || error || (query.trim().length >= 2 && !isLoading)) && (
         <Card className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto shadow-lg border">
           {error ? (
             <div className="p-3 text-red-600 text-sm">
@@ -169,23 +169,25 @@ export function CoordinatorSearch({
                 </div>
               ))}
               
-              {/* Opción para crear nuevo coordinador */}
-              <div
-                onClick={handleNewCoordinator}
-                className="p-3 hover:bg-blue-50 cursor-pointer border-t border-gray-200 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <UserPlus className="h-4 w-4 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-600">
-                      Crear nuevo coordinador
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Invitar a "{query}" como nuevo coordinador
-                    </p>
+              {/* Mostrar opción de crear nuevo coordinador si no hay resultados o si hay una consulta válida */}
+              {(coordinators.length === 0 || query.trim().length >= 2) && (
+                <div
+                  onClick={handleNewCoordinator}
+                  className="p-3 hover:bg-blue-50 cursor-pointer border-t border-gray-200 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <UserPlus className="h-4 w-4 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-600">
+                        Crear nuevo coordinador
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {query.trim() ? `Invitar a "${query}" como nuevo coordinador` : 'Crear un nuevo coordinador'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </Card>

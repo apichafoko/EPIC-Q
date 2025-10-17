@@ -267,10 +267,10 @@ export class EmailTemplateService {
                 <p><em>⚠️ Debes cambiar esta contraseña en tu primer acceso por motivos de seguridad.</em></p>
             </div>
             
-            <p>Para completar tu registro y establecer tu contraseña personal, haz clic en el siguiente enlace:</p>
+            <p>Para acceder al sistema y cambiar tu contraseña temporal, haz clic en el siguiente enlace:</p>
             
             <div style="text-align: center;">
-                <a href="{{invitationLink}}" class="button">Completar Registro</a>
+                <a href="{{invitationLink}}" class="button">Iniciar Sesión</a>
             </div>
             
             <div class="pwa-info">

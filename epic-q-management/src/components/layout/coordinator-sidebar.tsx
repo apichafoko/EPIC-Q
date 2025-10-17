@@ -12,7 +12,8 @@ import {
   Calendar,
   Users,
   Settings,
-  Bell
+  Bell,
+  UserPlus
 } from 'lucide-react';
 
 export function CoordinatorSidebar() {
@@ -24,6 +25,11 @@ export function CoordinatorSidebar() {
       name: t('common.dashboard'), 
       href: `/${locale}/coordinator`, 
       icon: BarChart3 
+    },
+    { 
+      name: 'Invitaciones', 
+      href: `/${locale}/coordinator/pending-invitations`, 
+      icon: UserPlus 
     },
     { 
       name: t('common.hospitalForm'), 

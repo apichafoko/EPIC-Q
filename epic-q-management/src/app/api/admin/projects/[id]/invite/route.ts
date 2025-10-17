@@ -17,6 +17,8 @@ const inviteCoordinatorSchema = z.object({
     .min(2, 'El nombre completo debe tener al menos 2 caracteres')
     .max(255, 'El nombre completo es demasiado largo')
     .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras y espacios'),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
   phone: z.string()
     .optional()
     .refine((val) => !val || /^[\d\s\-\+\(\)]+$/.test(val), 'Formato de teléfono inválido'),
@@ -31,10 +33,13 @@ export async function POST(
   return withAdminAuth(async (req: NextRequest, context: AuthContext) => {
     try {
       const { id: projectId } = await params;
-    const body = await request.json();
+    const body = await req.json();
+    
+    console.log('Received invitation data:', body);
     
     // Validar datos
     const validatedData = inviteCoordinatorSchema.parse(body);
+    console.log('Validated data:', validatedData);
     
     // Verificar que el proyecto existe
     const project = await prisma.project.findUnique({
@@ -139,42 +144,9 @@ export async function POST(
       );
     }
 
-    // Crear ProjectHospital si no existe
-    let projectHospital = existingProjectHospital;
-    if (!projectHospital) {
-      projectHospital = await prisma.projectHospital.create({
-        data: {
-          project_id: projectId,
-          hospital_id: validatedData.hospital_id,
-          required_periods: validatedData.required_periods,
-          status: 'active'
-        }
-      });
-    }
-
     // Generar token de invitación
     const invitationToken = randomBytes(32).toString('hex');
 
-    // Crear ProjectCoordinator
-    const projectCoordinator = await prisma.projectCoordinator.create({
-      data: {
-        project_id: projectId,
-        user_id: user.id,
-        hospital_id: validatedData.hospital_id,
-        role: 'coordinator',
-        invitation_token: invitationToken,
-        is_active: false // Se activará cuando acepte la invitación
-      },
-      include: {
-        user: true,
-        hospital: true,
-        project: true
-      }
-    });
-
-    // Enviar email de invitación con credenciales temporales
-    let emailSent = false;
-    
     // Si es un usuario existente sin contraseña temporal, generar una nueva
     if (!tempPassword && user.isTemporaryPassword) {
       tempPassword = Math.random().toString(36).slice(-8);
@@ -188,9 +160,9 @@ export async function POST(
         }
       });
     }
-    
-    // Enviar email con credenciales
-    emailSent = await emailService.sendInvitationEmail(
+
+    // Enviar email con credenciales ANTES de crear los registros
+    const emailSent = await emailService.sendInvitationEmail(
       validatedData.email,
       invitationToken,
       hospital.name,
@@ -200,29 +172,69 @@ export async function POST(
     );
 
     if (!emailSent) {
-      console.warn(`Failed to send invitation email to ${validatedData.email}`);
+      console.error(`Failed to send invitation email to ${validatedData.email}`);
+      return NextResponse.json(
+        { error: 'No se pudo enviar el email de invitación. Por favor, verifica la configuración de email.' },
+        { status: 500 }
+      );
     }
+
+    // Solo si el email se envió correctamente, crear los registros en una transacción
+    const result = await prisma.$transaction(async (tx) => {
+      // Crear ProjectHospital si no existe
+      let projectHospital = existingProjectHospital;
+      if (!projectHospital) {
+        projectHospital = await tx.projectHospital.create({
+          data: {
+            project_id: projectId,
+            hospital_id: validatedData.hospital_id,
+            required_periods: validatedData.required_periods,
+            status: 'active'
+          }
+        });
+      }
+
+      // Crear ProjectCoordinator
+      const projectCoordinator = await tx.projectCoordinator.create({
+        data: {
+          project_id: projectId,
+          user_id: user.id,
+          hospital_id: validatedData.hospital_id,
+          role: 'coordinator',
+          invitation_token: invitationToken,
+          is_active: false // Se activará cuando acepte la invitación
+        },
+        include: {
+          user: true,
+          hospital: true,
+          project: true
+        }
+      });
+
+      return { projectHospital, projectCoordinator };
+    });
 
     return NextResponse.json({
       success: true,
-      projectCoordinator,
-      emailSent,
-      message: emailSent ? 'Invitación enviada exitosamente' : 'Invitación creada pero el email no pudo ser enviado'
+      projectCoordinator: result.projectCoordinator,
+      emailSent: true,
+      message: 'Invitación enviada exitosamente'
     });
 
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.errors);
       return NextResponse.json(
         { error: 'Datos inválidos', details: error.errors },
         { status: 400 }
       );
     }
 
-      console.error('Error inviting coordinator:', error);
-      return NextResponse.json(
-        { error: 'Error interno del servidor' },
-        { status: 500 }
-      );
-    }
+    console.error('Error inviting coordinator:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
   })(request, { params });
 }

@@ -22,7 +22,7 @@ interface HeaderProps {
 }
 
 export function Header({ userId }: HeaderProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const activeAlerts = mockAlerts.filter(alert => !alert.is_resolved).length;
 
   return (
@@ -111,8 +111,12 @@ export function Header({ userId }: HeaderProps) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{t('common.myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>{t('common.profile')}</DropdownMenuItem>
-                  <DropdownMenuItem>{t('common.settings')}</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={`/${locale}/profile`}>{t('common.profile')}</a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={`/${locale}/settings`}>{t('common.settings')}</a>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>{t('common.logout')}</DropdownMenuItem>
                 </DropdownMenuContent>

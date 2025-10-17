@@ -304,7 +304,8 @@ export default function ProjectDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al enviar invitación');
+        toast.error(errorData.error || 'Error al enviar invitación');
+        return; // Salir sin lanzar error
       }
 
       toast.success('Invitación enviada exitosamente');

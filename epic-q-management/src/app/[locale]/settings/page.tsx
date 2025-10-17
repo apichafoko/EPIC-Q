@@ -1,145 +1,212 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/auth-context';
+import { useTranslations } from '@/hooks/useTranslations';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { toast } from 'sonner';
 import { 
   Settings, 
-  Users, 
   Bell, 
+  Shield, 
+  Globe, 
+  Clock, 
+  MapPin, 
+  Eye, 
+  EyeOff,
   Save,
-  Plus,
-  Edit,
-  Trash2,
-  Mail,
-  Calendar,
-  Shield
+  RefreshCw
 } from 'lucide-react';
-import { getSystemSettings, getNotificationSettings, getEmailTemplates } from '@/lib/services/settings-service';
-import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
-  const [generalSettings, setGeneralSettings] = useState({
-    studyStartDate: '2024-01-01',
-    studyDuration: 24,
-    targetHospitals: 50,
-    targetCases: 15000
+  const { user, refreshUser } = useAuth();
+  const { t, locale } = useTranslations();
+  const { isLoading, executeWithLoading } = useLoadingState();
+  
+  const [settings, setSettings] = useState({
+    // Notificaciones - Oculto por el momento
+    // emailNotifications: true,
+    // pushNotifications: true,
+    // weeklyReports: false,
+    // projectUpdates: true,
+    // systemAlerts: true,
+    
+    // Privacidad - Oculto por el momento
+    // profileVisibility: 'private',
+    // dataSharing: false,
+    // analyticsTracking: true,
+    
+    // Preferencias de UI
+    theme: 'system',
+    compactMode: false,
+    autoSave: true,
+    
+    // Zona horaria y región
+    timezone: 'America/Argentina/Buenos_Aires',
+    country: 'AR',
+    language: 'es',
+    
+    // Seguridad
+    twoFactorAuth: false,
+    sessionTimeout: '8',
+    passwordExpiry: '90'
   });
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailAlerts: true,
-    inactivityAlerts: true,
-    lowCompletionAlerts: true,
-    additionalEmails: '',
-    reportFrequency: 'weekly'
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
-  const [systemSettings, setSystemSettings] = useState<any>(null);
-  const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Cargar datos
+  // Cargar configuración del usuario
   useEffect(() => {
-    const loadData = async () => {
+    if (user) {
+      setSettings(prev => ({
+        ...prev,
+        timezone: user.timezone || 'America/Argentina/Buenos_Aires',
+        country: user.country || 'AR',
+        language: user.preferredLanguage || 'es'
+      }));
+    }
+  }, [user]);
+
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const saveSettings = async () => {
+    await executeWithLoading(async () => {
       try {
-        setLoading(true);
-        const [systemData, notificationData, templatesData] = await Promise.all([
-          getSystemSettings(),
-          getNotificationSettings(),
-          getEmailTemplates()
-        ]);
+        const response = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(settings),
+        });
 
-        setSystemSettings(systemData);
-        setNotificationSettings(prev => ({ ...prev, ...notificationData }));
-        setEmailTemplates(templatesData);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          toast.success('Configuración guardada exitosamente');
+          await refreshUser();
+        } else {
+          toast.error('Error al guardar la configuración: ' + (data.error || 'Error desconocido'));
+        }
       } catch (error) {
-        console.error('Error loading settings data:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error saving settings:', error);
+        toast.error('Error al guardar la configuración');
       }
-    };
+    });
+  };
 
-    loadData();
-  }, []);
-
-  const [users] = useState([
-    {
-      id: '1',
-      name: 'Admin EPIC-Q',
-      email: 'admin@epicq.com',
-      role: 'admin',
-      hospital: null,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Dr. María González',
-      email: 'maria.gonzalez@hospital.com',
-      role: 'coordinator',
-      hospital: 'Hospital Italiano de Buenos Aires',
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Dr. Carlos López',
-      email: 'carlos.lopez@hospital.com',
-      role: 'collaborator',
-      hospital: 'Hospital Fernández',
-      status: 'active'
+  const changePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('Las contraseñas no coinciden');
+      return;
     }
-  ]);
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'coordinator':
-        return 'Coordinador';
-      case 'collaborator':
-        return 'Colaborador';
-      default:
-        return role;
+    if (passwordData.newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
     }
+
+    await executeWithLoading(async () => {
+      try {
+        const response = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            currentPassword: passwordData.currentPassword,
+            newPassword: passwordData.newPassword
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          toast.success('Contraseña cambiada exitosamente');
+          setPasswordData({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          });
+        } else {
+          toast.error('Error al cambiar la contraseña: ' + (data.error || 'Error desconocido'));
+        }
+      } catch (error) {
+        console.error('Error changing password:', error);
+        toast.error('Error al cambiar la contraseña');
+      }
+    });
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'coordinator':
-        return 'bg-blue-100 text-blue-800';
-      case 'collaborator':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const timezones = [
+    { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (GMT-3)' },
+    { value: 'America/Argentina/Cordoba', label: 'Córdoba (GMT-3)' },
+    { value: 'America/Argentina/Mendoza', label: 'Mendoza (GMT-3)' },
+    { value: 'America/Argentina/Salta', label: 'Salta (GMT-3)' },
+    { value: 'America/Argentina/Tucuman', label: 'Tucumán (GMT-3)' },
+    { value: 'America/Argentina/Ushuaia', label: 'Ushuaia (GMT-3)' },
+    { value: 'America/Sao_Paulo', label: 'São Paulo (GMT-3)' },
+    { value: 'America/New_York', label: 'New York (GMT-5)' },
+    { value: 'Europe/Madrid', label: 'Madrid (GMT+1)' },
+    { value: 'UTC', label: 'UTC (GMT+0)' }
+  ];
 
-  const getStatusColor = (status: string) => {
-    return status === 'active' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-gray-100 text-gray-800';
-  };
+  const countries = [
+    { value: 'AR', label: 'Argentina', flag: '🇦🇷' },
+    { value: 'BR', label: 'Brasil', flag: '🇧🇷' },
+    { value: 'CL', label: 'Chile', flag: '🇨🇱' },
+    { value: 'CO', label: 'Colombia', flag: '🇨🇴' },
+    { value: 'MX', label: 'México', flag: '🇲🇽' },
+    { value: 'PE', label: 'Perú', flag: '🇵🇪' },
+    { value: 'UY', label: 'Uruguay', flag: '🇺🇾' },
+    { value: 'US', label: 'Estados Unidos', flag: '🇺🇸' },
+    { value: 'ES', label: 'España', flag: '🇪🇸' },
+    { value: 'FR', label: 'Francia', flag: '🇫🇷' }
+  ];
 
-  const getStatusLabel = (status: string) => {
-    return status === 'active' ? 'Activo' : 'Inactivo';
-  };
+  const languages = [
+    { value: 'es', label: 'Español', flag: '🇪🇸' },
+    { value: 'en', label: 'English', flag: '🇺🇸' },
+    { value: 'pt', label: 'Português', flag: '🇧🇷' }
+  ];
 
-  const handleGeneralSave = () => {
-    console.log('Guardando configuración general:', generalSettings);
-    // Aquí se implementaría la lógica de guardado
-  };
-
-  const handleNotificationSave = () => {
-    console.log('Guardando configuración de notificaciones:', notificationSettings);
-    // Aquí se implementaría la lógica de guardado
-  };
+  if (!user) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Cargando configuración...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -147,330 +214,295 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Configuración</h1>
         <p className="text-gray-600 mt-2">
-          Gestiona la configuración del sistema EPIC-Q
+          Personaliza tu experiencia y gestiona tus preferencias
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="users">Usuarios</TabsTrigger>
-          <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
-
-        {/* Configuración General */}
-        <TabsContent value="general">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Notificaciones - Oculto por el momento */}
+        {/* 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5" />
-                <span>Configuración General del Estudio</span>
+              <Bell className="h-5 w-5" />
+              <span>Notificaciones</span>
               </CardTitle>
+            <CardDescription>
+              Configura cómo y cuándo recibir notificaciones
+            </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-4 w-1/4" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-4 w-1/4" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="studyStartDate">Fecha de Inicio del Estudio</Label>
-                      <Input
-                        id="studyStartDate"
-                        type="date"
-                        value={systemSettings?.study_start_date || generalSettings.studyStartDate}
-                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, studyStartDate: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="studyDuration">Duración Total Prevista (meses)</Label>
-                      <Input
-                        id="studyDuration"
-                        type="number"
-                        value={systemSettings?.study_duration_months || generalSettings.studyDuration}
-                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, studyDuration: Number(e.target.value) }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="targetHospitals">Meta de Hospitales</Label>
-                      <Input
-                        id="targetHospitals"
-                        type="number"
-                        value={systemSettings?.target_hospitals || generalSettings.targetHospitals}
-                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, targetHospitals: Number(e.target.value) }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="targetCases">Meta de Casos Totales</Label>
-                      <Input
-                        id="targetCases"
-                        type="number"
-                        value={systemSettings?.target_cases || generalSettings.targetCases}
-                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, targetCases: Number(e.target.value) }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleGeneralSave}>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Configuración
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Gestión de Usuarios */}
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
+          <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="h-5 w-5" />
-                  <span>Usuarios del Sistema</span>
-                </CardTitle>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Invitar Usuario
-                </Button>
+              <div className="space-y-0.5">
+                <Label>Notificaciones por Email</Label>
+                <p className="text-sm text-gray-500">Recibir notificaciones importantes por correo</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        <Users className="h-5 w-5 text-gray-500" />
+              <Switch
+                checked={settings.emailNotifications}
+                onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
+              />
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                        {user.hospital && (
-                          <div className="text-xs text-gray-400">{user.hospital}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Badge className={getRoleColor(user.role)}>
-                        {getRoleLabel(user.role)}
-                      </Badge>
-                      <Badge className={getStatusColor(user.status)}>
-                        {getStatusLabel(user.status)}
-                      </Badge>
-                      <div className="flex items-center space-x-1">
-                        <Button size="sm" variant="outline">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Configuración de Notificaciones */}
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Bell className="h-5 w-5" />
-                <span>Configuración de Notificaciones</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-6 w-full" />
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-6 w-full" />
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="emailAlerts">Recibir alertas por email</Label>
-                        <p className="text-sm text-gray-500">Recibe notificaciones importantes por correo electrónico</p>
+              <div className="space-y-0.5">
+                <Label>Notificaciones Push</Label>
+                <p className="text-sm text-gray-500">Recibir notificaciones en el navegador</p>
                       </div>
                       <Switch
-                        id="emailAlerts"
-                        checked={notificationSettings.emailAlerts}
-                        onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, emailAlerts: checked }))}
+                checked={settings.pushNotifications}
+                onCheckedChange={(checked) => handleSettingChange('pushNotifications', checked)}
                       />
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="inactivityAlerts">Alertas de inactividad</Label>
-                        <p className="text-sm text-gray-500">Notifica cuando un hospital no registra actividad por más de 30 días</p>
+              <div className="space-y-0.5">
+                <Label>Reportes Semanales</Label>
+                <p className="text-sm text-gray-500">Recibir resúmenes semanales de actividad</p>
                       </div>
                       <Switch
-                        id="inactivityAlerts"
-                        checked={notificationSettings.inactivityAlerts}
-                        onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, inactivityAlerts: checked }))}
+                checked={settings.weeklyReports}
+                onCheckedChange={(checked) => handleSettingChange('weeklyReports', checked)}
                       />
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="lowCompletionAlerts">Alertas de baja completitud</Label>
-                        <p className="text-sm text-gray-500">Notifica cuando la completitud de casos es menor al 70%</p>
+              <div className="space-y-0.5">
+                <Label>Actualizaciones de Proyecto</Label>
+                <p className="text-sm text-gray-500">Notificaciones sobre cambios en proyectos</p>
                       </div>
                       <Switch
-                        id="lowCompletionAlerts"
-                        checked={notificationSettings.lowCompletionAlerts}
-                        onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, lowCompletionAlerts: checked }))}
+                checked={settings.projectUpdates}
+                onCheckedChange={(checked) => handleSettingChange('projectUpdates', checked)}
                       />
                     </div>
+          </CardContent>
+        </Card>
+        */}
+
+        {/* Preferencias Regionales */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Globe className="h-5 w-5" />
+              <span>Región e Idioma</span>
+            </CardTitle>
+            <CardDescription>
+              Configura tu zona horaria, país e idioma preferido
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Idioma</Label>
+              <Select
+                value={settings.language}
+                onValueChange={(value) => handleSettingChange('language', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languages.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      <div className="flex items-center space-x-2">
+                        <span>{lang.flag}</span>
+                        <span>{lang.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
                   </div>
 
-                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="additionalEmails">Emails adicionales para CC</Label>
-                      <Input
-                        id="additionalEmails"
-                        value={notificationSettings.additionalEmails}
-                        onChange={(e) => setNotificationSettings(prev => ({ ...prev, additionalEmails: e.target.value }))}
-                        placeholder="email1@ejemplo.com, email2@ejemplo.com"
-                      />
-                      <p className="text-sm text-gray-500">Separa múltiples emails con comas</p>
+              <Label>País</Label>
+              <Select
+                value={settings.country}
+                onValueChange={(value) => handleSettingChange('country', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.value} value={country.value}>
+                      <div className="flex items-center space-x-2">
+                        <span>{country.flag}</span>
+                        <span>{country.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="reportFrequency">Frecuencia de reportes automáticos</Label>
+              <Label>Zona Horaria</Label>
                       <Select 
-                        value={notificationSettings.reportFrequency} 
-                        onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, reportFrequency: value }))}
+                value={settings.timezone}
+                onValueChange={(value) => handleSettingChange('timezone', value)}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="daily">Diario</SelectItem>
-                          <SelectItem value="weekly">Semanal</SelectItem>
-                          <SelectItem value="monthly">Mensual</SelectItem>
+                  {timezones.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleNotificationSave}>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Configuración
-                    </Button>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
 
-          {/* Configuración de Alertas por Tipo */}
+        {/* Privacidad - Oculto por el momento */}
+        {/* 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="h-5 w-5" />
-                <span>Configuración de Alertas por Tipo</span>
+              <span>Privacidad</span>
               </CardTitle>
+            <CardDescription>
+              Controla la privacidad de tu información
+            </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { type: 'Sin Actividad', description: 'Hospital sin actividad por más de 30 días', defaultDays: 30 },
-                  { type: 'Baja Completitud', description: 'Completitud de casos menor al 70%', defaultDays: 7 },
-                  { type: 'Período Próximo', description: 'Período de reclutamiento en 7 días', defaultDays: 7 },
-                  { type: 'Ética Pendiente', description: 'Aprobación ética pendiente por más de 60 días', defaultDays: 60 }
-                ].map((alertType, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">{alertType.type}</div>
-                      <div className="text-sm text-gray-500">{alertType.description}</div>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Visibilidad del Perfil</Label>
+              <Select
+                value={settings.profileVisibility}
+                onValueChange={(value) => handleSettingChange('profileVisibility', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Público</SelectItem>
+                  <SelectItem value="private">Privado</SelectItem>
+                  <SelectItem value="team">Solo Equipo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Compartir Datos</Label>
+                <p className="text-sm text-gray-500">Permitir uso de datos para mejoras del sistema</p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Input 
-                        type="number" 
-                        defaultValue={alertType.defaultDays}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-gray-500">días</span>
+              <Switch
+                checked={settings.dataSharing}
+                onCheckedChange={(checked) => handleSettingChange('dataSharing', checked)}
+              />
                     </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Análisis de Uso</Label>
+                <p className="text-sm text-gray-500">Recopilar datos de uso para estadísticas</p>
                   </div>
-                ))}
+              <Switch
+                checked={settings.analyticsTracking}
+                onCheckedChange={(checked) => handleSettingChange('analyticsTracking', checked)}
+              />
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        */}
 
-        {/* Templates de Email */}
-        <TabsContent value="templates">
+        {/* Cambio de Contraseña */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
-                  <Mail className="h-5 w-5" />
-                  <span>Templates de Email</span>
+              <Shield className="h-5 w-5" />
+              <span>Seguridad</span>
                 </CardTitle>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nuevo Template
+            <CardDescription>
+              Cambia tu contraseña para mantener tu cuenta segura
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Contraseña Actual</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  placeholder="Ingresa tu contraseña actual"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {emailTemplates.map((template) => (
-                    <div key={template.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{template.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">{template.subject}</div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {template.is_default ? 'Template por defecto' : 'Template personalizado'}
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nueva Contraseña</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          Ver
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                  placeholder="Repite tu nueva contraseña"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+
+            <Button onClick={changePassword} disabled={isLoading} className="w-full">
+              {isLoading ? 'Cambiando...' : 'Cambiar Contraseña'}
+            </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+      </div>
+
+      {/* Botón de Guardar */}
+      <div className="flex justify-end">
+        <Button onClick={saveSettings} disabled={isLoading} size="lg">
+          <Save className="h-4 w-4 mr-2" />
+          {isLoading ? 'Guardando...' : 'Guardar Configuración'}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [hasShownPasswordModal, setHasShownPasswordModal] = useState(false);
 
   const isAuthenticated = !!user;
 
@@ -25,6 +26,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  const checkPendingInvitations = async (userId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/coordinator/invitations/pending?userId=${userId}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.success && data.invitations && data.invitations.length > 0;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking pending invitations:', error);
+      return false;
+    }
+  };
 
   const checkAuth = async () => {
     try {
@@ -38,9 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Auth response data:', data);
         if (data.success) {
           setUser(data.user);
-          // Mostrar modal de cambio de contraseña si es temporal
-          if (data.user.isTemporaryPassword) {
+          // Mostrar modal de cambio de contraseña si es temporal y no se ha mostrado antes
+          if (data.user.isTemporaryPassword && !hasShownPasswordModal) {
             setShowChangePasswordModal(true);
+            setHasShownPasswordModal(true);
           }
         }
       } else {
@@ -74,6 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.success) {
         setUser(data.user);
         
+        // Verificar si el usuario tiene invitaciones pendientes
+        if (data.user.role === 'coordinator') {
+          const hasPendingInvitations = await checkPendingInvitations(data.user.id);
+          if (hasPendingInvitations) {
+            window.location.href = '/es/coordinator/pending-invitations';
+            return true;
+          }
+        }
+        
         // Redirigir según el rol después del login exitoso
         if (data.user.role === 'admin') {
           window.location.href = '/es/admin';
@@ -104,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      setHasShownPasswordModal(false); // Resetear el flag al hacer logout
     }
   };
 
@@ -113,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handlePasswordChangeSuccess = async () => {
     setShowChangePasswordModal(false);
+    setHasShownPasswordModal(false); // Resetear el flag para futuras sesiones
     // Refrescar el usuario para obtener los datos actualizados
     await refreshUser();
   };
