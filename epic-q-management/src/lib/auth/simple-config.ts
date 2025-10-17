@@ -12,11 +12,11 @@ export const simpleAuthOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log('Authorize called with:', credentials?.email);
         // Simple test user for now
-        if (credentials?.email === "admin@epic-q.com" && credentials?.password === "Admin123!") {
+        if (credentials?.email === "demo@epic-q.com" && credentials?.password === "demo123") {
           return {
             id: "1",
-            email: "admin@epic-q.com",
-            name: "Admin",
+            email: "demo@epic-q.com",
+            name: "Usuario Demo",
             role: "admin"
           };
         }

@@ -28,8 +28,8 @@ export default function LoginPage() {
     const success = await login({ email, password });
 
     if (success) {
-      // Redirigir según el rol
-      router.push('/es/admin'); // Por ahora siempre a admin, después se puede mejorar
+      // La redirección se manejará automáticamente por el AuthGuard
+      // No necesitamos redirigir manualmente aquí
     } else {
       setError('Credenciales inválidas');
     }
@@ -120,7 +120,7 @@ export default function LoginPage() {
             <div className="mt-4 text-center text-sm text-gray-600">
               <p>{t('auth.login.demoCredentials')}</p>
               <p className="font-mono text-xs mt-2">
-                Admin: admin@epic-q.com / Admin123!
+                Admin: demo@epic-q.com / demo123
               </p>
             </div>
           </CardContent>

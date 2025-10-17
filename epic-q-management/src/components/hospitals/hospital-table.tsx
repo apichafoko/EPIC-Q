@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MoreHorizontal, Eye, Edit, Mail, Phone } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Mail, Phone, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -23,6 +23,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Hospital, statusConfig } from '@/types';
 
 interface HospitalTableProps {
@@ -46,6 +56,9 @@ export function HospitalTable({
 }: HospitalTableProps) {
   const [sortField, setSortField] = useState<keyof Hospital>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showPeriodsModal, setShowPeriodsModal] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [requiredPeriods, setRequiredPeriods] = useState(2);
 
   const handleSort = (field: keyof Hospital) => {
     if (sortField === field) {
@@ -53,6 +66,40 @@ export function HospitalTable({
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const handleEditPeriods = (hospital: Hospital) => {
+    setSelectedHospital(hospital);
+    setRequiredPeriods(hospital.required_periods || 2);
+    setShowPeriodsModal(true);
+  };
+
+  const handleSavePeriods = async () => {
+    if (!selectedHospital) return;
+    
+    try {
+      const response = await fetch(`/api/hospitals/${selectedHospital.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          required_periods: requiredPeriods
+        }),
+      });
+
+      if (response.ok) {
+        // Actualizar la lista de hospitales
+        window.location.reload();
+      } else {
+        console.error('Error updating periods');
+      }
+    } catch (error) {
+      console.error('Error updating periods:', error);
+    } finally {
+      setShowPeriodsModal(false);
+      setSelectedHospital(null);
     }
   };
 
@@ -142,6 +189,12 @@ export function HospitalTable({
               <TableHead>Coordinador</TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-gray-50"
+                onClick={() => handleSort('required_periods')}
+              >
+                Períodos Req.
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('progress_percentage')}
               >
                 Progreso
@@ -166,6 +219,7 @@ export function HospitalTable({
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div></TableCell>
+                  <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
@@ -196,6 +250,12 @@ export function HospitalTable({
                   <TableCell>{getStatusBadge(hospital.status)}</TableCell>
                   <TableCell>
                     <div className="font-medium text-sm">{coordinator}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm font-medium">{hospital.required_periods || 2}</span>
+                      <span className="text-xs text-gray-500">períodos</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -242,6 +302,10 @@ export function HospitalTable({
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditPeriods(hospital)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configurar Períodos
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
@@ -307,6 +371,43 @@ export function HospitalTable({
           </Button>
         </div>
       </div>
+
+      {/* Modal para configurar períodos */}
+      <Dialog open={showPeriodsModal} onOpenChange={setShowPeriodsModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar Períodos de Reclutamiento</DialogTitle>
+            <DialogDescription>
+              Define cuántos períodos de reclutamiento debe completar {selectedHospital?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="periods">Períodos Requeridos</Label>
+              <Input
+                id="periods"
+                type="number"
+                min="1"
+                max="10"
+                value={requiredPeriods}
+                onChange={(e) => setRequiredPeriods(parseInt(e.target.value) || 1)}
+                className="w-full"
+              />
+              <p className="text-sm text-gray-500">
+                El coordinador deberá crear {requiredPeriods} período{requiredPeriods !== 1 ? 's' : ''} de reclutamiento
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPeriodsModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePeriods}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -13,7 +13,18 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
       );
     }
 
-    const stats = await CoordinatorService.getCoordinatorStats(user.id);
+    // Obtener projectId del header o query params
+    const projectId = request.headers.get('x-project-id') || 
+                     new URL(request.url).searchParams.get('projectId');
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: 'Project ID es requerido' },
+        { status: 400 }
+      );
+    }
+
+    const stats = await CoordinatorService.getCoordinatorStats(user.id, projectId);
 
     return NextResponse.json({
       success: true,

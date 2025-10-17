@@ -7,13 +7,17 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx src/lib/seed.ts",
     "db:setup": "node scripts/setup-db.js",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset --force && npm run db:seed"
+    "db:reset": "prisma migrate reset --force && npm run db:seed",
+    "db:optimize": "node scripts/optimize-database.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.911.0",
@@ -39,11 +43,14 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.15.5",
+    "@types/xlsx": "^0.0.35",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.3",
     "lucide-react": "^0.545.0",
     "next": "15.5.5",
     "next-intl": "^4.3.12",
@@ -60,6 +67,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {

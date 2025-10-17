@@ -19,34 +19,71 @@ export interface CoordinatorStats {
     type: string;
     createdAt: Date;
   }>;
+  hospital?: any; // Hospital con progress incluido
 }
 
 export class CoordinatorService {
-  static async getCoordinatorStats(userId: string): Promise<CoordinatorStats> {
+  static async getCoordinatorStats(userId: string, projectId: string): Promise<CoordinatorStats> {
     try {
-      // Obtener el usuario y su hospital
+      // Obtener el usuario y verificar que esté en el proyecto
       const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          hospital: true
-        }
+        where: { id: userId }
       });
 
-      if (!user || !user.hospital) {
-        throw new Error('Usuario o hospital no encontrado');
+      if (!user) {
+        throw new Error('Usuario no encontrado');
       }
 
-      const hospitalId = user.hospital.id;
-
-      // Obtener información completa del hospital para el formulario
-      const hospital = await prisma.hospital.findUnique({
-        where: { id: hospitalId },
+      // Obtener la relación ProjectCoordinator para el proyecto actual
+      const projectCoordinator = await prisma.projectCoordinator.findFirst({
+        where: {
+          user_id: userId,
+          project_id: projectId,
+          is_active: true
+        },
         include: {
-          details: true,
-          contacts: true,
-          progress: true
+          hospital: true,
+          project: true
         }
       });
+
+      if (!projectCoordinator || !projectCoordinator.hospital) {
+        throw new Error('Usuario no está asignado a este proyecto o hospital no encontrado');
+      }
+
+      const hospitalId = projectCoordinator.hospital.id;
+
+      // Obtener ProjectHospital con toda la información relacionada
+      const projectHospital = await prisma.projectHospital.findFirst({
+        where: {
+          project_id: projectId,
+          hospital_id: hospitalId
+        },
+        include: {
+          hospital: {
+            include: {
+              details: true,
+              contacts: true
+            }
+          },
+          progress: true,
+          recruitment_periods: {
+            orderBy: { period_number: 'asc' }
+          }
+        }
+      });
+
+      if (!projectHospital) {
+        throw new Error('Hospital no está asignado a este proyecto');
+      }
+
+      const hospital = projectHospital.hospital;
+      const progress = projectHospital.progress;
+      const recruitmentPeriods = projectHospital.recruitment_periods;
+
+      // Verificar si existen períodos asignados
+      const hasPeriod1 = recruitmentPeriods.some(period => period.period_number === 1);
+      const hasPeriod2 = recruitmentPeriods.some(period => period.period_number === 2);
 
       // Definir campos críticos del formulario del hospital
       const criticalFields = [
@@ -67,7 +104,7 @@ export class CoordinatorService {
         { key: 'has_preop_clinic', label: 'Clínica Preoperatoria', value: hospital?.details?.has_preop_clinic },
         { key: 'has_residency_program', label: 'Programa de Residencia', value: hospital?.details?.has_residency_program },
         { key: 'has_rapid_response_team', label: 'Equipo de Respuesta Rápida', value: hospital?.details?.has_rapid_response_team },
-        { key: 'has_ethics_committee', label: 'Comité de Ética', value: hospital?.details?.has_ethics_committee },
+        { key: 'has_ethics_committee', label: 'Tiene Comité de Ética', value: hospital?.details?.has_ethics_committee },
         { key: 'university_affiliated', label: 'Afiliado a Universidad', value: hospital?.details?.university_affiliated },
         { key: 'notes', label: 'Notas Adicionales', value: hospital?.details?.notes },
         
@@ -77,16 +114,13 @@ export class CoordinatorService {
         { key: 'coordinator_phone', label: 'Teléfono del Coordinador', value: hospital?.contacts?.find(c => c.is_primary)?.phone },
         { key: 'coordinator_role', label: 'Cargo del Coordinador', value: hospital?.contacts?.find(c => c.is_primary)?.role },
         
-        // === PROGRESO DEL COMITÉ DE ÉTICA ===
-        { key: 'descriptive_form_status', label: 'Estado del Formulario Descriptivo', value: hospital?.progress?.descriptive_form_status },
-        { key: 'ethics_submitted', label: 'Ética Presentada', value: hospital?.progress?.ethics_submitted },
-        { key: 'ethics_approved', label: 'Ética Aprobada', value: hospital?.progress?.ethics_approved },
-        { key: 'redcap_unit_created', label: 'Unidad RedCap Creada', value: hospital?.progress?.redcap_unit_created },
-        { key: 'coordinator_user_created', label: 'Usuario Coordinador Creado', value: hospital?.progress?.coordinator_user_created },
-        { key: 'collaborator_users_created', label: 'Usuarios Colaboradores Creados', value: hospital?.progress?.collaborator_users_created },
-        { key: 'ready_for_recruitment', label: 'Listo para Reclutamiento', value: hospital?.progress?.ready_for_recruitment },
-        { key: 'dates_assigned_period1', label: 'Fechas Asignadas Período 1', value: hospital?.progress?.dates_assigned_period1 },
-        { key: 'dates_assigned_period2', label: 'Fechas Asignadas Período 2', value: hospital?.progress?.dates_assigned_period2 }
+        // === PROGRESO DEL COMITÉ DE ÉTICA (Solo campos del coordinador) ===
+        { key: 'ethics_submitted', label: 'Presentación al Comité de Ética', value: progress?.ethics_submitted },
+        { key: 'ethics_approved', label: 'Aprobación del Comité de Ética', value: progress?.ethics_approved },
+        
+        // === PERÍODOS DE RECLUTAMIENTO (Verificados dinámicamente) ===
+        { key: 'dates_assigned_period1', label: 'Fechas Asignadas Período 1', value: hasPeriod1 },
+        { key: 'dates_assigned_period2', label: 'Fechas Asignadas Período 2', value: hasPeriod2 }
       ];
 
       const completedFields = criticalFields.filter(field => 
@@ -108,9 +142,9 @@ export class CoordinatorService {
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-      const upcomingPeriods = await prisma.recruitmentPeriod.count({
+      const upcomingPeriods = await prisma.projectRecruitmentPeriod.count({
         where: {
-          hospital_id: hospitalId,
+          project_hospital_id: projectHospital.id,
           start_date: {
             gte: new Date(),
             lte: thirtyDaysFromNow
@@ -163,7 +197,13 @@ export class CoordinatorService {
           message: notification.message,
           type: notification.type,
           createdAt: notification.created_at
-        }))
+        })),
+        hospital: {
+          ...hospital,
+          progress: progress,
+          projectHospital: projectHospital,
+          requiredPeriods: projectHospital.required_periods
+        }
       };
     } catch (error) {
       console.error('Error fetching coordinator stats:', error);

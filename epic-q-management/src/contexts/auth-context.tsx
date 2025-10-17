@@ -73,6 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success) {
         setUser(data.user);
+        
+        // Redirigir según el rol después del login exitoso
+        if (data.user.role === 'admin') {
+          window.location.href = '/es/admin';
+        } else if (data.user.role === 'coordinator') {
+          window.location.href = '/es/coordinator';
+        }
+        
         return true;
       } else {
         console.error('Login error:', data.error);

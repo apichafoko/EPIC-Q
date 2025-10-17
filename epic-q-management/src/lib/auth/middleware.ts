@@ -86,8 +86,7 @@ export function withCoordinatorAuth(
   handler: (request: NextRequest, context: AuthContext) => Promise<NextResponse> | NextResponse
 ) {
   return withAuth(handler, { 
-    roles: ['coordinator'], 
-    requireHospital: true 
+    roles: ['coordinator']
   });
 }
 

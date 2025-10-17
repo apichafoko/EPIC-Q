@@ -43,14 +43,15 @@ export const createUserSchema = z.object({
     errorMap: () => ({ message: 'Rol no válido' })
   }),
   hospital_id: z.string().optional(),
+  hospital_name: z.string().optional(),
   sendInvitation: z.boolean().optional(),
 }).refine((data) => {
-  if (data.role === 'coordinator' && !data.hospital_id) {
+  if (data.role === 'coordinator' && !data.hospital_id && !data.hospital_name) {
     return false;
   }
   return true;
 }, {
-  message: 'Debe seleccionar un hospital para coordinadores',
+  message: 'Debe seleccionar un hospital existente o ingresar el nombre de un nuevo hospital para coordinadores',
   path: ['hospital_id'],
 });
 

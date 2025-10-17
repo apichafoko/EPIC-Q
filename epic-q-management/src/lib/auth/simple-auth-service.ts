@@ -112,6 +112,42 @@ export class SimpleAuthService {
     }
   }
 
+  static async verifyTokenFromRequest(request: Request): Promise<{ success: boolean; user?: User; error?: string }> {
+    try {
+      const token = request.headers.get('auth-token') || 
+                   request.headers.get('cookie')?.split(';')
+                     .find(c => c.trim().startsWith('auth-token='))
+                     ?.split('=')[1];
+
+      if (!token) {
+        return {
+          success: false,
+          error: 'Token no encontrado'
+        };
+      }
+
+      const user = await this.verifyToken(token);
+      
+      if (!user) {
+        return {
+          success: false,
+          error: 'Token inválido o usuario inactivo'
+        };
+      }
+
+      return {
+        success: true,
+        user
+      };
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return {
+        success: false,
+        error: 'Error al verificar el token'
+      };
+    }
+  }
+
   static async logout(): Promise<void> {
     // En un sistema JWT, el logout se maneja en el cliente
     // eliminando el token del localStorage

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useTranslations } from '@/hooks/useTranslations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,24 +14,34 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Save, CheckCircle } from 'lucide-react';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { toast } from 'sonner';
 
 export default function HospitalFormPage() {
   const { user } = useAuth();
   const { t } = useTranslations();
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [hospitalData, setHospitalData] = useState<any>(null);
+  const [pendingFields, setPendingFields] = useState<string[]>([]);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  
+  // Estados de carga usando el hook personalizado
+  const { isLoading, executeWithLoading: executeWithLoading } = useLoadingState();
+  const { isLoading: isSaving, executeWithLoading: executeWithSaving } = useLoadingState();
   const [formData, setFormData] = useState({
     // Basic Info
-    name: "Hospital General de Agudos Dr. Juan A. Fernández",
-    province: "CABA",
-    city: "Buenos Aires",
+    name: "",
+    province: "",
+    city: "",
     
     // Structural Data
-    numBeds: 0,
-    numOperatingRooms: 0,
-    numIcuBeds: 0,
-    avgWeeklySurgeries: 0,
+    numBeds: "",
+    numOperatingRooms: "",
+    numIcuBeds: "",
+    avgWeeklySurgeries: "",
     hasResidencyProgram: false,
     hasPreopClinic: "",
     hasRapidResponseTeam: false,
@@ -49,29 +60,164 @@ export default function HospitalFormPage() {
   const totalSteps = 3;
   const progress = (currentStep / totalSteps) * 100;
 
+  // Load hospital data
+  useEffect(() => {
+    const loadHospitalData = async () => {
+      if (!user?.hospitalId) return;
+      
+      try {
+        const response = await fetch(`/api/hospitals/${user.hospitalId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHospitalData(data);
+          setFormData(prev => ({
+            ...prev,
+            name: data.name || "",
+            province: data.province || "",
+            city: data.city || "",
+            // Add other fields as needed
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading hospital data:', error);
+      }
+    };
+
+    loadHospitalData();
+  }, [user?.hospitalId]);
+
   const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // Limpiar el campo de la lista de pendientes si se está modificando
+    if (pendingFields.includes(field)) {
+      setPendingFields(prev => prev.filter(f => f !== field));
+    }
+  };
+
+  // Función para validar números entre 0 y 1000
+  const validateNumericInput = (value: string): boolean => {
+    if (value === '') return true; // Permitir campo vacío temporalmente
+    const num = parseInt(value);
+    return !isNaN(num) && num >= 0 && num <= 1000;
+  };
+
+  // Función para manejar cambios en campos numéricos
+  const handleNumericChange = (field: string, value: string) => {
+    if (value === '' || validateNumericInput(value)) {
+      handleInputChange(field, value);
+    }
+  };
+
+  // Función para validar que los campos numéricos estén completos y sean válidos
+  const validateNumericFields = (): boolean => {
+    const numericFields = ['numBeds', 'numOperatingRooms', 'numIcuBeds', 'avgWeeklySurgeries'];
+    return numericFields.every(field => {
+      const value = formData[field as keyof typeof formData];
+      return value !== '' && validateNumericInput(value.toString());
+    });
+  };
+
+  // Función para validar el paso 2 (Datos Estructurales)
+  const validateStep2 = (): { isValid: boolean; pendingFields: string[] } => {
+    const pending: string[] = [];
+    
+    // Validar campos numéricos
+    const numericFields = ['numBeds', 'numOperatingRooms', 'numIcuBeds', 'avgWeeklySurgeries'];
+    numericFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      if (value === '' || !validateNumericInput(value.toString())) {
+        pending.push(field);
+      }
+    });
+
+    // Validar campos de selección
+    if (!formData.financingType) pending.push('financingType');
+    if (!formData.hasPreopClinic) pending.push('hasPreopClinic');
+
+    return {
+      isValid: pending.length === 0,
+      pendingFields: pending
+    };
+  };
+
+  // Función para validar el paso 3 (Coordinador Principal)
+  const validateStep3 = (): { isValid: boolean; pendingFields: string[] } => {
+    const pending: string[] = [];
+    
+    if (!formData.coordinatorName.trim()) pending.push('coordinatorName');
+    if (!formData.coordinatorEmail.trim()) pending.push('coordinatorEmail');
+    if (!formData.coordinatorPhone.trim()) pending.push('coordinatorPhone');
+    if (!formData.coordinatorPosition.trim()) pending.push('coordinatorPosition');
+
+    return {
+      isValid: pending.length === 0,
+      pendingFields: pending
+    };
   };
 
   const handleSave = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
-    } catch (error) {
-      console.error('Error saving form:', error);
-    } finally {
-      setIsLoading(false);
+    if (!user?.hospitalId) {
+      console.error('No hospital ID available');
+      return;
     }
+
+    await executeWithSaving(async () => {
+      const response = await fetch(`/api/hospitals/${user.hospitalId}/form`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsSaved(true);
+        setShowSuccessToast(true);
+        toast.success('Formulario guardado exitosamente');
+        setTimeout(() => {
+          setIsSaved(false);
+          setShowSuccessToast(false);
+        }, 3000);
+      } else {
+        console.error('Error saving form:', data.error);
+        toast.error('Error al guardar el formulario: ' + (data.error || 'Error desconocido'));
+      }
+    });
   };
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
+      let validation: { isValid: boolean; pendingFields: string[] } = { isValid: true, pendingFields: [] };
+      
+      // Validar según el paso actual
+      if (currentStep === 2) {
+        validation = validateStep2();
+      } else if (currentStep === 3) {
+        validation = validateStep3();
+      }
+
+      if (!validation.isValid) {
+        setPendingFields(validation.pendingFields);
+        // Scroll al primer campo pendiente
+        setTimeout(() => {
+          const firstPendingField = document.getElementById(validation.pendingFields[0]);
+          if (firstPendingField) {
+            firstPendingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstPendingField.focus();
+          }
+        }, 100);
+        return;
+      }
+
+      // Limpiar campos pendientes si la validación es exitosa
+      setPendingFields([]);
       setCurrentStep(currentStep + 1);
     }
   };
@@ -80,6 +226,76 @@ export default function HospitalFormPage() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
+  };
+
+  const handleFinish = async () => {
+    // Validar el paso actual antes de finalizar
+    let validation: { isValid: boolean; pendingFields: string[] } = { isValid: true, pendingFields: [] };
+    
+    if (currentStep === 2) {
+      validation = validateStep2();
+    } else if (currentStep === 3) {
+      validation = validateStep3();
+    }
+
+    if (!validation.isValid) {
+      setPendingFields(validation.pendingFields);
+      // Scroll al primer campo pendiente
+      setTimeout(() => {
+        const firstPendingField = document.getElementById(validation.pendingFields[0]);
+        if (firstPendingField) {
+          firstPendingField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstPendingField.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    // Si la validación es exitosa, proceder con el guardado
+    setPendingFields([]);
+    
+    if (!user?.hospitalId) {
+      console.error('No hospital ID available');
+      return;
+    }
+
+    await executeWithSaving(async () => {
+      const response = await fetch(`/api/hospitals/${user.hospitalId}/form`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setShowSuccessToast(true);
+        toast.success('Formulario completado exitosamente');
+        // Redirigir después de mostrar el toast de éxito
+        setTimeout(() => {
+          router.push('/es/coordinator');
+        }, 2000);
+      } else {
+        console.error('Error saving form:', data.error);
+        toast.error('Error al guardar el formulario: ' + (data.error || 'Error desconocido'));
+      }
+    });
+  };
+
+  // Función auxiliar para determinar si un campo está pendiente
+  const isFieldPending = (fieldName: string): boolean => {
+    return pendingFields.includes(fieldName);
+  };
+
+  // Función auxiliar para obtener clases CSS de un campo
+  const getFieldClasses = (fieldName: string, baseClasses: string = ""): string => {
+    const pendingClasses = isFieldPending(fieldName) 
+      ? "border-red-500 bg-red-50 ring-2 ring-red-200" 
+      : "";
+    return `${baseClasses} ${pendingClasses}`.trim();
   };
 
   const renderStep1 = () => (
@@ -136,53 +352,91 @@ export default function HospitalFormPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="numBeds">Número de Camas</Label>
+          <Label htmlFor="numBeds" className={isFieldPending('numBeds') ? 'text-red-600 font-medium' : ''}>
+            Número de Camas {isFieldPending('numBeds') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="numBeds"
-            type="number"
+            type="text"
             value={formData.numBeds}
-            onChange={(e) => handleInputChange('numBeds', parseInt(e.target.value) || 0)}
+            onChange={(e) => handleNumericChange('numBeds', e.target.value)}
             placeholder="Ej: 200"
+            className={getFieldClasses('numBeds', formData.numBeds && !validateNumericInput(formData.numBeds.toString()) ? 'border-red-500' : '')}
           />
+          {formData.numBeds && !validateNumericInput(formData.numBeds.toString()) && (
+            <p className="text-sm text-red-500">Debe ser un número entre 0 y 1000</p>
+          )}
+          {isFieldPending('numBeds') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="numOperatingRooms">Quirófanos</Label>
+          <Label htmlFor="numOperatingRooms" className={isFieldPending('numOperatingRooms') ? 'text-red-600 font-medium' : ''}>
+            Quirófanos {isFieldPending('numOperatingRooms') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="numOperatingRooms"
-            type="number"
+            type="text"
             value={formData.numOperatingRooms}
-            onChange={(e) => handleInputChange('numOperatingRooms', parseInt(e.target.value) || 0)}
+            onChange={(e) => handleNumericChange('numOperatingRooms', e.target.value)}
             placeholder="Ej: 8"
+            className={getFieldClasses('numOperatingRooms', formData.numOperatingRooms && !validateNumericInput(formData.numOperatingRooms.toString()) ? 'border-red-500' : '')}
           />
+          {formData.numOperatingRooms && !validateNumericInput(formData.numOperatingRooms.toString()) && (
+            <p className="text-sm text-red-500">Debe ser un número entre 0 y 1000</p>
+          )}
+          {isFieldPending('numOperatingRooms') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="numIcuBeds">Camas de UCI</Label>
+          <Label htmlFor="numIcuBeds" className={isFieldPending('numIcuBeds') ? 'text-red-600 font-medium' : ''}>
+            Camas de UCI {isFieldPending('numIcuBeds') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="numIcuBeds"
-            type="number"
+            type="text"
             value={formData.numIcuBeds}
-            onChange={(e) => handleInputChange('numIcuBeds', parseInt(e.target.value) || 0)}
+            onChange={(e) => handleNumericChange('numIcuBeds', e.target.value)}
             placeholder="Ej: 20"
+            className={getFieldClasses('numIcuBeds', formData.numIcuBeds && !validateNumericInput(formData.numIcuBeds.toString()) ? 'border-red-500' : '')}
           />
+          {formData.numIcuBeds && !validateNumericInput(formData.numIcuBeds.toString()) && (
+            <p className="text-sm text-red-500">Debe ser un número entre 0 y 1000</p>
+          )}
+          {isFieldPending('numIcuBeds') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="avgWeeklySurgeries">Cirugías Semanales Promedio</Label>
+          <Label htmlFor="avgWeeklySurgeries" className={isFieldPending('avgWeeklySurgeries') ? 'text-red-600 font-medium' : ''}>
+            Cirugías Semanales Promedio {isFieldPending('avgWeeklySurgeries') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="avgWeeklySurgeries"
-            type="number"
+            type="text"
             value={formData.avgWeeklySurgeries}
-            onChange={(e) => handleInputChange('avgWeeklySurgeries', parseInt(e.target.value) || 0)}
+            onChange={(e) => handleNumericChange('avgWeeklySurgeries', e.target.value)}
             placeholder="Ej: 50"
+            className={getFieldClasses('avgWeeklySurgeries', formData.avgWeeklySurgeries && !validateNumericInput(formData.avgWeeklySurgeries.toString()) ? 'border-red-500' : '')}
           />
+          {formData.avgWeeklySurgeries && !validateNumericInput(formData.avgWeeklySurgeries.toString()) && (
+            <p className="text-sm text-red-500">Debe ser un número entre 0 y 1000</p>
+          )}
+          {isFieldPending('avgWeeklySurgeries') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="financingType">Tipo de Financiamiento</Label>
+          <Label htmlFor="financingType" className={isFieldPending('financingType') ? 'text-red-600 font-medium' : ''}>
+            Tipo de Financiamiento {isFieldPending('financingType') && <span className="text-red-500">*</span>}
+          </Label>
           <Select value={formData.financingType} onValueChange={(value) => handleInputChange('financingType', value)}>
-            <SelectTrigger>
+            <SelectTrigger className={getFieldClasses('financingType')}>
               <SelectValue placeholder="Seleccionar tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -191,12 +445,17 @@ export default function HospitalFormPage() {
               <SelectItem value="mixed">Mixto</SelectItem>
             </SelectContent>
           </Select>
+          {isFieldPending('financingType') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="hasPreopClinic">Clínica Preoperatoria</Label>
+          <Label htmlFor="hasPreopClinic" className={isFieldPending('hasPreopClinic') ? 'text-red-600 font-medium' : ''}>
+            Clínica Preoperatoria {isFieldPending('hasPreopClinic') && <span className="text-red-500">*</span>}
+          </Label>
           <Select value={formData.hasPreopClinic} onValueChange={(value) => handleInputChange('hasPreopClinic', value)}>
-            <SelectTrigger>
+            <SelectTrigger className={getFieldClasses('hasPreopClinic')}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent>
@@ -205,6 +464,9 @@ export default function HospitalFormPage() {
               <SelectItem value="partial">Parcial</SelectItem>
             </SelectContent>
           </Select>
+          {isFieldPending('hasPreopClinic') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
       </div>
 
@@ -273,44 +535,68 @@ export default function HospitalFormPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="coordinatorName">Nombre Completo</Label>
+          <Label htmlFor="coordinatorName" className={isFieldPending('coordinatorName') ? 'text-red-600 font-medium' : ''}>
+            Nombre Completo {isFieldPending('coordinatorName') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="coordinatorName"
             value={formData.coordinatorName}
             onChange={(e) => handleInputChange('coordinatorName', e.target.value)}
             placeholder="Ej: Dr. Juan Pérez"
+            className={getFieldClasses('coordinatorName')}
           />
+          {isFieldPending('coordinatorName') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="coordinatorEmail">Correo Electrónico</Label>
+          <Label htmlFor="coordinatorEmail" className={isFieldPending('coordinatorEmail') ? 'text-red-600 font-medium' : ''}>
+            Correo Electrónico {isFieldPending('coordinatorEmail') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="coordinatorEmail"
             type="email"
             value={formData.coordinatorEmail}
             onChange={(e) => handleInputChange('coordinatorEmail', e.target.value)}
             placeholder="coordinador@hospital.com"
+            className={getFieldClasses('coordinatorEmail')}
           />
+          {isFieldPending('coordinatorEmail') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="coordinatorPhone">Teléfono</Label>
+          <Label htmlFor="coordinatorPhone" className={isFieldPending('coordinatorPhone') ? 'text-red-600 font-medium' : ''}>
+            Teléfono {isFieldPending('coordinatorPhone') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="coordinatorPhone"
             value={formData.coordinatorPhone}
             onChange={(e) => handleInputChange('coordinatorPhone', e.target.value)}
             placeholder="+54 11 1234-5678"
+            className={getFieldClasses('coordinatorPhone')}
           />
+          {isFieldPending('coordinatorPhone') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="coordinatorPosition">Cargo</Label>
+          <Label htmlFor="coordinatorPosition" className={isFieldPending('coordinatorPosition') ? 'text-red-600 font-medium' : ''}>
+            Cargo {isFieldPending('coordinatorPosition') && <span className="text-red-500">*</span>}
+          </Label>
           <Input
             id="coordinatorPosition"
             value={formData.coordinatorPosition}
             onChange={(e) => handleInputChange('coordinatorPosition', e.target.value)}
             placeholder="Ej: Jefe de Cirugía"
+            className={getFieldClasses('coordinatorPosition')}
           />
+          {isFieldPending('coordinatorPosition') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
         </div>
       </div>
     </div>
@@ -376,28 +662,25 @@ export default function HospitalFormPage() {
         </Button>
 
         <div className="flex space-x-2">
-          <Button
+          <LoadingButton
             variant="outline"
             onClick={handleSave}
-            disabled={isLoading}
+            loading={isSaving}
+            loadingText="Guardando..."
           >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
+            <Save className="mr-2 h-4 w-4" />
             Guardar Borrador
-          </Button>
+          </LoadingButton>
 
           {currentStep < totalSteps ? (
             <Button onClick={handleNext}>
               Siguiente
             </Button>
           ) : (
-            <Button>
+            <LoadingButton onClick={handleFinish} loading={isSaving} loadingText="Finalizando...">
               <CheckCircle className="mr-2 h-4 w-4" />
               Finalizar
-            </Button>
+            </LoadingButton>
           )}
         </div>
       </div>
@@ -410,6 +693,18 @@ export default function HospitalFormPage() {
             Formulario guardado exitosamente
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Alert className="bg-green-50 border-green-200 text-green-800">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="font-medium">
+              ¡Formulario completado exitosamente! Redirigiendo...
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
     </div>
   );

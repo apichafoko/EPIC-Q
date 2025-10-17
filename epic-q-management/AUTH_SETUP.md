@@ -153,8 +153,8 @@ node scripts/verify-system.js
 ### 1. Usuarios de Prueba
 
 **Administrador:**
-- Email: `admin@epic-q.com`
-- Contraseña: `Admin123!`
+- Email: `demo@epic-q.com`
+- Contraseña: `demo123`
 
 **Coordinador:**
 - Email: `coordinator@epic-q.com`

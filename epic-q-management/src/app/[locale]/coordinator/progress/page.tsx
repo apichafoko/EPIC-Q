@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from '@/hooks/useTranslations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from '@/components/ui/modal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Calendar as CalendarIcon, 
   Upload, 
@@ -19,10 +21,16 @@ import {
   CheckCircle, 
   Clock, 
   AlertCircle,
-  Download
+  Download,
+  Edit,
+  Save,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { toast } from 'sonner';
 
 export default function CoordinatorProgressPage() {
   const { t } = useTranslations();
@@ -36,13 +44,128 @@ export default function CoordinatorProgressPage() {
     recruitmentEndDate: null as Date | null,
     recruitmentPeriods: [] as Array<{
       id: string;
+      periodNumber: number;
       startDate: Date;
       endDate: Date;
       status: 'planned' | 'active' | 'completed';
     }>
   });
+  const [hospitalInfo, setHospitalInfo] = useState({
+    requiredPeriods: 2
+  });
 
-  const [showCalendar, setShowCalendar] = useState<'ethicsSubmitted' | 'ethicsApproved' | 'recruitmentStart' | 'recruitmentEnd' | null>(null);
+  const [showCalendar, setShowCalendar] = useState<'ethicsSubmitted' | 'ethicsApproved' | 'recruitmentStart' | 'recruitmentEnd' | 'editStart' | 'editEnd' | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPeriod, setEditingPeriod] = useState<{
+    id: string;
+    periodNumber: number;
+    startDate: Date;
+    endDate: Date;
+    status: 'planned' | 'active' | 'completed';
+  } | null>(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showDeleteConfirmToast, setShowDeleteConfirmToast] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState<string | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // Estados de carga usando el hook personalizado
+  const { isLoading, executeWithLoading: executeWithLoading } = useLoadingState();
+  const { isLoading: isSavingEthics, executeWithLoading: executeWithSavingEthics } = useLoadingState();
+  const { isLoading: isSavingPeriod, executeWithLoading: executeWithSavingPeriod } = useLoadingState();
+  const { isLoading: isDeletingPeriod, executeWithLoading: executeWithDeletingPeriod } = useLoadingState();
+
+  // Cargar períodos de reclutamiento y información de ética al montar el componente
+  useEffect(() => {
+    const loadAllData = async () => {
+      setIsInitialLoading(true);
+      try {
+        await Promise.all([
+          loadRecruitmentPeriods(),
+          loadEthicsInformation(),
+          loadHospitalInfo()
+        ]);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+    
+    loadAllData();
+  }, []);
+
+  const loadRecruitmentPeriods = async () => {
+    try {
+      const response = await fetch('/api/coordinator/recruitment-periods', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setProgressData(prev => ({
+            ...prev,
+            recruitmentPeriods: data.periods.map((period: any) => ({
+              id: period.id,
+              periodNumber: period.periodNumber,
+              startDate: new Date(period.startDate),
+              endDate: new Date(period.endDate),
+              status: period.status
+            }))
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading recruitment periods:', error);
+    }
+  };
+
+  const loadEthicsInformation = async () => {
+    try {
+      const response = await fetch('/api/coordinator/stats', {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.hospital && data.data.hospital.progress) {
+          const progress = data.data.hospital.progress;
+          setProgressData(prev => ({
+            ...prev,
+            ethicsSubmitted: progress.ethics_submitted || false,
+            ethicsApproved: progress.ethics_approved || false,
+            ethicsSubmittedDate: progress.ethics_submitted_date ? new Date(progress.ethics_submitted_date) : null,
+            ethicsApprovedDate: progress.ethics_approved_date ? new Date(progress.ethics_approved_date) : null,
+          }));
+        }
+      } else {
+        console.error('Error loading ethics information:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading ethics information:', error);
+    }
+  };
+
+  const loadHospitalInfo = async () => {
+    try {
+      const response = await fetch('/api/coordinator/stats', {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data.hospital) {
+          setHospitalInfo({
+            requiredPeriods: data.data.hospital.required_periods || 2
+          });
+        }
+      } else {
+        console.error('Error loading hospital info:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error loading hospital info:', error);
+    }
+  };
 
   const handleCheckboxChange = (field: string, checked: boolean) => {
     setProgressData(prev => ({
@@ -53,10 +176,21 @@ export default function CoordinatorProgressPage() {
 
   const handleDateChange = (field: string, date: Date | undefined) => {
     if (date) {
-      setProgressData(prev => ({
-        ...prev,
-        [field]: date
-      }));
+      if (field === 'editStart' || field === 'editEnd') {
+        // Manejar fechas del modal de edición
+        if (editingPeriod) {
+          setEditingPeriod(prev => ({
+            ...prev!,
+            [field === 'editStart' ? 'startDate' : 'endDate']: date
+          }));
+        }
+      } else {
+        // Manejar fechas del formulario principal
+        setProgressData(prev => ({
+          ...prev,
+          [field]: date
+        }));
+      }
     }
     setShowCalendar(null);
   };
@@ -71,22 +205,191 @@ export default function CoordinatorProgressPage() {
     }
   };
 
-  const addRecruitmentPeriod = () => {
-    if (progressData.recruitmentStartDate && progressData.recruitmentEndDate) {
-      const newPeriod = {
-        id: Date.now().toString(),
-        startDate: progressData.recruitmentStartDate,
-        endDate: progressData.recruitmentEndDate,
-        status: 'planned' as const
-      };
-      
-      setProgressData(prev => ({
-        ...prev,
-        recruitmentPeriods: [...prev.recruitmentPeriods, newPeriod],
-        recruitmentStartDate: null,
-        recruitmentEndDate: null
-      }));
+  const addRecruitmentPeriod = async () => {
+    if (!progressData.recruitmentStartDate || !progressData.recruitmentEndDate) {
+      return;
     }
+
+    // Validar fechas del lado del cliente
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (progressData.recruitmentStartDate < today) {
+      showError('La fecha de inicio no puede ser menor a la fecha actual');
+      return;
+    }
+
+    if (progressData.recruitmentEndDate <= progressData.recruitmentStartDate) {
+      showError('La fecha de fin debe ser posterior a la fecha de inicio');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/coordinator/recruitment-periods', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          startDate: progressData.recruitmentStartDate.toISOString(),
+          endDate: progressData.recruitmentEndDate.toISOString(),
+          status: 'planned'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Recargar períodos desde la base de datos
+        await loadRecruitmentPeriods();
+        
+        // Limpiar fechas
+        setProgressData(prev => ({
+          ...prev,
+          recruitmentStartDate: null,
+          recruitmentEndDate: null
+        }));
+
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        console.error('Error creating period:', data.error);
+        showError('Error al crear el período: ' + (data.error || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('Error creating period:', error);
+      showError('Error al crear el período. Por favor, inténtalo de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditPeriod = (period: any) => {
+    setEditingPeriod(period);
+    setShowEditModal(true);
+  };
+
+  const handleUpdatePeriod = async () => {
+    if (!editingPeriod) return;
+
+    // Validar fechas del lado del cliente
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (editingPeriod.startDate < today) {
+      showError('La fecha de inicio no puede ser menor a la fecha actual');
+      return;
+    }
+
+    if (editingPeriod.endDate <= editingPeriod.startDate) {
+      showError('La fecha de fin debe ser posterior a la fecha de inicio');
+      return;
+    }
+
+    await executeWithSavingPeriod(async () => {
+      const response = await fetch(`/api/coordinator/recruitment-periods/${editingPeriod.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          startDate: editingPeriod.startDate.toISOString(),
+          endDate: editingPeriod.endDate.toISOString()
+          // El estado se calcula automáticamente en el servidor
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Recargar períodos desde la base de datos
+        await loadRecruitmentPeriods();
+        setShowEditModal(false);
+        setEditingPeriod(null);
+        setShowSuccessToast(true);
+        toast.success('Período actualizado exitosamente');
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        console.error('Error updating period:', data.error);
+        toast.error('Error al actualizar el período: ' + (data.error || 'Error desconocido'));
+      }
+    });
+  };
+
+  const handleDeletePeriod = (periodId: string) => {
+    setPeriodToDelete(periodId);
+    setShowDeleteConfirmToast(true);
+  };
+
+  const confirmDeletePeriod = async () => {
+    if (!periodToDelete) return;
+    
+    await executeWithDeletingPeriod(async () => {
+      const response = await fetch(`/api/coordinator/recruitment-periods/${periodToDelete}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        await loadRecruitmentPeriods();
+        setShowSuccessToast(true);
+        toast.success('Período eliminado exitosamente');
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        console.error('Error deleting period:', data.error);
+        toast.error('Error al eliminar el período: ' + (data.error || 'Error desconocido'));
+      }
+    });
+    
+    setShowDeleteConfirmToast(false);
+    setPeriodToDelete(null);
+  };
+
+  const cancelDeletePeriod = () => {
+    setShowDeleteConfirmToast(false);
+    setPeriodToDelete(null);
+  };
+
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    setShowErrorToast(true);
+    setTimeout(() => setShowErrorToast(false), 5000);
+  };
+
+  const saveEthicsInformation = async () => {
+    await executeWithSavingEthics(async () => {
+      const response = await fetch('/api/coordinator/ethics', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ethicsSubmitted: progressData.ethicsSubmitted,
+          ethicsApproved: progressData.ethicsApproved,
+          ethicsSubmittedDate: progressData.ethicsSubmittedDate,
+          ethicsApprovedDate: progressData.ethicsApprovedDate,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setShowSuccessToast(true);
+        toast.success('Información de ética guardada exitosamente');
+        setTimeout(() => setShowSuccessToast(false), 3000);
+        // Recargar la información de ética para mostrar los cambios
+        await loadEthicsInformation();
+      } else {
+        console.error('Error saving ethics information:', data.error);
+        toast.error('Error al guardar la información de ética: ' + (data.error || 'Error desconocido'));
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -94,7 +397,7 @@ export default function CoordinatorProgressPage() {
       case 'completed':
         return <Badge className="bg-green-100 text-green-800">Completado</Badge>;
       case 'active':
-        return <Badge className="bg-blue-100 text-blue-800">Activo</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">En Progreso</Badge>;
       case 'planned':
         return <Badge className="bg-yellow-100 text-yellow-800">Planificado</Badge>;
       default:
@@ -110,6 +413,29 @@ export default function CoordinatorProgressPage() {
 
   const completedCount = overallProgressItems.filter(item => item.completed).length;
   const progressPercentage = (completedCount / overallProgressItems.length) * 100;
+
+  // Mostrar loading mientras se cargan los datos iniciales
+  if (isInitialLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{t('coordinator.progress')}</h1>
+          <p className="text-gray-600 mt-2">
+            Gestiona el progreso del estudio en tu hospital
+          </p>
+        </div>
+        
+        {/* Loading State */}
+        <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600">Cargando información...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -281,6 +607,19 @@ export default function CoordinatorProgressPage() {
               </div>
             )}
           </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end pt-4 border-t">
+            <LoadingButton 
+              onClick={saveEthicsInformation}
+              loading={isSavingEthics}
+              loadingText="Guardando..."
+              className="flex items-center space-x-2"
+            >
+              <Save className="h-4 w-4" />
+              <span>Guardar Información de Ética</span>
+            </LoadingButton>
+          </div>
         </CardContent>
       </Card>
 
@@ -292,7 +631,11 @@ export default function CoordinatorProgressPage() {
             <span>Períodos de Reclutamiento</span>
           </CardTitle>
           <CardDescription>
-            Define los períodos de reclutamiento para tu hospital
+            Define los períodos de reclutamiento para tu hospital. 
+            <span className="font-medium text-blue-600">
+              Requeridos: {hospitalInfo.requiredPeriods} período{hospitalInfo.requiredPeriods !== 1 ? 's' : ''} 
+              ({progressData.recruitmentPeriods.length}/{hospitalInfo.requiredPeriods} completados)
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -317,6 +660,7 @@ export default function CoordinatorProgressPage() {
                       mode="single"
                       selected={progressData.recruitmentStartDate || undefined}
                       onSelect={(date) => handleDateChange('recruitmentStartDate', date)}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                       initialFocus
                     />
                   </PopoverContent>
@@ -340,6 +684,11 @@ export default function CoordinatorProgressPage() {
                       mode="single"
                       selected={progressData.recruitmentEndDate || undefined}
                       onSelect={(date) => handleDateChange('recruitmentEndDate', date)}
+                      disabled={(date) => {
+                        const today = new Date(new Date().setHours(0, 0, 0, 0));
+                        const startDate = progressData.recruitmentStartDate;
+                        return date < today || (startDate && date <= startDate);
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -349,9 +698,23 @@ export default function CoordinatorProgressPage() {
 
             <Button 
               onClick={addRecruitmentPeriod}
-              disabled={!progressData.recruitmentStartDate || !progressData.recruitmentEndDate}
+              disabled={
+                !progressData.recruitmentStartDate || 
+                !progressData.recruitmentEndDate || 
+                isLoading ||
+                progressData.recruitmentPeriods.length >= hospitalInfo.requiredPeriods
+              }
             >
-              Agregar Período
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </>
+              ) : progressData.recruitmentPeriods.length >= hospitalInfo.requiredPeriods ? (
+                `Límite alcanzado (${hospitalInfo.requiredPeriods} períodos)`
+              ) : (
+                'Agregar Período'
+              )}
             </Button>
           </div>
 
@@ -365,7 +728,7 @@ export default function CoordinatorProgressPage() {
                     <div className="flex items-center space-x-4">
                       <div>
                         <p className="font-medium">
-                          {format(period.startDate, 'dd/MM/yyyy', { locale: es })} - {format(period.endDate, 'dd/MM/yyyy', { locale: es })}
+                          Período {period.periodNumber}: {format(period.startDate, 'dd/MM/yyyy', { locale: es })} - {format(period.endDate, 'dd/MM/yyyy', { locale: es })}
                         </p>
                         <p className="text-sm text-gray-500">
                           {Math.ceil((period.endDate.getTime() - period.startDate.getTime()) / (1000 * 60 * 60 * 24))} días
@@ -374,8 +737,22 @@ export default function CoordinatorProgressPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       {getStatusBadge(period.status)}
-                      <Button variant="ghost" size="sm">
-                        Editar
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEditPeriod(period)}
+                        disabled={isLoading}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeletePeriod(period.id)}
+                        disabled={isLoading}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -395,6 +772,179 @@ export default function CoordinatorProgressPage() {
           </AlertDescription>
         </Alert>
       )}
+
+        {/* Edit Period Modal */}
+        <Modal open={showEditModal} onOpenChange={setShowEditModal}>
+          <ModalContent className="sm:max-w-2xl">
+          <ModalHeader>
+            <ModalTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5" />
+              <span>Editar Período</span>
+            </ModalTitle>
+            <ModalDescription>
+              Modifica las fechas y estado del período de reclutamiento
+            </ModalDescription>
+          </ModalHeader>
+          
+          {editingPeriod && (
+            <div className="space-y-6">
+              {/* Period info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Editando:</span> Período {editingPeriod.periodNumber}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fecha de Inicio</Label>
+                  <Popover open={showCalendar === 'editStart'} onOpenChange={() => setShowCalendar(showCalendar === 'editStart' ? null : 'editStart')}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editingPeriod.startDate ? 
+                          format(editingPeriod.startDate, 'PPP', { locale: es }) : 
+                          'Seleccionar fecha'
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={editingPeriod.startDate}
+                        onSelect={(date) => handleDateChange('editStart', date)}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Fecha de Fin</Label>
+                  <Popover open={showCalendar === 'editEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'editEnd' ? null : 'editEnd')}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editingPeriod.endDate ? 
+                          format(editingPeriod.endDate, 'PPP', { locale: es }) : 
+                          'Seleccionar fecha'
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={editingPeriod.endDate}
+                        onSelect={(date) => handleDateChange('editEnd', date)}
+                        disabled={(date) => {
+                          const today = new Date(new Date().setHours(0, 0, 0, 0));
+                          const startDate = editingPeriod.startDate;
+                          return date < today || (startDate && date <= startDate);
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              {/* Estado calculado automáticamente */}
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm text-gray-600">
+                    El estado se calcula automáticamente basado en las fechas:
+                  </p>
+                  <ul className="text-xs text-gray-500 mt-2 space-y-1">
+                    <li>• <span className="font-medium">Planificado:</span> Aún no ha comenzado</li>
+                    <li>• <span className="font-medium">En Progreso:</span> Está sucediendo actualmente</li>
+                    <li>• <span className="font-medium">Completado:</span> Ya ha terminado</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowEditModal(false)}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <LoadingButton 
+                  onClick={handleUpdatePeriod}
+                  loading={isSavingPeriod}
+                  loadingText="Guardando..."
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar
+                </LoadingButton>
+              </div>
+            </div>
+          )}
+        </ModalContent>
+      </Modal>
+
+        {/* Success Toast */}
+        {showSuccessToast && (
+          <div className="fixed top-4 right-4 z-50">
+            <Alert className="bg-green-50 border-green-200 text-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="font-medium">
+                ¡Operación completada exitosamente!
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Error Toast */}
+        {showErrorToast && (
+          <div className="fixed top-4 right-4 z-50">
+            <Alert className="bg-red-50 border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="font-medium">
+                {errorMessage}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Delete Confirmation Toast */}
+        {showDeleteConfirmToast && (
+          <div className="fixed top-4 right-4 z-50">
+            <Alert className="bg-red-50 border-red-200 text-red-800 max-w-md">
+              <AlertDescription className="font-medium mb-3">
+                ¿Estás seguro de que quieres eliminar este período?
+              </AlertDescription>
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={cancelDeletePeriod}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="destructive" 
+                  onClick={confirmDeletePeriod}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </Button>
+              </div>
+            </Alert>
+          </div>
+        )}
     </div>
   );
 }

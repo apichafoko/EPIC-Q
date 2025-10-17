@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Settings,
   Users,
-  Bug
+  Bug,
+  FolderOpen
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -22,6 +23,7 @@ export function Sidebar() {
 
   const navigation = [
     { name: t('common.dashboard'), href: `/${locale}`, icon: BarChart3 },
+    { name: t('common.projects'), href: `/${locale}/admin/projects`, icon: FolderOpen },
     { name: t('common.hospitals'), href: `/${locale}/hospitals`, icon: Building2 },
     { name: t('common.users'), href: `/${locale}/admin/users`, icon: Users },
     { name: t('common.communications'), href: `/${locale}/communications`, icon: Mail },

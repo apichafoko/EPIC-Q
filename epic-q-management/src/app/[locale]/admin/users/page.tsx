@@ -33,6 +33,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useLoadingState } from '@/hooks/useLoadingState';
 import { 
   Plus, 
   Search, 
@@ -79,6 +81,11 @@ export default function UsersPage() {
   const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [userToReactivate, setUserToReactivate] = useState<User | null>(null);
   const [reactivatingUser, setReactivatingUser] = useState<string | null>(null);
+  
+  // Estados de carga usando el hook personalizado
+  const { isLoading: isResending, executeWithLoading: executeWithResending } = useLoadingState();
+  const { isLoading: isDeleting, executeWithLoading: executeWithDeleting } = useLoadingState();
+  const { isLoading: isReactivating, executeWithLoading: executeWithReactivating } = useLoadingState();
 
       useEffect(() => {
         if (authLoading) return; // Still loading
@@ -125,8 +132,7 @@ export default function UsersPage() {
   };
 
   const handleResendInvitation = async (userId: string) => {
-    try {
-      setResendingInvitation(userId);
+    await executeWithResending(async () => {
       const response = await fetch('/api/admin/users/resend-invitation', {
         method: 'POST',
         headers: {
@@ -146,14 +152,7 @@ export default function UsersPage() {
           description: data.error || 'Inténtalo de nuevo más tarde'
         });
       }
-    } catch (error) {
-      console.error('Failed to resend invitation:', error);
-      toast.error('Error de conexión', {
-        description: 'No se pudo conectar con el servidor'
-      });
-    } finally {
-      setResendingInvitation(null);
-    }
+    });
   };
 
   const handleEditUser = (user: User) => {
@@ -211,8 +210,7 @@ export default function UsersPage() {
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
 
-    try {
-      setDeletingUser(userToDelete.id);
+    await executeWithDeleting(async () => {
       const response = await fetch(`/api/admin/users/${userToDelete.id}/permanent`, {
         method: 'DELETE',
         headers: {
@@ -233,16 +231,10 @@ export default function UsersPage() {
           description: data.error || 'Inténtalo de nuevo más tarde'
         });
       }
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      toast.error('Error de conexión', {
-        description: 'No se pudo conectar con el servidor'
-      });
-    } finally {
-      setDeletingUser(null);
-      setShowDeleteModal(false);
-      setUserToDelete(null);
-    }
+    });
+    
+    setShowDeleteModal(false);
+    setUserToDelete(null);
   };
 
   const handleReactivateUser = (user: User) => {

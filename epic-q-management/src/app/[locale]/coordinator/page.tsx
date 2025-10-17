@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/auth-context';
+import { useProject } from '@/contexts/project-context';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
 import { AuthGuard } from '@/components/auth/auth-guard';
@@ -25,6 +26,7 @@ import { CoordinatorStats } from '@/lib/services/coordinator-service';
 export default function CoordinatorDashboard() {
   const { t } = useTranslations();
   const { user, isLoading: authLoading } = useAuth();
+  const { currentProject, isLoading: projectLoading } = useProject();
   const router = useRouter();
   const [stats, setStats] = useState<CoordinatorStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,11 +34,15 @@ export default function CoordinatorDashboard() {
 
   useEffect(() => {
     const loadStats = async () => {
-      if (!user || user.role !== 'coordinator') return;
+      if (!user || user.role !== 'coordinator' || !currentProject) return;
       
       try {
         setLoading(true);
-        const response = await fetch('/api/coordinator/stats');
+        const response = await fetch('/api/coordinator/stats', {
+          headers: {
+            'x-project-id': currentProject.id
+          }
+        });
         const result = await response.json();
         
         if (result.success) {
@@ -53,14 +59,30 @@ export default function CoordinatorDashboard() {
     };
 
     loadStats();
-  }, [user]);
+  }, [user, currentProject]);
 
-  if (authLoading || loading) {
+  if (authLoading || projectLoading || loading) {
     return (
       <div className="p-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentProject) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No hay proyecto seleccionado
+          </h3>
+          <p className="text-gray-500">
+            Por favor, selecciona un proyecto para continuar.
+          </p>
         </div>
       </div>
     );
@@ -303,7 +325,7 @@ export default function CoordinatorDashboard() {
         </div>
 
         {/* Additional Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -317,23 +339,6 @@ export default function CoordinatorDashboard() {
             <CardContent>
               <Button variant="outline" className="w-full">
                 {t('coordinator.dashboard.manageDates')}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Bell className="h-5 w-5" />
-                <span>Configuración</span>
-              </CardTitle>
-              <CardDescription>
-                Gestiona las configuraciones del sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                Ir a Configuración
               </Button>
             </CardContent>
           </Card>

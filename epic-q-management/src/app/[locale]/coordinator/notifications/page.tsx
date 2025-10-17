@@ -14,6 +14,9 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
 interface Notification {
@@ -31,6 +34,9 @@ export default function CoordinatorNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados de carga usando el hook personalizado
+  const { isLoading, executeWithLoading: executeWithLoading } = useLoadingState();
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -58,7 +64,7 @@ export default function CoordinatorNotifications() {
   }, [user]);
 
   const markAsRead = async (notificationId: string) => {
-    try {
+    await executeWithLoading(async () => {
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'POST',
       });
@@ -71,10 +77,11 @@ export default function CoordinatorNotifications() {
               : notif
           )
         );
+        toast.success('Notificación marcada como leída');
+      } else {
+        toast.error('Error al marcar la notificación como leída');
       }
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+    });
   };
 
   const getNotificationIcon = (type: string) => {

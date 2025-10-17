@@ -10,6 +10,7 @@ export interface Hospital {
           'redcap_setup' | 'active_recruiting' | 'completed' | 'inactive' | 
           'active' | 'pending' | 'inactive' | null | undefined;
   participated_lasos: boolean;
+  required_periods?: number;
   progress_percentage: number;
   created_at: string;
   updated_at: string;
@@ -122,8 +123,71 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'coordinator' | 'collaborator';
-  hospital_id?: string;
+  hospital_id?: string; // Mantener para compatibilidad durante migración
   created_at: string;
+}
+
+// Nuevos tipos para arquitectura multi-proyecto
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  status: 'active' | 'completed' | 'archived';
+  total_target_cases?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectHospital {
+  id: string;
+  project_id: string;
+  hospital_id: string;
+  required_periods: number;
+  joined_at: string;
+  status: 'active' | 'inactive' | 'completed';
+  project?: Project;
+  hospital?: Hospital;
+  progress?: ProjectHospitalProgress;
+  recruitment_periods?: ProjectRecruitmentPeriod[];
+}
+
+export interface ProjectCoordinator {
+  id: string;
+  project_id: string;
+  user_id: string;
+  hospital_id: string;
+  role: 'coordinator' | 'collaborator';
+  invited_at: string;
+  accepted_at?: string;
+  invitation_token?: string;
+  is_active: boolean;
+  project?: Project;
+  user?: User;
+  hospital?: Hospital;
+}
+
+export interface ProjectHospitalProgress {
+  id: string;
+  project_hospital_id: string;
+  descriptive_form_status?: 'complete' | 'pending' | 'partial';
+  ethics_submitted?: boolean;
+  ethics_approved?: boolean;
+  ethics_submitted_date?: string;
+  ethics_approved_date?: string;
+  updated_at: string;
+}
+
+export interface ProjectRecruitmentPeriod {
+  id: string;
+  project_hospital_id: string;
+  period_number: number;
+  start_date: string;
+  end_date: string;
+  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
 }
 
 // Configuraciones

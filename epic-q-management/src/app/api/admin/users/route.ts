@@ -114,7 +114,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
       );
     }
 
-    const { name, email, role, hospital_id, sendInvitation } = validationResult.data;
+    const { name, email, role, hospital_id, hospital_name, sendInvitation } = validationResult.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -136,6 +136,29 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     const resetToken = Math.random().toString(36).slice(-32);
     const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    let finalHospitalId = null;
+
+    // Handle hospital assignment for coordinators
+    if (role === 'coordinator') {
+      if (hospital_id) {
+        // Use existing hospital
+        finalHospitalId = hospital_id;
+      } else if (hospital_name) {
+        // Create new hospital
+        const newHospital = await prisma.hospital.create({
+          data: {
+            name: hospital_name.trim(),
+            province: 'Por definir', // Default values that coordinator will update
+            city: 'Por definir',
+            status: 'pending',
+            participated_lasos: false,
+            redcap_id: `HOSP${Date.now()}`, // Generate temporary ID
+          },
+        });
+        finalHospitalId = newHospital.id;
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -143,18 +166,19 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
         email,
         password: hashedPassword,
         role: role as 'admin' | 'coordinator',
-        hospital_id: role === 'coordinator' ? hospital_id : null,
+        hospital_id: finalHospitalId,
         resetToken,
         resetTokenExpiry,
         isActive: true,
+        isTemporaryPassword: true, // Mark as temporary password
       },
     });
 
     // Get hospital name for emails and notifications
     let hospitalName = 'Sistema EPIC-Q';
-    if (role === 'coordinator' && hospital_id) {
+    if (role === 'coordinator' && finalHospitalId) {
       const hospital = await prisma.hospital.findUnique({
-        where: { id: hospital_id },
+        where: { id: finalHospitalId },
         select: { name: true }
       });
       if (hospital) {

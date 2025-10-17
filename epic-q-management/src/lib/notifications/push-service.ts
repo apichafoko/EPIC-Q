@@ -1,21 +1,4 @@
-import webpush from 'web-push';
-import { prisma } from '@/lib/database';
-
-// Configure VAPID keys
-const vapidKeys = {
-  publicKey: process.env.VAPID_PUBLIC_KEY || '',
-  privateKey: process.env.VAPID_PRIVATE_KEY || '',
-};
-
-if (vapidKeys.publicKey && vapidKeys.privateKey) {
-  webpush.setVapidDetails(
-    'mailto:admin@epic-q.com',
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-  );
-}
-
-interface PushSubscription {
+export interface PushSubscriptionData {
   endpoint: string;
   keys: {
     p256dh: string;
@@ -23,71 +6,139 @@ interface PushSubscription {
   };
 }
 
-export async function sendPushNotification(userId: string, title: string, message: string) {
-  try {
-    // Get user's push subscription
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { 
-        id: true,
-        pushSubscription: true,
-      },
-    });
+export class PushService {
+  private static instance: PushService;
+  private registration: ServiceWorkerRegistration | null = null;
 
-    if (!user?.pushSubscription) {
-      console.log('No push subscription found for user:', userId);
-      return;
+  static getInstance(): PushService {
+    if (!PushService.instance) {
+      PushService.instance = new PushService();
+    }
+    return PushService.instance;
+  }
+
+  async initialize(): Promise<boolean> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.log('Push messaging no soportado');
+      return false;
     }
 
-    const subscription: PushSubscription = JSON.parse(user.pushSubscription);
+    try {
+      this.registration = await navigator.serviceWorker.register('/sw-push.js');
+      console.log('Service Worker registrado:', this.registration);
+      return true;
+    } catch (error) {
+      console.error('Error registrando Service Worker:', error);
+      return false;
+    }
+  }
 
-    const payload = JSON.stringify({
-      title,
-      body: message,
+  async requestPermission(): Promise<NotificationPermission> {
+    if (!this.registration) {
+      throw new Error('Service Worker no inicializado');
+    }
+
+    const permission = await Notification.requestPermission();
+    console.log('Permiso de notificación:', permission);
+    return permission;
+  }
+
+  async subscribe(): Promise<PushSubscription | null> {
+    if (!this.registration) {
+      throw new Error('Service Worker no inicializado');
+    }
+
+    try {
+      const subscription = await this.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: this.urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
+        )
+      });
+
+      console.log('Suscripción push creada:', subscription);
+      return subscription;
+    } catch (error) {
+      console.error('Error creando suscripción push:', error);
+      return null;
+    }
+  }
+
+  async getSubscription(): Promise<PushSubscription | null> {
+    if (!this.registration) {
+      return null;
+    }
+
+    return await this.registration.pushManager.getSubscription();
+  }
+
+  async unsubscribe(): Promise<boolean> {
+    const subscription = await this.getSubscription();
+    if (subscription) {
+      return await subscription.unsubscribe();
+    }
+    return false;
+  }
+
+  async sendNotification(title: string, options: NotificationOptions = {}): Promise<void> {
+    if (!this.registration) {
+      throw new Error('Service Worker no inicializado');
+    }
+
+    await this.registration.showNotification(title, {
       icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      url: '/notifications',
-      timestamp: Date.now(),
+      badge: '/icons/icon-192x192.png',
+      ...options
     });
-
-    await webpush.sendNotification(subscription, payload);
-    console.log('Push notification sent to user:', userId);
-  } catch (error) {
-    console.error('Failed to send push notification:', error);
-    throw error;
   }
-}
 
-export async function subscribeUser(userId: string, subscription: PushSubscription) {
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        pushSubscription: JSON.stringify(subscription),
-      },
-    });
-    console.log('Push subscription saved for user:', userId);
-  } catch (error) {
-    console.error('Failed to save push subscription:', error);
-    throw error;
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
-}
 
-export async function unsubscribeUser(userId: string) {
-  try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        pushSubscription: null,
-      },
-    });
-    console.log('Push subscription removed for user:', userId);
-  } catch (error) {
-    console.error('Failed to remove push subscription:', error);
-    throw error;
+  async saveSubscriptionToServer(subscription: PushSubscription): Promise<boolean> {
+    try {
+      const response = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          subscription: {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: this.arrayBufferToBase64(subscription.getKey('p256dh')!),
+              auth: this.arrayBufferToBase64(subscription.getKey('auth')!)
+            }
+          }
+        })
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error guardando suscripción:', error);
+      return false;
+    }
   }
-}
 
-export function getVapidPublicKey() {
-  return vapidKeys.publicKey;
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  }
 }

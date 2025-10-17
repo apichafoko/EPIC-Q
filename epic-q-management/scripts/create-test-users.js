@@ -8,12 +8,12 @@ async function createTestUsers() {
     console.log('🚀 Creando usuarios de prueba...');
 
     // 1. Crear usuario administrador de prueba
-    const adminPassword = await bcrypt.hash('Admin123!', 12);
+    const adminPassword = await bcrypt.hash('demo123', 12);
     const admin = await prisma.user.upsert({
-      where: { email: 'admin@epic-q.com' },
+      where: { email: 'demo@epic-q.com' },
       update: {},
       create: {
-        email: 'admin@epic-q.com',
+        email: 'demo@epic-q.com',
         name: 'Administrador EPIC-Q',
         password: adminPassword,
         role: 'admin',
@@ -174,7 +174,7 @@ async function createTestUsers() {
 
     console.log('\n🎉 ¡Usuarios de prueba creados exitosamente!');
     console.log('\n📋 Credenciales de acceso:');
-    console.log('👨‍💼 Admin: admin@epic-q.com / Admin123!');
+    console.log('👨‍💼 Admin: demo@epic-q.com / demo123');
     console.log('👩‍⚕️ Coordinador: coordinator@epic-q.com / Coord123!');
     console.log('\n🌐 URLs de acceso:');
     console.log('🔗 Admin: http://localhost:3000/es/admin');

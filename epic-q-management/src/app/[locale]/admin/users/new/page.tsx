@@ -44,6 +44,8 @@ export default function NewUserPage() {
     email: '',
     role: 'coordinator' as 'admin' | 'coordinator',
     hospital_id: '',
+    hospital_name: '',
+    hospital_option: 'existing' as 'existing' | 'new',
     sendInvitation: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,8 +80,12 @@ export default function NewUserPage() {
       newErrors.email = t('users.errors.emailInvalid');
     }
 
-    if (formData.role === 'coordinator' && !formData.hospital_id) {
-      newErrors.hospital_id = t('users.errors.hospitalRequired');
+    if (formData.role === 'coordinator') {
+      if (formData.hospital_option === 'existing' && !formData.hospital_id) {
+        newErrors.hospital_id = t('users.errors.hospitalRequired');
+      } else if (formData.hospital_option === 'new' && !formData.hospital_name.trim()) {
+        newErrors.hospital_name = t('users.errors.hospitalNameRequired');
+      }
     }
 
     setErrors(newErrors);
@@ -275,25 +281,87 @@ export default function NewUserPage() {
 
             {/* Hospital (only for coordinators) */}
             {formData.role === 'coordinator' && (
-              <div className="space-y-2">
-                <Label htmlFor="hospital_id">{t('users.hospital')} *</Label>
-                <Select 
-                  value={formData.hospital_id} 
-                  onValueChange={(value) => handleInputChange('hospital_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('users.selectHospital')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {hospitals.map((hospital) => (
-                      <SelectItem key={hospital.id} value={hospital.id}>
-                        {hospital.name} - {hospital.city}, {hospital.province}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.hospital_id && (
-                  <p className="text-sm text-red-500">{errors.hospital_id}</p>
+              <div className="space-y-4">
+                <Label>{t('users.hospital')} *</Label>
+                
+                {/* Hospital Option Selection */}
+                <div className="space-y-2">
+                  <div className="flex space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="existing_hospital"
+                        name="hospital_option"
+                        value="existing"
+                        checked={formData.hospital_option === 'existing'}
+                        onChange={(e) => handleInputChange('hospital_option', e.target.value)}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <Label htmlFor="existing_hospital" className="text-sm font-medium">
+                        Hospital Existente
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="new_hospital"
+                        name="hospital_option"
+                        value="new"
+                        checked={formData.hospital_option === 'new'}
+                        onChange={(e) => handleInputChange('hospital_option', e.target.value)}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <Label htmlFor="new_hospital" className="text-sm font-medium">
+                        Nuevo Hospital
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Existing Hospital Selection */}
+                {formData.hospital_option === 'existing' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="hospital_id">Seleccionar Hospital</Label>
+                    <Select 
+                      value={formData.hospital_id} 
+                      onValueChange={(value) => handleInputChange('hospital_id', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('users.selectHospital')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hospitals.map((hospital) => (
+                          <SelectItem key={hospital.id} value={hospital.id}>
+                            {hospital.name} - {hospital.city}, {hospital.province}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.hospital_id && (
+                      <p className="text-sm text-red-500">{errors.hospital_id}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* New Hospital Name Input */}
+                {formData.hospital_option === 'new' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="hospital_name">Nombre del Hospital</Label>
+                    <Input
+                      id="hospital_name"
+                      type="text"
+                      value={formData.hospital_name}
+                      onChange={(e) => handleInputChange('hospital_name', e.target.value)}
+                      placeholder="Ingrese el nombre del hospital"
+                      className="w-full"
+                    />
+                    {errors.hospital_name && (
+                      <p className="text-sm text-red-500">{errors.hospital_name}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      El coordinador completará el resto de los datos del hospital después del registro.
+                    </p>
+                  </div>
                 )}
               </div>
             )}

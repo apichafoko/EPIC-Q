@@ -3,6 +3,7 @@
     "dashboard": "Inicio",
     "hospitals": "Hospitales",
     "users": "Usuarios",
+    "projects": "Proyectos",
     "communications": "Comunicaciones",
     "templates": "Templates",
     "reports": "Reportes",
@@ -10,7 +11,7 @@
     "settings": "Configuración",
     "search": "Buscar hospitales, contactos...",
     "notifications": "Notificaciones",
-    "hospitalForm": "Formulario del Hospital",
+    "hospitalForm": "Información del Hospital",
     "progress": "Progreso",
     "redcapUsers": "Usuarios RedCap",
     "noNotifications": "No hay notificaciones",
@@ -1238,7 +1239,7 @@
     "ethicsApproved": "Ética Aprobada",
     "recruitmentPeriods": "Períodos de Reclutamiento",
     "quickActions": "Acciones Rápidas",
-    "completeHospitalForm": "Completar Formulario del Hospital",
+    "completeHospitalForm": "Completar Información del Hospital",
     "completeHospitalFormDesc": "Completa la información detallada de tu hospital",
     "uploadEthics": "Subir Aprobación de Ética",
     "uploadEthicsDesc": "Sube el documento de aprobación del comité de ética",
@@ -1254,10 +1255,28 @@
     "ethicsReminderDesc": "Recuerda subir la aprobación del comité de ética",
     "recruitmentPeriod": "Período de Reclutamiento",
     "recruitmentPeriodDesc": "Se acerca un nuevo período de reclutamiento",
-    "hospitalForm": "Formulario del Hospital",
+    "hospitalForm": "Información del Hospital",
     "progress": "Progreso",
+    "communications": "Comunicaciones",
     "redcapUsers": "Usuarios RedCap",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "dashboard": {
+      "welcome": "Bienvenido",
+      "subtitle": "Panel de coordinador del hospital",
+      "formCompletion": "Completitud del Formulario",
+      "formCompletionDesc": "Progreso del formulario del hospital",
+      "upcomingPeriods": "Períodos Próximos",
+      "upcomingPeriodsDesc": "Períodos de reclutamiento próximos",
+      "notifications": "Notificaciones",
+      "notificationsDesc": "Mensajes pendientes",
+      "completeForm": "Completar Formulario",
+      "completeFormDesc": "Completa la información del hospital",
+      "startForm": "Comenzar Formulario",
+      "setDates": "Configurar Fechas",
+      "setDatesDesc": "Establece los períodos de reclutamiento",
+      "manageDates": "Gestionar Fechas",
+      "recentNotifications": "Notificaciones Recientes"
+    }
   },
   "auth": {
     "login": {
@@ -1278,25 +1297,6 @@
       "subtitle": "No se pudo completar la autenticación",
       "backToLogin": "Volver al Login",
       "goHome": "Ir al Inicio"
-    }
-  },
-  "coordinator": {
-    "dashboard": {
-      "welcome": "Bienvenido",
-      "subtitle": "Panel de coordinador del hospital",
-      "formCompletion": "Completitud del Formulario",
-      "formCompletionDesc": "Progreso del formulario del hospital",
-      "upcomingPeriods": "Períodos Próximos",
-      "upcomingPeriodsDesc": "Períodos de reclutamiento próximos",
-      "notifications": "Notificaciones",
-      "notificationsDesc": "Mensajes pendientes",
-      "completeForm": "Completar Formulario",
-      "completeFormDesc": "Completa la información del hospital",
-      "startForm": "Comenzar Formulario",
-      "setDates": "Configurar Fechas",
-      "setDatesDesc": "Establece los períodos de reclutamiento",
-      "manageDates": "Gestionar Fechas",
-      "recentNotifications": "Notificaciones Recientes"
     }
   },
   "users": {
@@ -1328,6 +1328,7 @@
       "emailRequired": "El email es requerido",
       "emailInvalid": "El email no es válido",
       "hospitalRequired": "Debe seleccionar un hospital para coordinadores",
+      "hospitalNameRequired": "El nombre del hospital es requerido",
       "userExists": "Ya existe un usuario con este email",
       "connectionError": "Error de conexión",
       "createError": "Error al crear el usuario"
@@ -1396,6 +1397,105 @@
       "confirm": "Sí, Reactivar",
       "cancel": "Cancelar",
       "reactivating": "Reactivando..."
+    }
+  },
+  "projects": {
+    "title": "Proyectos",
+    "createProject": "Crear Proyecto",
+    "editProject": "Editar Proyecto",
+    "projectDetails": "Detalles del Proyecto",
+    "inviteCoordinator": "Invitar Coordinador",
+    "projectManagement": "Gestión de Proyectos",
+    "projectDescription": "Administra los proyectos del sistema EPIC-Q",
+    "name": "Nombre del Proyecto",
+    "description": "Descripción",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
+    "status": "Estado",
+    "totalTargetCases": "Meta de Casos",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "statuses": {
+      "active": "Activo",
+      "completed": "Completado",
+      "archived": "Archivado"
+    },
+    "stats": {
+      "totalProjects": "Total Proyectos",
+      "activeProjects": "Proyectos Activos",
+      "totalHospitals": "Total Hospitales",
+      "totalCoordinators": "Total Coordinadores",
+      "targetCases": "Meta de Casos"
+    },
+    "filters": {
+      "allStatuses": "Todos los estados",
+      "active": "Activos",
+      "completed": "Completados",
+      "archived": "Archivados",
+      "searchPlaceholder": "Buscar proyectos..."
+    },
+    "actions": {
+      "viewDetails": "Ver Detalles",
+      "inviteCoordinator": "Invitar Coordinador",
+      "editProject": "Editar Proyecto",
+      "deleteProject": "Eliminar Proyecto",
+      "archiveProject": "Archivar Proyecto"
+    },
+    "participatingHospitals": "Hospitales Participantes",
+    "hospitalDescription": "Hospitales que participan en este proyecto",
+    "coordinators": "Coordinadores",
+    "coordinatorsDescription": "Coordinadores asignados a este proyecto",
+    "hospital": "Hospital",
+    "location": "Ubicación",
+    "requiredPeriods": "Períodos Req.",
+    "createdPeriods": "Períodos Creados",
+    "ethicsCommittee": "Comité de Ética",
+    "coordinatorName": "Nombre",
+    "coordinatorEmail": "Email",
+    "coordinatorHospital": "Hospital",
+    "coordinatorStatus": "Estado",
+    "invitationDate": "Fecha de Invitación",
+    "invitationSent": "¡Invitación Enviada!",
+    "invitationSentMessage": "La invitación ha sido enviada exitosamente a {email}",
+    "inviteAnother": "Invitar Otro Coordinador",
+    "backToProject": "Volver al Proyecto",
+    "coordinatorInfo": "Información del Coordinador",
+    "coordinatorInfoDescription": "Completa la información para invitar un nuevo coordinador al proyecto",
+    "email": "Email",
+    "fullName": "Nombre Completo",
+    "selectHospital": "Selecciona un hospital",
+    "requiredPeriodsDescription": "Número de períodos de reclutamiento que debe completar este hospital en el proyecto",
+    "whatHappensNext": "¿Qué sucede después?",
+    "whatHappensNextSteps": [
+      "Se enviará un email de invitación al coordinador",
+      "El coordinador deberá aceptar la invitación para acceder al proyecto",
+      "Una vez aceptada, podrá gestionar el hospital asignado en este proyecto",
+      "Si el coordinador no tiene cuenta, se creará automáticamente"
+    ],
+    "form": {
+      "nameRequired": "El nombre del proyecto es requerido",
+      "namePlaceholder": "Ej: EPIC-Q Fase 2",
+      "descriptionPlaceholder": "Descripción del proyecto...",
+      "targetCasesPlaceholder": "1000",
+      "createProject": "Crear Proyecto",
+      "updateProject": "Guardar Cambios",
+      "cancel": "Cancelar"
+    },
+    "errors": {
+      "projectNotFound": "Proyecto no encontrado",
+      "hospitalNotFound": "Hospital no encontrado",
+      "hospitalAlreadyInProject": "Este hospital ya está participando en el proyecto",
+      "coordinatorAlreadyAssigned": "Este coordinador ya está asignado a este hospital en el proyecto",
+      "cannotInviteAdmin": "No se puede invitar a un administrador como coordinador",
+      "cannotDeleteProjectWithData": "No se puede eliminar un proyecto que tiene hospitales o coordinadores asociados",
+      "invalidData": "Datos inválidos",
+      "serverError": "Error interno del servidor"
+    },
+    "success": {
+      "projectCreated": "Proyecto creado exitosamente",
+      "projectUpdated": "Proyecto actualizado exitosamente",
+      "projectDeleted": "Proyecto eliminado exitosamente",
+      "invitationSent": "Invitación enviada exitosamente"
     }
   }
 }

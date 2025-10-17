@@ -11,12 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Save, CheckCircle, Globe, Bell, Shield } from 'lucide-react';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { toast } from 'sonner';
 
 export default function CoordinatorSettingsPage() {
   const { user } = useAuth();
   const { t, locale } = useTranslations();
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  
+  // Estados de carga usando el hook personalizado
+  const { isLoading, executeWithLoading: executeWithLoading } = useLoadingState();
+  const { isLoading: isSaving, executeWithLoading: executeWithSaving } = useLoadingState();
   
   const [settings, setSettings] = useState({
     // Language settings
@@ -50,17 +56,13 @@ export default function CoordinatorSettingsPage() {
   };
 
   const handleSave = async () => {
-    setIsLoading(true);
-    try {
+    await executeWithSaving(async () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsSaved(true);
+      toast.success('Configuración guardada exitosamente');
       setTimeout(() => setIsSaved(false), 3000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const languages = [
@@ -365,14 +367,10 @@ export default function CoordinatorSettingsPage() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
+        <LoadingButton onClick={handleSave} loading={isSaving} loadingText="Guardando...">
+          <Save className="mr-2 h-4 w-4" />
           Guardar Configuración
-        </Button>
+        </LoadingButton>
       </div>
 
       {/* Save Status */}

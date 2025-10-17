@@ -48,7 +48,7 @@ async function verifySystem() {
 
     // 6. Verificar datos de prueba
     console.log('\n6️⃣ Verificando datos de prueba...');
-    const testAdmin = await prisma.user.findUnique({ where: { email: 'admin@epic-q.com' } });
+    const testAdmin = await prisma.user.findUnique({ where: { email: 'demo@epic-q.com' } });
     const testCoordinator = await prisma.user.findUnique({ where: { email: 'coordinator@epic-q.com' } });
     
     if (testAdmin) {
