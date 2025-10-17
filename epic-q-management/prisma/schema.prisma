@@ -138,6 +138,31 @@ model EmailTemplate {
   @@map("email_templates")
 }
 
+model CommunicationTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique @db.VarChar(100)
+  description     String?  @db.VarChar(255)
+  type            TemplateType @default(internal)
+  internal_subject String? @db.VarChar(255)
+  internal_body   String?
+  email_subject   String?  @db.VarChar(255)
+  email_body      String?
+  variables       Json?
+  category        String?  @db.VarChar(50)
+  is_active       Boolean  @default(true)
+  usage_count     Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("communication_templates")
+}
+
+enum TemplateType {
+  internal
+  email
+  both
+}
+
 model Alert {
   id          String    @id @default(uuid()) @db.Uuid
   hospital_id String    @db.Uuid
@@ -165,6 +190,7 @@ model User {
   resetTokenExpiry    DateTime?
   lastLogin           DateTime?
   isActive            Boolean         @default(true)
+  isTemporaryPassword Boolean         @default(false)
   preferredLanguage   String          @default("es") @db.VarChar(5)
   created_at          DateTime        @default(now())
   updated_at          DateTime        @updatedAt

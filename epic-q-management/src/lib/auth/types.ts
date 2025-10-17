@@ -10,6 +10,7 @@ export interface User {
   } | null;
   preferredLanguage: string;
   isActive: boolean;
+  isTemporaryPassword: boolean;
   lastLogin: string | null;
 }
 

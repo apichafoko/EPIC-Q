@@ -13,7 +13,9 @@ export class SimpleAuthService {
       // Buscar usuario en la base de datos
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { hospital: true }
+        include: { 
+          hospital: true
+        }
       });
 
       if (!user || !user.isActive || !user.password) {
@@ -56,6 +58,7 @@ export class SimpleAuthService {
         } : null,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
+        isTemporaryPassword: user.isTemporaryPassword,
         lastLogin: user.lastLogin
       };
 
@@ -79,7 +82,9 @@ export class SimpleAuthService {
       
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        include: { hospital: true }
+        include: { 
+          hospital: true
+        }
       });
 
       if (!user || !user.isActive) {
@@ -98,6 +103,7 @@ export class SimpleAuthService {
         } : null,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
+        isTemporaryPassword: user.isTemporaryPassword,
         lastLogin: user.lastLogin
       };
     } catch (error) {

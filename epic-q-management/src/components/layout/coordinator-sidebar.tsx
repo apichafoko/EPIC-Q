@@ -50,11 +50,12 @@ export function CoordinatorSidebar() {
       href: `/${locale}/coordinator/redcap-users`, 
       icon: Users 
     },
-    { 
-      name: t('common.settings'), 
-      href: `/${locale}/coordinator/settings`, 
-      icon: Settings 
-    },
+    // Settings oculto para coordinadores (incluye privacidad de datos)
+    // { 
+    //   name: t('common.settings'), 
+    //   href: `/${locale}/coordinator/settings`, 
+    //   icon: Settings 
+    // },
   ];
 
   return (

@@ -44,23 +44,36 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
       );
     }
 
-    // Generate new reset token
+    // Generate new reset token and temporary password
     const resetToken = Math.random().toString(36).slice(-32);
     const resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const tempPassword = Math.random().toString(36).slice(-8); // Generar contraseña temporal
+    
+    // Hash the temporary password
+    const bcrypt = require('bcryptjs');
+    const hashedTempPassword = await bcrypt.hash(tempPassword, 12);
 
-    // Update user with new token
+    // Update user with new token and temporary password
     await prisma.user.update({
       where: { id: userId },
       data: {
         resetToken,
         resetTokenExpiry,
+        password: hashedTempPassword, // Guardar la contraseña temporal hasheada
       }
     });
 
     // Send invitation email
     try {
       const hospitalName = user.hospital?.name || 'Sistema EPIC-Q';
-      await emailService.sendInvitationEmail(user.email, resetToken, hospitalName);
+      await emailService.sendInvitationEmail(
+        user.email, 
+        resetToken, 
+        hospitalName, 
+        user.name, // Pasar el nombre del usuario
+        user.role, // Pasar el rol del usuario
+        tempPassword // Pasar la contraseña temporal (sin hashear)
+      );
       
       return NextResponse.json({ 
         message: 'Invitación reenviada exitosamente',

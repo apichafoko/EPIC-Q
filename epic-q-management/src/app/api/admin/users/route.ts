@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { createUserSchema } from '@/lib/validations/auth';
 import { apiRateLimiter, getClientIdentifier } from '@/lib/security/rate-limit';
 import { emailService } from '@/lib/notifications/email-service';
+import { InternalNotificationService } from '@/lib/notifications/internal-notification-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -149,26 +150,47 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
       },
     });
 
-    // Send invitation email if requested
+    // Get hospital name for emails and notifications
+    let hospitalName = 'Sistema EPIC-Q';
+    if (role === 'coordinator' && hospital_id) {
+      const hospital = await prisma.hospital.findUnique({
+        where: { id: hospital_id },
+        select: { name: true }
+      });
+      if (hospital) {
+        hospitalName = hospital.name;
+      }
+    }
+
+    // Send welcome email if requested
     if (sendInvitation) {
       try {
-        // Get hospital name for the invitation email
-        let hospitalName = 'Sistema EPIC-Q';
-        if (role === 'coordinator' && hospital_id) {
-          const hospital = await prisma.hospital.findUnique({
-            where: { id: hospital_id },
-            select: { name: true }
-          });
-          if (hospital) {
-            hospitalName = hospital.name;
-          }
-        }
-
-        await emailService.sendInvitationEmail(email, resetToken, hospitalName);
-        console.log(`Invitation email sent to ${email}`);
+        await emailService.sendWelcomeEmail(
+          email,
+          name || 'Usuario',
+          role === 'admin' ? 'Administrador' : 'Coordinador',
+          hospitalName,
+          tempPassword
+        );
+        console.log(`Welcome email sent to ${email}`);
       } catch (error) {
-        console.error('Failed to send invitation email:', error);
+        console.error('Failed to send welcome email:', error);
         // Don't fail the user creation if email fails
+      }
+    }
+
+    // Send internal welcome notification for coordinators
+    if (role === 'coordinator') {
+      try {
+        await InternalNotificationService.sendWelcomeNotification(
+          user.id,
+          name || 'Usuario',
+          hospitalName
+        );
+        console.log(`Welcome notification sent to coordinator ${user.id}`);
+      } catch (error) {
+        console.error('Failed to send welcome notification:', error);
+        // Don't fail the user creation if notification fails
       }
     }
 

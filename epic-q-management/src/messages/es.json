@@ -1,6 +1,6 @@
 {
   "common": {
-    "dashboard": "Dashboard",
+    "dashboard": "Inicio",
     "hospitals": "Hospitales",
     "users": "Usuarios",
     "communications": "Comunicaciones",
@@ -10,6 +10,9 @@
     "settings": "Configuración",
     "search": "Buscar hospitales, contactos...",
     "notifications": "Notificaciones",
+    "hospitalForm": "Formulario del Hospital",
+    "progress": "Progreso",
+    "redcapUsers": "Usuarios RedCap",
     "noNotifications": "No hay notificaciones",
     "markAsRead": "Marcar como leída",
     "markAllAsRead": "Marcar todas como leídas",

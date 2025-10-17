@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Calendar
 } from 'lucide-react';
-import { getDashboardKPIs, DashboardKPIs } from '@/lib/services/dashboard-service';
+import { DashboardKPIs } from '@/types';
 
 export default function AdminDashboard() {
   const { t } = useTranslations();
@@ -25,8 +25,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadKPIs = async () => {
       try {
-        const data = await getDashboardKPIs();
-        setKpis(data);
+        const response = await fetch('/api/dashboard');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data.kpis) {
+            setKpis(result.data.kpis);
+          } else {
+            console.error('Error loading KPIs: Invalid response format');
+          }
+        } else {
+          console.error('Error loading KPIs:', response.statusText);
+        }
       } catch (error) {
         console.error('Error loading KPIs:', error);
       } finally {

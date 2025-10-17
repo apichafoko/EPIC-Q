@@ -2,11 +2,14 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, AuthState, LoginCredentials } from '@/lib/auth/types';
+import { ChangePasswordModal } from '@/components/auth/change-password-modal';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  showChangePasswordModal: boolean;
+  handlePasswordChangeSuccess: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -14,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const isAuthenticated = !!user;
 
@@ -24,14 +28,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      console.log('Checking auth...');
       const response = await fetch('/api/auth/me', {
         credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Auth response data:', data);
         if (data.success) {
           setUser(data.user);
+          // Mostrar modal de cambio de contraseña si es temporal
+          if (data.user.isTemporaryPassword) {
+            setShowChangePasswordModal(true);
+          }
+        }
+      } else {
+        // 401 es esperado cuando no hay usuario autenticado
+        if (response.status !== 401) {
+          console.log('Auth failed, status:', response.status);
         }
       }
     } catch (error) {
@@ -88,6 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await checkAuth();
   };
 
+  const handlePasswordChangeSuccess = async () => {
+    setShowChangePasswordModal(false);
+    // Refrescar el usuario para obtener los datos actualizados
+    await refreshUser();
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -95,11 +116,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     refreshUser,
+    showChangePasswordModal,
+    handlePasswordChangeSuccess,
   };
 
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <ChangePasswordModal 
+        isOpen={showChangePasswordModal} 
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </AuthContext.Provider>
   );
 }

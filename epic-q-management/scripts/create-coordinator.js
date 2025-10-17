@@ -30,6 +30,7 @@ async function createCoordinator() {
         role: 'coordinator',
         hospital_id: hospital.id,
         isActive: true,
+        isTemporaryPassword: true,
         emailVerified: new Date(),
         preferredLanguage: 'es'
       }

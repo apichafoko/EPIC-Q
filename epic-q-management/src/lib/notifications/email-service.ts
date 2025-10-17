@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { EmailTemplateService, TemplateVariables } from './email-template-service';
+import { prisma } from '@/lib/database';
 
 interface EmailOptions {
   to: string;
@@ -12,8 +14,11 @@ class EmailService {
 
   constructor() {
     try {
-      // Solo crear el transporter si hay configuración de email
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      // Solo crear el transporter si hay configuración de email y no está deshabilitado
+      if (process.env.EMAIL_DISABLED === 'true') {
+        console.log('📧 Email service disabled for development mode');
+        this.transporter = null;
+      } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         this.transporter = nodemailer.createTransport({
           host: process.env.EMAIL_HOST || 'smtp.gmail.com',
           port: parseInt(process.env.EMAIL_PORT || '587'),
@@ -23,6 +28,7 @@ class EmailService {
             pass: process.env.EMAIL_PASS,
           },
         });
+        console.log('📧 Email service configured and ready');
       } else {
         console.warn('Email configuration not found. Email service will be disabled.');
       }
@@ -33,12 +39,22 @@ class EmailService {
   }
 
   async sendEmail(options: EmailOptions) {
+    const timestamp = new Date().toISOString();
+    
     if (!this.transporter) {
-      console.warn('Email service not configured. Email not sent to:', options.to);
+      console.warn(`[${timestamp}] Email service not configured. Email not sent to:`, options.to);
+      console.log('📧 Email que se habría enviado:');
+      console.log('   Para:', options.to);
+      console.log('   Asunto:', options.subject);
+      console.log('   Contenido:', options.html ? 'HTML' : 'Texto');
+      console.log('   Timestamp:', timestamp);
       return { messageId: 'mock-message-id', accepted: [options.to] };
     }
 
     try {
+      console.log(`[${timestamp}] 📧 Enviando email a: ${options.to}`);
+      console.log(`[${timestamp}] 📧 Asunto: ${options.subject}`);
+      
       const info = await this.transporter.sendMail({
         from: process.env.EMAIL_FROM || 'noreply@epic-q.com',
         to: options.to,
@@ -47,17 +63,47 @@ class EmailService {
         text: options.text,
       });
 
-      console.log('Email sent:', info.messageId);
+      console.log(`[${timestamp}] ✅ Email enviado exitosamente!`);
+      console.log(`[${timestamp}] 📧 Message ID: ${info.messageId}`);
+      console.log(`[${timestamp}] 📧 Destinatarios aceptados: ${info.accepted?.join(', ')}`);
+      console.log(`[${timestamp}] 📧 Destinatarios rechazados: ${info.rejected?.join(', ') || 'Ninguno'}`);
+      
       return info;
     } catch (error) {
-      console.error('Email sending failed:', error);
+      console.error(`[${timestamp}] ❌ Error al enviar email:`, error);
+      console.error(`[${timestamp}] 📧 Destinatario: ${options.to}`);
+      console.error(`[${timestamp}] 📧 Asunto: ${options.subject}`);
       throw error;
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string) {
+  async sendPasswordResetEmail(email: string, resetToken: string, userName?: string) {
     const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`;
     
+    // Intentar usar template si está disponible
+    const template = await EmailTemplateService.getTemplateByName('password_reset');
+    
+    if (template) {
+      const variables: TemplateVariables = {
+        userName: userName || 'Usuario',
+        userEmail: email,
+        resetLink: resetUrl,
+        systemName: process.env.EMAIL_FROM_NAME || 'EPIC-Q Management System'
+      };
+      
+      const processed = EmailTemplateService.processTemplate(template, variables);
+      
+      // Incrementar contador de uso
+      await EmailTemplateService.incrementUsageCount(template.id);
+      
+      return this.sendEmail({
+        to: email,
+        subject: processed.subject,
+        html: processed.body,
+      });
+    }
+    
+    // Fallback al template hardcodeado si no hay template en BD
     return this.sendEmail({
       to: email,
       subject: 'Recuperación de contraseña - EPIC-Q',
@@ -109,9 +155,36 @@ class EmailService {
     });
   }
 
-  async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string) {
+  async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string, userName?: string, userRole?: string, temporaryPassword?: string) {
     const setupUrl = `${process.env.NEXTAUTH_URL}/auth/set-password?token=${invitationToken}`;
     
+    // Intentar usar template si está disponible
+    const template = await EmailTemplateService.getTemplateByName('user_invitation');
+    
+    if (template) {
+      const variables: TemplateVariables = {
+        userName: userName || 'Usuario',
+        userEmail: email,
+        userRole: userRole || 'Coordinador',
+        hospitalName: hospitalName,
+        invitationLink: setupUrl,
+        systemName: process.env.EMAIL_FROM_NAME || 'EPIC-Q Management System',
+        temporaryPassword: temporaryPassword || 'No disponible'
+      };
+      
+      const processed = EmailTemplateService.processTemplate(template, variables);
+      
+      // Incrementar contador de uso
+      await EmailTemplateService.incrementUsageCount(template.id);
+      
+      return this.sendEmail({
+        to: email,
+        subject: processed.subject,
+        html: processed.body,
+      });
+    }
+    
+    // Fallback al template hardcodeado si no hay template en BD
     return this.sendEmail({
       to: email,
       subject: 'Invitación al sistema EPIC-Q',
@@ -163,8 +236,72 @@ class EmailService {
       `,
     });
   }
+
+  async sendWelcomeEmail(email: string, userName: string, userRole: string, hospitalName: string, temporaryPassword: string) {
+    const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
+
+    // Usar el template user_invitation que tiene toda la información necesaria
+    const template = await EmailTemplateService.getTemplateByName('user_invitation');
+
+    if (template) {
+      const variables: TemplateVariables = {
+        userName: userName,
+        userEmail: email,
+        userRole: userRole,
+        hospitalName: hospitalName,
+        temporaryPassword: temporaryPassword,
+        invitationLink: loginUrl,
+        systemName: 'EPIC-Q Management System'
+      };
+
+      // Procesar template según el tipo
+      let processedSubject, processedBody;
+      
+      if ('email_subject' in template) {
+        // Es un communication_template
+        processedSubject = template.email_subject || 'Bienvenido a EPIC-Q';
+        processedBody = template.email_body || '';
+        
+        // Procesar variables
+        Object.entries(variables).forEach(([key, value]) => {
+          const placeholder = `{{${key}}}`;
+          processedSubject = processedSubject.replace(new RegExp(placeholder, 'g'), String(value));
+          processedBody = processedBody.replace(new RegExp(placeholder, 'g'), String(value));
+        });
+      } else {
+        // Es un email_template
+        const processed = EmailTemplateService.processTemplate(template, variables);
+        processedSubject = processed.subject;
+        processedBody = processed.body;
+        await EmailTemplateService.incrementUsageCount(template.id);
+      }
+
+      return this.sendEmail({
+        to: email,
+        subject: processedSubject,
+        html: processedBody,
+      });
+    }
+
+    // Fallback si no hay template
+    return this.sendEmail({
+      to: email,
+      subject: '¡Bienvenido a EPIC-Q! - Acceso y Configuración',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1>¡Bienvenido a EPIC-Q!</h1>
+          <p>Hola ${userName},</p>
+          <p>Has sido registrado como ${userRole} del hospital ${hospitalName}.</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Contraseña temporal:</strong> ${temporaryPassword}</p>
+          <p><a href="${loginUrl}">Acceder al sistema</a></p>
+        </div>
+      `
+    });
+  }
 }
 
+export { EmailService };
 export const emailService = new EmailService();
 
 export async function sendEmail(options: EmailOptions) {

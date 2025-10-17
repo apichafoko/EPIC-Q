@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function createAdmin() {
   try {
     // Crear usuario administrador
-    const hashedPassword = await bcrypt.hash('admin123', 12);
+    const hashedPassword = await bcrypt.hash('Admin123!', 12);
     
     const admin = await prisma.user.create({
       data: {
@@ -22,7 +22,7 @@ async function createAdmin() {
 
     console.log('✅ Usuario administrador creado exitosamente:');
     console.log('Email: admin@epic-q.com');
-    console.log('Password: admin123');
+    console.log('Password: Admin123!');
     console.log('ID:', admin.id);
 
   } catch (error) {

@@ -12,7 +12,8 @@ import {
   TrendingUp,
   AlertTriangle,
   Settings,
-  Users
+  Users,
+  Bug
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -24,9 +25,10 @@ export function Sidebar() {
     { name: t('common.hospitals'), href: `/${locale}/hospitals`, icon: Building2 },
     { name: t('common.users'), href: `/${locale}/admin/users`, icon: Users },
     { name: t('common.communications'), href: `/${locale}/communications`, icon: Mail },
-    { name: t('common.templates'), href: `/${locale}/communications/templates`, icon: FileText },
+    { name: t('common.templates'), href: `/${locale}/templates`, icon: FileText },
     { name: t('common.reports'), href: `/${locale}/reports`, icon: TrendingUp },
     { name: t('common.alerts'), href: `/${locale}/alerts`, icon: AlertTriangle },
+    { name: 'Debug Email', href: `/${locale}/admin/email-debug`, icon: Bug },
     { name: t('common.settings'), href: `/${locale}/settings`, icon: Settings },
   ];
 

@@ -102,13 +102,14 @@ export default function CoordinatorProgressPage() {
     }
   };
 
-  const overallProgress = [
+  const overallProgressItems = [
     { label: 'Ética Enviada', completed: progressData.ethicsSubmitted },
     { label: 'Ética Aprobada', completed: progressData.ethicsApproved },
     { label: 'Períodos de Reclutamiento', completed: progressData.recruitmentPeriods.length > 0 }
-  ].filter(item => item.completed).length;
+  ];
 
-  const progressPercentage = (overallProgress / 3) * 100;
+  const completedCount = overallProgressItems.filter(item => item.completed).length;
+  const progressPercentage = (completedCount / overallProgressItems.length) * 100;
 
   return (
     <div className="p-6 space-y-6">
@@ -132,12 +133,12 @@ export default function CoordinatorProgressPage() {
           <div className="space-y-4">
             <div className="flex justify-between text-sm">
               <span>Progreso General</span>
-              <span>{Math.round(progressPercentage)}%</span>
+              <span>{completedCount}/{overallProgressItems.length} ({Math.round(progressPercentage)}%)</span>
             </div>
             <Progress value={progressPercentage} className="h-3" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              {overallProgress.map((item, index) => (
+              {overallProgressItems.map((item, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   {item.completed ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
