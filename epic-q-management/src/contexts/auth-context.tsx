@@ -1,0 +1,113 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User, AuthState, LoginCredentials } from '@/lib/auth/types';
+
+interface AuthContextType extends AuthState {
+  login: (credentials: LoginCredentials) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthenticated = !!user;
+
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUser(data.user);
+        }
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (credentials: LoginCredentials): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUser(data.user);
+        return true;
+      } else {
+        console.error('Login error:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+    }
+  };
+
+  const refreshUser = async (): Promise<void> => {
+    await checkAuth();
+  };
+
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    isAuthenticated,
+    login,
+    logout,
+    refreshUser,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Hospital {
+  id                  String              @id @default(uuid()) @db.Uuid
+  redcap_id           String?             @unique @db.VarChar(50)
+  name                String              @db.VarChar(255)
+  province            String?             @db.VarChar(100)
+  city                String?             @db.VarChar(100)
+  status              String?             @db.VarChar(50)
+  participated_lasos  Boolean?
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  activity_logs       ActivityLog[]
+  alerts              Alert[]
+  case_metrics        CaseMetrics[]
+  communications      Communication[]
+  contacts            Contact[]
+  details             HospitalDetails?
+  progress            HospitalProgress?
+  recruitment_periods RecruitmentPeriod[]
+  users               User[]
+
+  @@map("hospitals")
+}
+
+model HospitalDetails {
+  hospital_id             String   @id @db.Uuid
+  num_beds                Int?
+  num_operating_rooms     Int?
+  num_icu_beds            Int?
+  avg_weekly_surgeries    Int?
+  has_residency_program   Boolean?
+  has_preop_clinic        String?  @db.VarChar(20)
+  has_rapid_response_team Boolean?
+  financing_type          String?  @db.VarChar(50)
+  has_ethics_committee    Boolean?
+  university_affiliated   Boolean?
+  notes                   String?
+  hospital                Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@map("hospital_details")
+}
+
+model Contact {
+  id          String   @id @default(uuid()) @db.Uuid
+  hospital_id String   @db.Uuid
+  role        String?  @db.VarChar(50)
+  name        String?  @db.VarChar(255)
+  email       String?  @db.VarChar(255)
+  phone       String?  @db.VarChar(50)
+  specialty   String?  @db.VarChar(100)
+  is_primary  Boolean  @default(false)
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model HospitalProgress {
+  hospital_id                String   @id @db.Uuid
+  descriptive_form_status    String?  @db.VarChar(20)
+  ethics_submitted           Boolean?
+  ethics_approved            Boolean?
+  redcap_unit_created        Boolean?
+  coordinator_user_created   Boolean?
+  collaborator_users_created String?  @db.VarChar(20)
+  num_collaborators          Int?
+  ready_for_recruitment      Boolean?
+  dates_assigned_period1     Boolean?
+  dates_assigned_period2     Boolean?
+  updated_at                 DateTime @updatedAt
+  hospital                   Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@map("hospital_progress")
+}
+
+model RecruitmentPeriod {
+  id            String    @id @default(uuid()) @db.Uuid
+  hospital_id   String    @db.Uuid
+  period_number Int       @db.SmallInt
+  start_date    DateTime? @db.Date
+  end_date      DateTime? @db.Date
+  status        String?   @db.VarChar(20)
+  hospital      Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@unique([hospital_id, period_number])
+  @@map("recruitment_periods")
+}
+
+model CaseMetrics {
+  id                    String    @id @default(uuid()) @db.Uuid
+  hospital_id           String    @db.Uuid
+  recorded_date         DateTime  @db.Date
+  cases_created         Int       @default(0)
+  cases_completed       Int       @default(0)
+  completion_percentage Decimal?  @db.Decimal(5, 2)
+  last_case_date        DateTime? @db.Date
+  hospital              Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@map("case_metrics")
+}
+
+model Communication {
+  id            String   @id @default(uuid()) @db.Uuid
+  hospital_id   String   @db.Uuid
+  type          String?  @db.VarChar(50)
+  subject       String?  @db.VarChar(255)
+  content       String?
+  sent_by       String?  @db.Uuid
+  sent_to       String?  @db.VarChar(255)
+  template_used String?  @db.VarChar(100)
+  status        String?  @db.VarChar(20)
+  created_at    DateTime @default(now())
+  hospital      Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  sender        User?    @relation("CommunicationSender", fields: [sent_by], references: [id])
+
+  @@map("communications")
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String?  @db.VarChar(100)
+  subject     String?  @db.VarChar(255)
+  body        String?
+  variables   Json?
+  category    String?  @db.VarChar(50)
+  is_active   Boolean  @default(true)
+  usage_count Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model Alert {
+  id          String    @id @default(uuid()) @db.Uuid
+  hospital_id String    @db.Uuid
+  alert_type  String?   @db.VarChar(50)
+  severity    String?   @db.VarChar(20)
+  title       String?   @db.VarChar(255)
+  message     String?
+  is_resolved Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  resolved_at DateTime?
+  hospital    Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  @@map("alerts")
+}
+
+model User {
+  id                  String          @id @default(uuid()) @db.Uuid
+  email               String          @unique @db.VarChar(255)
+  name                String?         @db.VarChar(255)
+  password            String?         @db.VarChar(255)
+  role                UserRole        @default(coordinator)
+  hospital_id         String?         @db.Uuid
+  emailVerified       DateTime?
+  resetToken          String?         @db.VarChar(255)
+  resetTokenExpiry    DateTime?
+  lastLogin           DateTime?
+  isActive            Boolean         @default(true)
+  preferredLanguage   String          @default("es") @db.VarChar(5)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+  pushSubscription    String?
+  accounts            Account[]
+  activity_logs       ActivityLog[]
+  sent_communications Communication[] @relation("CommunicationSender")
+  notifications       Notification[]
+  sessions            Session[]
+  hospital            Hospital?       @relation(fields: [hospital_id], references: [id])
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Notification {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  title      String   @db.VarChar(255)
+  message    String
+  type       String   @db.VarChar(50)
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String?   @db.Uuid
+  hospital_id String?   @db.Uuid
+  action      String?   @db.VarChar(100)
+  details     Json?
+  created_at  DateTime  @default(now())
+  hospital    Hospital? @relation(fields: [hospital_id], references: [id])
+  user        User?     @relation(fields: [user_id], references: [id])
+
+  @@map("activity_log")
+}
+
+enum UserRole {
+  admin
+  coordinator
+}
