@@ -4,7 +4,7 @@ import { prisma } from '@/lib/database';
 import { z } from 'zod';
 
 const bulkDeleteSchema = z.object({
-  userIds: z.array(z.string().uuid('ID de usuario inválido')).min(1, 'Debe seleccionar al menos un usuario'),
+  userIds: z.array(z.string().min(1, 'ID de usuario inválido')).min(1, 'Debe seleccionar al menos un usuario'),
 });
 
 export const POST = withAdminAuth(async (request: NextRequest, context: AuthContext) => {

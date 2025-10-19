@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {

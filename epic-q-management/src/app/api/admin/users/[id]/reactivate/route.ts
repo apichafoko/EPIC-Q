@@ -34,7 +34,7 @@ export async function PATCH(
     // Verificar que el usuario existe y es admin
     const adminUser = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!adminUser || !adminUser.isActive || adminUser.role !== 'admin') {

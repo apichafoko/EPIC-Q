@@ -4,11 +4,14 @@ import { prisma } from '@/lib/database';
 
 export const GET = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {
+    console.log('GET /api/admin/projects - Starting request');
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'all';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
+    
+    console.log('GET /api/admin/projects - Params:', { status, page, limit, skip });
 
     // Construir filtros
     const where: any = {};
@@ -17,6 +20,7 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
     }
 
     // Obtener proyectos con conteos
+    console.log('GET /api/admin/projects - Querying database...');
     const [projects, total] = await Promise.all([
       prisma.projects.findMany({
         where,
@@ -36,6 +40,8 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
       }),
       prisma.projects.count({ where })
     ]);
+    
+    console.log('GET /api/admin/projects - Query successful:', { projectsCount: projects.length, total });
 
     return NextResponse.json({
       success: true,
@@ -50,16 +56,25 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
 
   } catch (error) {
     console.error('Error fetching projects:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 });
 
 export const POST = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
+  let body: any;
   try {
-    const body = await request.json();
+    body = await request.json();
     
     // Validar datos básicos
     if (!body.name || body.name.trim().length === 0) {
@@ -72,10 +87,12 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     // Crear proyecto
     const project = await prisma.projects.create({
       data: {
+        id: crypto.randomUUID(),
         name: body.name.trim(),
         description: body.description?.trim() || null,
         start_date: body.start_date ? new Date(body.start_date) : null,
         end_date: body.end_date ? new Date(body.end_date) : null,
+        required_periods: body.default_required_periods || 1,
       },
       include: {
         _count: {
@@ -95,8 +112,16 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
 
   } catch (error) {
     console.error('Error creating project:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      body: body
+    });
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

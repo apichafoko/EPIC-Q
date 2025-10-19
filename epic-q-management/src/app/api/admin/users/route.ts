@@ -7,50 +7,12 @@ import { apiRateLimiter, getClientIdentifier } from '@/lib/security/rate-limit';
 import { emailService } from '@/lib/notifications/email-service';
 import { InternalNotificationService } from '@/lib/notifications/internal-notification-service';
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {
-    // Verificar autenticación manualmente
-    const token = request.cookies.get('auth-token')?.value;
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
-
-    // Verificar token
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret-key';
-    
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (jwtError) {
-      console.error('JWT verification error:', jwtError);
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
-    // Verificar que el usuario existe y es admin
-    const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
-      include: { hospital: true }
-    });
-
-    if (!user || !user.isActive || user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Permisos insuficientes' },
-        { status: 403 }
-      );
-    }
-
     // Obtener usuarios
     const users = await prisma.users.findMany({
       include: {
-        hospital: {
+        hospitals: {
           select: {
             name: true,
           },
@@ -66,8 +28,8 @@ export async function GET(request: NextRequest) {
       email: user.email,
       name: user.name,
       role: user.role,
-      hospital_id: user.hospital_id,
-      hospital_name: user.hospital?.name,
+      hospital_id: user.hospitalId,
+      hospital_name: user.hospitals?.name,
       isActive: user.isActive,
       lastLogin: user.lastLogin,
       created_at: user.created_at,
@@ -84,7 +46,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 export const POST = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {
@@ -108,7 +70,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
       return NextResponse.json(
         {
           error: 'Datos de entrada inválidos',
-          details: validationResult.error.errors,
+          details: validationResult.error.issues,
         },
         { status: 400 }
       );
@@ -147,12 +109,12 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
         // Create new hospital
         const newHospital = await prisma.hospitals.create({
           data: {
+            id: `hospital-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: hospital_name.trim(),
             province: 'Por definir', // Default values that coordinator will update
             city: 'Por definir',
             status: 'pending',
-            participated_lasos: false,
-            redcap_id: `HOSP${Date.now()}`, // Generate temporary ID
+            lasos_participation: false,
           },
         });
         finalHospitalId = newHospital.id;
@@ -162,11 +124,12 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     // Create user
     const user = await prisma.users.create({
       data: {
+        id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name,
         email,
         password: hashedPassword,
         role: role as 'admin' | 'coordinator',
-        hospital_id: finalHospitalId,
+        hospitalId: finalHospitalId,
         resetToken,
         resetTokenExpiry,
         isActive: true,
@@ -224,7 +187,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
         email: user.email,
         name: user.name,
         role: user.role,
-        hospital_id: user.hospital_id,
+        hospital_id: user.hospitalId,
         isActive: user.isActive,
       },
       message: 'User created successfully'

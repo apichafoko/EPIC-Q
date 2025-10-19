@@ -98,7 +98,12 @@ export default function CoordinatorProgressPage() {
 
   const loadRecruitmentPeriods = async () => {
     try {
-      const response = await fetch('/api/coordinator/recruitment-periods', {
+      if (!currentProject?.id) {
+        console.error('No current project available');
+        return;
+      }
+
+      const response = await fetch(`/api/coordinator/recruitment-periods?projectId=${currentProject.id}`, {
         credentials: 'include'
       });
       
@@ -238,7 +243,12 @@ export default function CoordinatorProgressPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/coordinator/recruitment-periods', {
+      if (!currentProject?.id) {
+        showError('No hay proyecto seleccionado');
+        return;
+      }
+
+      const response = await fetch(`/api/coordinator/recruitment-periods?projectId=${currentProject.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

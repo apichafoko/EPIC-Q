@@ -13,17 +13,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar invitaciones pendientes para el usuario
+    // Buscar invitaciones pendientes para el usuario (donde accepted_at es null)
     const pendingInvitations = await prisma.project_coordinators.findMany({
       where: {
         user_id: userId,
         is_active: false,
-        invitation_token: {
-          not: null
-        }
+        accepted_at: null
       },
       include: {
-        project: {
+        projects: {
           select: {
             id: true,
             name: true,
@@ -32,7 +30,7 @@ export async function GET(request: NextRequest) {
             end_date: true
           }
         },
-        hospital: {
+        hospitals: {
           select: {
             id: true,
             name: true,

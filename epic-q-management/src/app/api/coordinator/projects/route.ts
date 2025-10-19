@@ -13,7 +13,7 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
         is_active: true
       },
       include: {
-        project: {
+        projects: {
           include: {
             _count: {
               select: {
@@ -23,7 +23,7 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
             }
           }
         },
-        hospital: {
+        hospitals: {
           select: {
             id: true,
             name: true,
@@ -39,26 +39,26 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
 
     // Transformar los datos para el frontend
     const projects = projectCoordinators.map(pc => ({
-      id: pc.project.id,
-      name: pc.project.name,
-      description: pc.project.description,
-      start_date: pc.project.start_date,
-      end_date: pc.project.end_date,
-      status: pc.project.status,
-      created_at: pc.project.created_at,
-      updated_at: pc.project.updated_at,
+      id: pc.projects.id,
+      name: pc.projects.name,
+      description: pc.projects.description,
+      start_date: pc.projects.start_date,
+      end_date: pc.projects.end_date,
+      status: pc.projects.status,
+      created_at: pc.projects.created_at,
+      updated_at: pc.projects.updated_at,
       // Información específica del coordinador en este proyecto
       coordinatorInfo: {
-        hospital: pc.hospital,
+        hospital: pc.hospitals,
         role: pc.role,
         invited_at: pc.invited_at,
         accepted_at: pc.accepted_at,
-        required_periods: pc.project._count.project_hospitals
+        required_periods: pc.projects._count.project_hospitals
       },
       // Estadísticas del proyecto
       stats: {
-        total_hospitals: pc.project._count.project_hospitals,
-        total_coordinators: pc.project._count.project_coordinators
+        total_hospitals: pc.projects._count.project_hospitals,
+        total_coordinators: pc.projects._count.project_coordinators
       }
     }));
 

@@ -62,9 +62,9 @@ export function EditProjectHospitalModal({
   useEffect(() => {
     if (projectHospital) {
       setFormData({
-        required_periods: projectHospital.required_periods,
+        required_periods: projectHospital.required_periods || 0,
         redcap_id: projectHospital.redcap_id || '',
-        status: projectHospital.status
+        status: projectHospital.status || 'initial_contact'
       });
     }
   }, [projectHospital]);
@@ -126,7 +126,7 @@ export function EditProjectHospitalModal({
               id="required_periods"
               type="number"
               min="1"
-              value={formData.required_periods}
+              value={formData.required_periods || 0}
               onChange={(e) => setFormData(prev => ({
                 ...prev,
                 required_periods: parseInt(e.target.value) || 0
@@ -139,7 +139,7 @@ export function EditProjectHospitalModal({
             <Label htmlFor="redcap_id">ID RedCap</Label>
             <Input
               id="redcap_id"
-              value={formData.redcap_id}
+              value={formData.redcap_id || ''}
               onChange={(e) => setFormData(prev => ({
                 ...prev,
                 redcap_id: e.target.value
@@ -151,7 +151,7 @@ export function EditProjectHospitalModal({
           <div className="space-y-3">
             <Label htmlFor="status">Estado en el Proyecto</Label>
             <Select
-              value={formData.status}
+              value={formData.status || 'initial_contact'}
               onValueChange={(value) => setFormData(prev => ({
                 ...prev,
                 status: value

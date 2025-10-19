@@ -474,6 +474,11 @@ export default function ProjectDetailPage() {
 
   // Funciones de filtrado
   const filteredHospitals = (project?.project_hospitals || []).filter(ph => {
+    // Skip if hospital data is missing
+    if (!ph.hospital) {
+      return false;
+    }
+    
     const matchesSearch = ph.hospital.name.toLowerCase().includes(hospitalSearchTerm.toLowerCase()) ||
                          (ph.hospital.city && ph.hospital.city.toLowerCase().includes(hospitalSearchTerm.toLowerCase())) ||
                          (ph.hospital.province && ph.hospital.province.toLowerCase().includes(hospitalSearchTerm.toLowerCase()));
@@ -484,6 +489,11 @@ export default function ProjectDetailPage() {
   });
 
   const filteredCoordinators = (project?.project_coordinators || []).filter(pc => {
+    // Skip if user or hospital data is missing
+    if (!pc.user || !pc.hospital) {
+      return false;
+    }
+    
     const matchesSearch = pc.user.name.toLowerCase().includes(coordinatorSearchTerm.toLowerCase()) ||
                          pc.user.email.toLowerCase().includes(coordinatorSearchTerm.toLowerCase()) ||
                          pc.hospital.name.toLowerCase().includes(coordinatorSearchTerm.toLowerCase());
@@ -1015,9 +1025,9 @@ export default function ProjectDetailPage() {
                             onCheckedChange={(checked) => handleHospitalSelect(ph.id, checked as boolean)}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{ph.hospital.name}</TableCell>
+                        <TableCell className="font-medium">{ph.hospital?.name || 'Hospital no encontrado'}</TableCell>
                         <TableCell>
-                          {ph.hospital.province && ph.hospital.city 
+                          {ph.hospital?.province && ph.hospital?.city 
                             ? `${ph.hospital.city}, ${ph.hospital.province}`
                             : 'No especificada'
                           }
@@ -1039,13 +1049,17 @@ export default function ProjectDetailPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewHospital(ph.hospital.id)}>
+                              <DropdownMenuItem 
+                                onClick={() => ph.hospital && handleViewHospital(ph.hospital.id)}
+                                disabled={!ph.hospital}
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver Detalle
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleRemoveHospital(ph.hospital.id, ph.hospital.name)}
+                                onClick={() => ph.hospital && handleRemoveHospital(ph.hospital.id, ph.hospital.name)}
+                                disabled={!ph.hospital}
                                 className="text-red-600"
                               >
                                 <X className="mr-2 h-4 w-4" />
@@ -1348,9 +1362,9 @@ export default function ProjectDetailPage() {
                             onCheckedChange={(checked) => handleCoordinatorSelect(pc.id, checked as boolean)}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{pc.user.name}</TableCell>
-                        <TableCell>{pc.user.email}</TableCell>
-                        <TableCell>{pc.hospital.name}</TableCell>
+                        <TableCell className="font-medium">{pc.user?.name || 'Usuario no encontrado'}</TableCell>
+                        <TableCell>{pc.user?.email || 'Email no disponible'}</TableCell>
+                        <TableCell>{pc.hospital?.name || 'Hospital no encontrado'}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{pc.role}</Badge>
                         </TableCell>
@@ -1374,11 +1388,14 @@ export default function ProjectDetailPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewCoordinator(pc.user.id)}>
+                              <DropdownMenuItem 
+                                onClick={() => pc.user && handleViewCoordinator(pc.user.id)}
+                                disabled={!pc.user}
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver Detalle
                               </DropdownMenuItem>
-                              {!pc.accepted_at && (
+                              {!pc.accepted_at && pc.user && (
                                 <DropdownMenuItem onClick={() => handleResendInvitation(pc.id, pc.user.email)}>
                                   <Mail className="mr-2 h-4 w-4" />
                                   Reenviar Invitación
@@ -1386,7 +1403,8 @@ export default function ProjectDetailPage() {
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleRemoveCoordinator(pc.id, pc.user.name)}
+                                onClick={() => pc.user && handleRemoveCoordinator(pc.id, pc.user.name)}
+                                disabled={!pc.user}
                                 className="text-red-600"
                               >
                                 <X className="mr-2 h-4 w-4" />

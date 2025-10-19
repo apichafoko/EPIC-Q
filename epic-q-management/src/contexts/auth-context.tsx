@@ -133,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       setHasShownPasswordModal(false); // Resetear el flag al hacer logout
+      // Redirigir al login después del logout
+      window.location.href = '/es/auth/login';
     }
   };
 

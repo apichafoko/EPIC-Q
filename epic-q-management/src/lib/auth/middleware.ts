@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuthService } from './simple-auth-service';
-import { UserRole } from '@prisma/client';
+import { users } from '@prisma/client';
+
+type UserRole = users['role'];
 
 export interface AuthContext {
   user: {
@@ -68,8 +70,15 @@ export function withAuth(
       return await handler(request, context);
     } catch (error) {
       console.error('Auth middleware error:', error);
+      console.error('Auth error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return NextResponse.json(
-        { error: 'Error de autenticación' },
+        { 
+          error: 'Error de autenticación',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
         { status: 500 }
       );
     }

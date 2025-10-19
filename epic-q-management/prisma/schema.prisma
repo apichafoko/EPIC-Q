@@ -45,7 +45,7 @@ model alerts {
   is_resolved Boolean   @default(false)
   resolved_at DateTime?
   created_at  DateTime  @default(now())
-  updated_at  DateTime
+  updated_at  DateTime  @default(now())
   hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
@@ -57,7 +57,7 @@ model case_metrics {
   completion_percentage Int       @default(0)
   last_case_date        DateTime?
   created_at            DateTime  @default(now())
-  updated_at            DateTime
+  updated_at            DateTime  @default(now())
   hospitals             hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
@@ -75,7 +75,7 @@ model communication_templates {
   email_body       String?
   variables        String[] @default([])
   created_at       DateTime @default(now())
-  updated_at       DateTime
+  updated_at       DateTime @default(now())
 }
 
 model communications {
@@ -88,7 +88,7 @@ model communications {
   body        String
   sent_at     DateTime   @default(now())
   created_at  DateTime   @default(now())
-  updated_at  DateTime
+  updated_at  DateTime   @default(now())
   hospitals   hospitals? @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   projects    projects?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
   users       users?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -104,7 +104,7 @@ model hospital_contacts {
   specialty   String?
   is_primary  Boolean   @default(false)
   created_at  DateTime  @default(now())
-  updated_at  DateTime
+  updated_at  DateTime  @default(now())
   hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
@@ -120,8 +120,14 @@ model hospital_details {
   research_department       String?
   research_department_email String?
   research_department_phone String?
+  num_beds                  Int?
+  num_operating_rooms       Int?
+  num_icu_beds              Int?
+  avg_weekly_surgeries      Int?
+  financing_type            String?
+  has_preop_clinic          String?
   created_at                DateTime  @default(now())
-  updated_at                DateTime
+  updated_at                DateTime  @default(now())
   hospitals                 hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
@@ -133,7 +139,7 @@ model hospital_progress {
   progress_percentage Int                @default(0)
   notes               String?
   created_at          DateTime           @default(now())
-  updated_at          DateTime
+  updated_at          DateTime           @default(now())
   project_hospital_id String?            @unique
   hospitals           hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   project_hospitals   project_hospitals? @relation(fields: [project_hospital_id], references: [id])
@@ -152,7 +158,7 @@ model hospitals {
   lasos_participation  Boolean                @default(false)
   status               String                 @default("active")
   created_at           DateTime               @default(now())
-  updated_at           DateTime
+  updated_at           DateTime               @default(now())
   alerts               alerts[]
   case_metrics         case_metrics[]
   communications       communications[]
@@ -181,9 +187,12 @@ model project_coordinators {
   project_id  String
   hospital_id String
   user_id     String
+  role        String    @default("coordinator")
   is_active   Boolean   @default(true)
+  invited_at  DateTime  @default(now())
+  accepted_at DateTime?
   created_at  DateTime  @default(now())
-  updated_at  DateTime
+  updated_at  DateTime  @default(now())
   hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   projects    projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
   users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -201,7 +210,7 @@ model project_hospitals {
   ethics_committee_email String?
   ethics_committee_phone String?
   created_at             DateTime              @default(now())
-  updated_at             DateTime
+  updated_at             DateTime              @default(now())
   hospital_progress      hospital_progress?
   hospitals              hospitals             @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   projects               projects              @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -219,7 +228,7 @@ model projects {
   end_date             DateTime?
   required_periods     Int                    @default(1)
   created_at           DateTime               @default(now())
-  updated_at           DateTime
+  updated_at           DateTime               @default(now())
   communications       communications[]
   project_coordinators project_coordinators[]
   project_hospitals    project_hospitals[]
@@ -231,7 +240,7 @@ model recruitment_periods {
   end_date            DateTime
   target_cases        Int?
   created_at          DateTime          @default(now())
-  updated_at          DateTime
+  updated_at          DateTime          @default(now())
   period_number       Int
   project_hospital_id String
   project_hospitals   project_hospitals @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
@@ -255,7 +264,7 @@ model user_settings {
   language           String   @default("es")
   timezone           String?
   created_at         DateTime @default(now())
-  updated_at         DateTime
+  updated_at         DateTime @default(now())
   users              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -276,7 +285,7 @@ model users {
   timezone             String?
   country              String?
   created_at           DateTime               @default(now())
-  updated_at           DateTime
+  updated_at           DateTime               @default(now())
   accounts             accounts[]
   activity_logs        activity_logs[]
   communications       communications[]

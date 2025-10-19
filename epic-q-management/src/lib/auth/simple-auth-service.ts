@@ -53,8 +53,8 @@ export class SimpleAuthService {
         role: user.role,
         hospitalId: user.hospitalId,
         hospital: user.hospitals ? {
-          id: user.hospital.id,
-          name: user.hospital.name
+          id: user.hospitals.id,
+          name: user.hospitals.name
         } : null,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
@@ -98,8 +98,8 @@ export class SimpleAuthService {
         role: user.role,
         hospitalId: user.hospitalId,
         hospital: user.hospitals ? {
-          id: user.hospital.id,
-          name: user.hospital.name
+          id: user.hospitals.id,
+          name: user.hospitals.name
         } : null,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
@@ -108,6 +108,10 @@ export class SimpleAuthService {
       };
     } catch (error) {
       console.error('Token verification error:', error);
+      console.error('Token verification error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return null;
     }
   }

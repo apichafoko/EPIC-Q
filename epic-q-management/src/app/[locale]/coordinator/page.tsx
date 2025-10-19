@@ -201,13 +201,27 @@ export default function CoordinatorDashboard() {
                     </div>
                   </div>
 
+                  {/* Completed Fields */}
+                  {stats.hospitalFormStatus.completedFields && stats.hospitalFormStatus.completedFields.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2 text-green-700">Campos completados:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {stats.hospitalFormStatus.completedFields.map((field, index) => (
+                          <Badge key={index} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            ✓ {field}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Missing Fields */}
                   {!stats.hospitalFormStatus.isComplete && stats.hospitalFormStatus.missingFields.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">Campos pendientes:</p>
+                      <p className="text-sm font-medium mb-2 text-red-700">Campos pendientes:</p>
                       <div className="flex flex-wrap gap-2">
                         {stats.hospitalFormStatus.missingFields.map((field, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
                             {field}
                           </Badge>
                         ))}

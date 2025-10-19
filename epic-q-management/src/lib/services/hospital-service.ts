@@ -21,6 +21,9 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
 
     if (filters?.status && filters.status !== 'all') {
       where.status = filters.status;
+    } else if (!filters?.status) {
+      // Por defecto, solo mostrar hospitales activos si no se especifica un filtro de estado
+      where.status = 'active';
     }
 
     let hospitals, total;
@@ -65,10 +68,8 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
             prisma.hospitals.findMany({
               where,
               include: {
-                details: true,
-                progress: true,
-                contacts: true,
-                users: true,
+                hospital_details: true,
+                hospital_contacts: true,
                 project_hospitals: {
                   include: {
                     projects: {
@@ -102,13 +103,13 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
     const formattedHospitals = hospitals.map(hospital => {
       // Separar proyectos activos e históricos
       const activeProjects = hospital.project_hospitals.filter(ph => 
-        ph.project.status === 'active' && 
-        (!ph.project.end_date || new Date(ph.project.end_date) > new Date())
+        ph.projects.status === 'active' && 
+        (!ph.projects.end_date || new Date(ph.projects.end_date) > new Date())
       );
       
       const historicalProjects = hospital.project_hospitals.filter(ph => 
-        ph.project.status !== 'active' || 
-        (ph.project.end_date && new Date(ph.project.end_date) <= new Date())
+        ph.projects.status !== 'active' || 
+        (ph.projects.end_date && new Date(ph.projects.end_date) <= new Date())
       );
 
       return {
@@ -117,30 +118,30 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
         province: hospital.province || '',
         city: hospital.city || '',
         status: hospital.status || 'pending',
-        coordinator: hospital.contacts[0]?.name || hospital.users[0]?.name || 'No asignado',
+        coordinator: hospital.hospital_contacts?.[0]?.name || 'No asignado',
         active_projects: activeProjects.length,
         historical_projects: historicalProjects.length,
         projects: hospital.project_hospitals.map(ph => ({
-          id: ph.project.id,
-          name: ph.project.name,
-          status: ph.project.status,
-          start_date: ph.project.start_date,
-          end_date: ph.project.end_date,
+          id: ph.projects.id,
+          name: ph.projects.name,
+          status: ph.projects.status,
+          start_date: ph.projects.start_date,
+          end_date: ph.projects.end_date,
           required_periods: ph.required_periods,
           redcap_id: ph.redcap_id
         })),
         last_activity: hospital.updated_at,
-        participated_lasos: hospital.participated_lasos || false,
-        total_beds: hospital.details?.num_beds || 0,
-        icu_beds: hospital.details?.num_icu_beds || 0,
-        operating_rooms: hospital.details?.num_operating_rooms || 0,
-        annual_surgeries: hospital.details?.avg_weekly_surgeries ? hospital.details.avg_weekly_surgeries * 52 : 0,
-        coordinator_name: hospital.contacts[0]?.name || '',
-        coordinator_email: hospital.contacts[0]?.email || '',
-        coordinator_phone: hospital.contacts[0]?.phone || '',
-        coordinator_specialty: hospital.contacts[0]?.specialty || '',
-        ethics_submitted: hospital.progress?.ethics_submitted || false,
-        ethics_approved: hospital.progress?.ethics_approved || false,
+        participated_lasos: hospital.lasos_participation || false,
+        total_beds: hospital.hospital_details?.num_beds || 0,
+        icu_beds: hospital.hospital_details?.num_icu_beds || 0,
+        operating_rooms: hospital.hospital_details?.num_operating_rooms || 0,
+        annual_surgeries: hospital.hospital_details?.avg_weekly_surgeries ? hospital.hospital_details.avg_weekly_surgeries * 52 : 0,
+        coordinator_name: hospital.hospital_contacts?.[0]?.name || '',
+        coordinator_email: hospital.hospital_contacts?.[0]?.email || '',
+        coordinator_phone: hospital.hospital_contacts?.[0]?.phone || '',
+        coordinator_specialty: hospital.hospital_contacts?.[0]?.specialty || '',
+        ethics_submitted: hospital.hospital_progress?.[0]?.ethics_submitted || false,
+        ethics_approved: hospital.hospital_progress?.[0]?.ethics_approved || false,
         ethics_approval_date: null, // Campo no existe en HospitalProgress
         created_at: hospital.created_at,
         updated_at: hospital.updated_at
@@ -159,14 +160,11 @@ export async function getHospitalById(id: string) {
     const hospital = await prisma.hospitals.findUnique({
       where: { id },
       include: {
-        details: true,
-        progress: true,
-        contacts: true,
+        hospital_details: true,
+        hospital_progress: true,
+        hospital_contacts: true,
         users: {
           where: { role: 'coordinator' }
-        },
-        recruitment_periods: {
-          orderBy: { start_date: 'desc' }
         },
         case_metrics: {
           orderBy: { recorded_date: 'desc' }
@@ -190,7 +188,10 @@ export async function getHospitalById(id: string) {
                 end_date: true
               }
             },
-            progress: true
+            hospital_progress: true,
+            recruitment_periods: {
+              orderBy: { start_date: 'desc' }
+            }
           }
         }
       }
@@ -205,7 +206,7 @@ export async function getHospitalById(id: string) {
         is_active: true
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -223,13 +224,13 @@ export async function getHospitalById(id: string) {
 
     // Separar proyectos activos e históricos
     const activeProjects = hospital.project_hospitals.filter(ph => 
-      ph.project.status === 'active' && 
-      (!ph.project.end_date || new Date(ph.project.end_date) > new Date())
+      ph.projects.status === 'active' && 
+      (!ph.projects.end_date || new Date(ph.projects.end_date) > new Date())
     );
     
     const historicalProjects = hospital.project_hospitals.filter(ph => 
-      ph.project.status !== 'active' || 
-      (ph.project.end_date && new Date(ph.project.end_date) <= new Date())
+      ph.projects.status !== 'active' || 
+      (ph.projects.end_date && new Date(ph.projects.end_date) <= new Date())
     );
 
     return {
@@ -238,28 +239,28 @@ export async function getHospitalById(id: string) {
       province: hospital.province || '',
       city: hospital.city || '',
       status: hospital.status || 'pending',
-      participated_lasos: hospital.participated_lasos || false,
+      participated_lasos: hospital.lasos_participation || false,
       active_projects: activeProjects.length,
       historical_projects: historicalProjects.length,
       projects: hospital.project_hospitals.map(ph => {
         // Filtrar coordinadores para este proyecto específico
-        const projectCoords = projectCoordinators.filter(pc => pc.project_id === ph.project.id);
+        const projectCoords = projectCoordinators.filter(pc => pc.project_id === ph.projects.id);
         
         return {
-          id: ph.project.id,
-          name: ph.project.name,
-          status: ph.project.status,
-          start_date: ph.project.start_date,
-          end_date: ph.project.end_date,
+          id: ph.projects.id,
+          name: ph.projects.name,
+          status: ph.projects.status,
+          start_date: ph.projects.start_date,
+          end_date: ph.projects.end_date,
           required_periods: ph.required_periods,
           redcap_id: ph.redcap_id,
           project_hospital_status: ph.status,
-          joined_at: ph.joined_at,
-          progress: ph.progress,
+          joined_at: ph.created_at,
+          progress: ph.hospital_progress,
           coordinators: projectCoords.map(pc => ({
-            id: pc.user.id,
-            name: pc.user.name,
-            email: pc.user.email,
+            id: pc.users.id,
+            name: pc.users.name,
+            email: pc.users.email,
             role: pc.role,
             is_active: pc.is_active,
             accepted_at: pc.accepted_at
@@ -268,11 +269,11 @@ export async function getHospitalById(id: string) {
       }),
       created_at: hospital.created_at,
       updated_at: hospital.updated_at,
-      details: hospital.details,
-      progress: hospital.progress,
-      contacts: hospital.contacts,
+      details: hospital.hospital_details,
+      progress: hospital.hospital_progress,
+      contacts: hospital.hospital_contacts,
       users: hospital.users,
-      recruitment_periods: hospital.recruitment_periods,
+      recruitment_periods: hospital.project_hospitals.flatMap(ph => ph.recruitment_periods),
       case_metrics: hospital.case_metrics,
       communications: hospital.communications,
       alerts: hospital.alerts

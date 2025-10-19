@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.log('Looking for user with ID:', decoded.userId);
     const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
     console.log('User found:', !!user, 'role:', user?.role, 'isActive:', user?.isActive);
 

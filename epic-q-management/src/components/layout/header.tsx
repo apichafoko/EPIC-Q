@@ -15,6 +15,7 @@ import {
 import { SimpleLanguageSelector } from '@/components/simple-language-selector';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useAuth } from '@/contexts/auth-context';
 import { mockAlerts } from '@/lib/mock-data';
 
 interface HeaderProps {
@@ -23,7 +24,12 @@ interface HeaderProps {
 
 export function Header({ userId }: HeaderProps) {
   const { t, locale } = useTranslations();
+  const { logout } = useAuth();
   const activeAlerts = mockAlerts.filter(alert => !alert.is_resolved).length;
+
+  const handleSignOut = () => {
+    logout();
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -118,7 +124,9 @@ export function Header({ userId }: HeaderProps) {
                     <a href={`/${locale}/settings`}>{t('common.settings')}</a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>{t('common.logout')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    {t('common.logout')}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
           </DropdownMenu>
         </div>

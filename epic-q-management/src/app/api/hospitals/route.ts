@@ -5,8 +5,8 @@ import { z } from 'zod';
 
 const createHospitalSchema = z.object({
   name: z.string().min(1, 'El nombre del hospital es requerido').max(255),
-  province: z.string().optional(),
-  city: z.string().optional(),
+  province: z.string().optional().default(''),
+  city: z.string().optional().default(''),
 });
 
 export const GET = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
@@ -18,6 +18,9 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
 
     const [hospitals, total] = await Promise.all([
       prisma.hospitals.findMany({
+        where: {
+          status: 'active'
+        },
         include: {
           hospital_details: true,
           hospital_contacts: true,
@@ -33,12 +36,22 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
         skip,
         take: limit,
       }),
-      prisma.hospitals.count()
+      prisma.hospitals.count({
+        where: {
+          status: 'active'
+        }
+      })
     ]);
+
+    // Mapear los datos para el frontend
+    const mappedHospitals = hospitals.map(hospital => ({
+      ...hospital,
+      participated_lasos: hospital.lasos_participation
+    }));
 
     return NextResponse.json({
       success: true,
-      hospitals,
+      hospitals: mappedHospitals,
       pagination: {
         page,
         limit,
@@ -66,14 +79,13 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     // Crear hospital
     const hospital = await prisma.hospitals.create({
       data: {
+        id: `hospital-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: validatedData.name.trim(),
-        province: validatedData.province?.trim(),
-        city: validatedData.city?.trim(),
+        province: validatedData.province?.trim() || '',
+        city: validatedData.city?.trim() || '',
         status: 'active',
-      },
-      include: {
-        details: true,
-        contacts: true,
+        created_at: new Date(),
+        updated_at: new Date(),
       }
     });
 

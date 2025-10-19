@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
+import { withAdminAuth, AuthContext } from '@/lib/auth/simple-middleware';
 import { prisma } from '@/lib/database';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
@@ -22,8 +22,8 @@ const inviteCoordinatorSchema = z.object({
   phone: z.string()
     .optional()
     .refine((val) => !val || /^[\d\s\-\+\(\)]+$/.test(val), 'Formato de teléfono inválido'),
-  hospital_id: z.string().uuid('ID de hospital inválido'),
-  required_periods: z.number().int().min(1, 'Debe tener al menos 1 período').max(10, 'No puede tener más de 10 períodos').default(2),
+  hospital_id: z.string().min(1, 'ID de hospital requerido'),
+  required_periods: z.coerce.number().int().min(1, 'Debe tener al menos 1 período').max(10, 'No puede tener más de 10 períodos').default(2),
 });
 
 export async function POST(
@@ -33,13 +33,19 @@ export async function POST(
   return withAdminAuth(async (req: NextRequest, context: AuthContext) => {
     try {
       const { id: projectId } = await params;
-    const body = await req.json();
-    
-    console.log('Received invitation data:', body);
-    
-    // Validar datos
-    const validatedData = inviteCoordinatorSchema.parse(body);
-    console.log('Validated data:', validatedData);
+      const body = await req.json();
+      
+      console.log('Received invitation data:', body);
+      console.log('Data types:', {
+        email: typeof body.email,
+        name: typeof body.name,
+        hospital_id: typeof body.hospital_id,
+        required_periods: typeof body.required_periods
+      });
+      
+      // Validar datos
+      const validatedData = inviteCoordinatorSchema.parse(body);
+      console.log('Validated data:', validatedData);
     
     // Verificar que el proyecto existe
     const project = await prisma.projects.findUnique({
@@ -95,26 +101,32 @@ export async function POST(
       // Crear nuevo usuario
       user = await prisma.users.create({
         data: {
+          id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           email: validatedData.email,
           name: validatedData.name,
           role: 'coordinator',
           isActive: true,
           isTemporaryPassword: true,
           preferredLanguage: 'es',
-          password: hashedPassword
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date()
         }
       });
 
       // Si se proporcionó teléfono, crear contacto
       if (validatedData.phone) {
-        await prisma.contact.create({
+        await prisma.hospital_contacts.create({
           data: {
+            id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             hospital_id: validatedData.hospital_id,
             role: 'coordinator',
             name: validatedData.name,
             email: validatedData.email,
             phone: validatedData.phone,
-            is_primary: true
+            is_primary: true,
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
       }
@@ -162,6 +174,7 @@ export async function POST(
     }
 
     // Enviar email con credenciales ANTES de crear los registros
+    console.log('Sending invitation email...');
     const emailSent = await emailService.sendInvitationEmail(
       validatedData.email,
       invitationToken,
@@ -170,6 +183,7 @@ export async function POST(
       'Coordinador',
       tempPassword || 'Ya tienes una cuenta activa'
     );
+    console.log('Email sent result:', emailSent);
 
     if (!emailSent) {
       console.error(`Failed to send invitation email to ${validatedData.email}`);
@@ -184,30 +198,33 @@ export async function POST(
       // Crear ProjectHospital si no existe
       let projectHospital = existingProjectHospital;
       if (!projectHospital) {
-        projectHospital = await tx.projectHospital.create({
+        projectHospital = await tx.project_hospitals.create({
           data: {
+            id: `ph-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             project_id: projectId,
             hospital_id: validatedData.hospital_id,
-            required_periods: validatedData.required_periods,
-            status: 'active'
+            status: 'active',
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
       }
 
       // Crear ProjectCoordinator
-      const projectCoordinator = await tx.projectCoordinator.create({
+      const projectCoordinator = await tx.project_coordinators.create({
         data: {
+          id: `pc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           project_id: projectId,
           user_id: user.id,
           hospital_id: validatedData.hospital_id,
-          role: 'coordinator',
-          invitation_token: invitationToken,
-          is_active: false // Se activará cuando acepte la invitación
+          is_active: true, // Coordinador activo desde el inicio
+          created_at: new Date(),
+          updated_at: new Date()
         },
         include: {
-          user: true,
-          hospital: true,
-          project: true
+          users: true,
+          hospitals: true,
+          projects: true
         }
       });
 

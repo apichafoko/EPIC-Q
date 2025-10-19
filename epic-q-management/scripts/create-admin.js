@@ -8,15 +8,17 @@ async function createAdmin() {
     // Crear usuario administrador
     const hashedPassword = await bcrypt.hash('demo123', 12);
     
-    const admin = await prisma.user.create({
+    const admin = await prisma.users.create({
       data: {
+        id: `admin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         email: 'demo@epic-q.com',
         name: 'Administrador EPIC-Q',
         password: hashedPassword,
         role: 'admin',
         isActive: true,
         emailVerified: new Date(),
-        preferredLanguage: 'es'
+        preferredLanguage: 'es',
+        updated_at: new Date()
       }
     });
 

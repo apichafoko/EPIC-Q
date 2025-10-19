@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
         name: {
           contains: query,
           mode: 'insensitive'
-        }
+        },
+        status: 'active'
       };
 
       // Filtrar por proyecto si se especifica
@@ -116,7 +117,8 @@ export async function POST(request: NextRequest) {
           { name: { contains: query, mode: 'insensitive' } },
           { email: { contains: query, mode: 'insensitive' } }
         ],
-        role: 'coordinator'
+        role: 'coordinator',
+        isActive: true
       };
 
       // Filtrar por proyecto si se especifica

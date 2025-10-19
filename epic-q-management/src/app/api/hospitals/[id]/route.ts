@@ -35,7 +35,13 @@ export async function GET(
         );
       }
 
-      return NextResponse.json({ hospital });
+      // Mapear los datos para el frontend
+      const mappedHospital = {
+        ...hospital,
+        participated_lasos: hospital.lasos_participation
+      };
+
+      return NextResponse.json({ hospital: mappedHospital });
 
     } catch (error) {
       console.error('Error fetching hospital:', error);
@@ -85,14 +91,20 @@ export async function PUT(
           province: body.province,
           city: body.city,
           status: body.status || 'pending',
-          participated_lasos: body.participated_lasos || false,
+          lasos_participation: body.participated_lasos || false,
           updated_at: new Date()
         }
       });
 
+      // Mapear los datos para el frontend
+      const mappedHospital = {
+        ...updatedHospital,
+        participated_lasos: updatedHospital.lasos_participation
+      };
+
       return NextResponse.json({
         message: 'Hospital actualizado exitosamente',
-        hospital: updatedHospital
+        hospital: mappedHospital
       });
 
     } catch (error) {

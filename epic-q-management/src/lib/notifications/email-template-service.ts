@@ -176,8 +176,8 @@ export class EmailTemplateService {
     subject: string;
     body: string;
   } {
-    let processedSubject = template.subject;
-    let processedBody = template.body;
+    let processedSubject = template.email_subject || template.subject || 'Invitación al sistema EPIC-Q';
+    let processedBody = template.email_body || template.body || '';
 
     // Reemplazar variables en el subject
     Object.keys(variables).forEach(key => {

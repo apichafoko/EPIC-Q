@@ -115,7 +115,7 @@ export async function getDatabaseStats() {
       alertCount
     ] = await Promise.all([
       prisma.hospitals.count(),
-      prisma.contact.count(),
+      prisma.hospital_contacts.count(),
       prisma.communications.count(),
       prisma.communication_templates.count(),
       prisma.users.count(),
@@ -147,7 +147,7 @@ export async function clearDatabase() {
     await prisma.case_metrics.deleteMany();
     await prisma.recruitment_periods.deleteMany();
     await prisma.hospital_progress.deleteMany();
-    await prisma.contact.deleteMany();
+    await prisma.hospital_contacts.deleteMany();
     await prisma.hospital_details.deleteMany();
     await prisma.hospitals.deleteMany();
     await prisma.communication_templates.deleteMany();

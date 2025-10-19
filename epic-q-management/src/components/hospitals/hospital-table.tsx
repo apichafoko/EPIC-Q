@@ -164,7 +164,16 @@ export function HospitalTable({
         body: JSON.stringify({ hospitalIds: selectedHospitals }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (error) {
+        console.error('Error parsing JSON response:', error);
+        toast.error('Error al eliminar hospitales', {
+          description: 'Error interno del servidor. Inténtalo de nuevo más tarde.'
+        });
+        return;
+      }
       
       if (response.ok) {
         toast.success(`${selectedHospitals.length} hospitales eliminados permanentemente`, {

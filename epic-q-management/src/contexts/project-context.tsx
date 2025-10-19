@@ -29,6 +29,8 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       setIsLoading(true);
       setError(null);
 
+      console.log('Loading projects...');
+
       // Primero obtener información del usuario para determinar el endpoint correcto
       const userResponse = await fetch('/api/auth/me', {
         method: 'GET',
@@ -38,7 +40,10 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         credentials: 'include',
       });
 
+      console.log('User response status:', userResponse.status);
+
       if (!userResponse.ok) {
+        console.log('User not authenticated, clearing projects');
         // Si no está autenticado, limpiar proyectos
         setProjects([]);
         setCurrentProject(null);
@@ -46,10 +51,12 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       }
 
       const userData = await userResponse.json();
+      console.log('User data:', { role: userData.user?.role, id: userData.user?.id });
       const userRole = userData.user?.role;
 
       // Determinar el endpoint según el rol
       const endpoint = userRole === 'admin' ? '/api/admin/projects' : '/api/coordinator/projects';
+      console.log('Using endpoint:', endpoint);
 
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -59,17 +66,41 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         credentials: 'include',
       });
 
+      console.log('Projects response status:', response.status);
+
       if (!response.ok) {
         // Si es 401, el usuario no está autenticado, no es un error crítico
         if (response.status === 401) {
+          console.log('Unauthorized, clearing projects');
           setProjects([]);
           setCurrentProject(null);
           return;
         }
-        throw new Error('Error al cargar proyectos');
+        
+        // Obtener detalles del error
+        let errorDetails = '';
+        try {
+          const errorData = await response.json();
+          errorDetails = errorData.error || errorData.message || 'Error desconocido';
+        } catch {
+          errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        console.error('Error loading projects:', {
+          status: response.status,
+          statusText: response.statusText,
+          details: errorDetails
+        });
+        
+        throw new Error(`Error al cargar proyectos: ${errorDetails}`);
       }
 
       const data = await response.json();
+      console.log('Projects data received:', { 
+        projectsCount: data.projects?.length || 0,
+        success: data.success 
+      });
+      
       setProjects(data.projects || []);
 
       // Si no hay proyecto actual seleccionado, seleccionar el más reciente

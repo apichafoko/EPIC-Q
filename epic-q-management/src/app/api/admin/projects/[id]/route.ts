@@ -175,6 +175,14 @@ export async function DELETE(
       );
     }
 
+    // Verificar que el proyecto esté desactivado (inactive)
+    if (existingProject.status === 'active') {
+      return NextResponse.json(
+        { error: 'El proyecto debe estar desactivado antes de ser eliminado' },
+        { status: 400 }
+      );
+    }
+
     // Eliminar proyecto con cascada (elimina automáticamente project_hospitals, project_coordinators, etc.)
     await prisma.projects.delete({
       where: { id }
