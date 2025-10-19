@@ -16,7 +16,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     }
 
     // Buscar coordinadores existentes por nombre, apellido o email
-    const coordinators = await prisma.user.findMany({
+    const coordinators = await prisma.users.findMany({
       where: {
         role: 'coordinator',
         isActive: true,

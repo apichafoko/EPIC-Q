@@ -32,7 +32,7 @@ export async function PATCH(
     }
 
     // Verificar que el usuario existe y es admin
-    const adminUser = await prisma.user.findUnique({
+    const adminUser = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -47,7 +47,7 @@ export async function PATCH(
     const userId = params.id;
 
     // Verificar que el usuario a reactivar existe
-    const userToReactivate = await prisma.user.findUnique({
+    const userToReactivate = await prisma.users.findUnique({
       where: { id: userId },
       include: {
         hospital: true,
@@ -70,7 +70,7 @@ export async function PATCH(
     }
 
     // Reactivar usuario
-    const reactivatedUser = await prisma.user.update({
+    const reactivatedUser = await prisma.users.update({
       where: { id: userId },
       data: {
         isActive: true,

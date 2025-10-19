@@ -39,17 +39,17 @@ export class DatabaseBackupService {
           ]
         },
         data: {
-          hospitals: await prisma.hospital.findMany(),
-          hospital_details: await prisma.hospitalDetails.findMany(),
+          hospitals: await prisma.hospitals.findMany(),
+          hospital_details: await prisma.hospital_details.findMany(),
           contacts: await prisma.contact.findMany(),
-          hospital_progress: await prisma.hospitalProgress.findMany(),
-          recruitment_periods: await prisma.recruitmentPeriod.findMany(),
-          case_metrics: await prisma.caseMetrics.findMany(),
-          communications: await prisma.communication.findMany(),
-          email_templates: await prisma.emailTemplate.findMany(),
-          alerts: await prisma.alert.findMany(),
-          users: await prisma.user.findMany(),
-          activity_logs: await prisma.activityLog.findMany()
+          hospital_progress: await prisma.hospital_progress.findMany(),
+          recruitment_periods: await prisma.recruitment_periods.findMany(),
+          case_metrics: await prisma.case_metrics.findMany(),
+          communications: await prisma.communications.findMany(),
+          email_templates: await prisma.communication_templates.findMany(),
+          alerts: await prisma.alerts.findMany(),
+          users: await prisma.users.findMany(),
+          activity_logs: await prisma.activity_logs.findMany()
         }
       };
       
@@ -89,27 +89,27 @@ export class DatabaseBackupService {
       
       // Limpiar datos existentes
       console.log('🧹 Limpiando datos existentes...');
-      await prisma.activityLog.deleteMany();
-      await prisma.communication.deleteMany();
-      await prisma.caseMetrics.deleteMany();
-      await prisma.recruitmentPeriod.deleteMany();
-      await prisma.hospitalProgress.deleteMany();
+      await prisma.activity_logs.deleteMany();
+      await prisma.communications.deleteMany();
+      await prisma.case_metrics.deleteMany();
+      await prisma.recruitment_periods.deleteMany();
+      await prisma.hospital_progress.deleteMany();
       await prisma.contact.deleteMany();
-      await prisma.hospitalDetails.deleteMany();
-      await prisma.hospital.deleteMany();
-      await prisma.emailTemplate.deleteMany();
-      await prisma.alert.deleteMany();
-      await prisma.user.deleteMany();
+      await prisma.hospital_details.deleteMany();
+      await prisma.hospitals.deleteMany();
+      await prisma.communication_templates.deleteMany();
+      await prisma.alerts.deleteMany();
+      await prisma.users.deleteMany();
       
       // Restaurar datos
       console.log('📥 Restaurando datos...');
       
       if (backupData.data.hospitals) {
-        await prisma.hospital.createMany({ data: backupData.data.hospitals });
+        await prisma.hospitals.createMany({ data: backupData.data.hospitals });
       }
       
       if (backupData.data.hospital_details) {
-        await prisma.hospitalDetails.createMany({ data: backupData.data.hospital_details });
+        await prisma.hospital_details.createMany({ data: backupData.data.hospital_details });
       }
       
       if (backupData.data.contacts) {
@@ -117,35 +117,35 @@ export class DatabaseBackupService {
       }
       
       if (backupData.data.hospital_progress) {
-        await prisma.hospitalProgress.createMany({ data: backupData.data.hospital_progress });
+        await prisma.hospital_progress.createMany({ data: backupData.data.hospital_progress });
       }
       
       if (backupData.data.recruitment_periods) {
-        await prisma.recruitmentPeriod.createMany({ data: backupData.data.recruitment_periods });
+        await prisma.recruitment_periods.createMany({ data: backupData.data.recruitment_periods });
       }
       
       if (backupData.data.case_metrics) {
-        await prisma.caseMetrics.createMany({ data: backupData.data.case_metrics });
+        await prisma.case_metrics.createMany({ data: backupData.data.case_metrics });
       }
       
       if (backupData.data.communications) {
-        await prisma.communication.createMany({ data: backupData.data.communications });
+        await prisma.communications.createMany({ data: backupData.data.communications });
       }
       
       if (backupData.data.email_templates) {
-        await prisma.emailTemplate.createMany({ data: backupData.data.email_templates });
+        await prisma.communication_templates.createMany({ data: backupData.data.email_templates });
       }
       
       if (backupData.data.alerts) {
-        await prisma.alert.createMany({ data: backupData.data.alerts });
+        await prisma.alerts.createMany({ data: backupData.data.alerts });
       }
       
       if (backupData.data.users) {
-        await prisma.user.createMany({ data: backupData.data.users });
+        await prisma.users.createMany({ data: backupData.data.users });
       }
       
       if (backupData.data.activity_logs) {
-        await prisma.activityLog.createMany({ data: backupData.data.activity_logs });
+        await prisma.activity_logs.createMany({ data: backupData.data.activity_logs });
       }
       
       console.log('✅ Backup restaurado exitosamente');
@@ -232,16 +232,16 @@ export class DatabaseBackupService {
           version: '1.0.0'
         },
         data: {
-          hospitals: await prisma.hospital.findMany({
+          hospitals: await prisma.hospitals.findMany({
             where: { updated_at: { gte: since } }
           }),
-          communications: await prisma.communication.findMany({
+          communications: await prisma.communications.findMany({
             where: { created_at: { gte: since } }
           }),
-          alerts: await prisma.alert.findMany({
+          alerts: await prisma.alerts.findMany({
             where: { created_at: { gte: since } }
           }),
-          activity_logs: await prisma.activityLog.findMany({
+          activity_logs: await prisma.activity_logs.findMany({
             where: { created_at: { gte: since } }
           })
         }

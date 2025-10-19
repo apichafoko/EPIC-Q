@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth/auth-guard';
+import { ConfirmationToast } from '@/components/ui/confirmation-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +75,7 @@ export default function TemplatesPage() {
   const { t } = useTranslations();
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const { confirm, isConfirming, confirmationData, handleConfirm, handleCancel } = useConfirmation();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,7 +121,9 @@ export default function TemplatesPage() {
     try {
       setLoading(true);
       console.log('Loading templates...');
-      const response = await fetch('/api/templates');
+      const response = await fetch('/api/templates', {
+        credentials: 'include'
+      });
       console.log('Response status:', response.status);
       
       if (!response.ok) {
@@ -198,12 +203,16 @@ export default function TemplatesPage() {
       const url = editingTemplate ? `/api/templates/${editingTemplate.id}` : '/api/templates';
       const method = editingTemplate ? 'PATCH' : 'POST';
 
+      // Enviar todos los datos del formulario
+      const requestData = formData;
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        credentials: 'include',
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
@@ -228,35 +237,52 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este template?')) {
-      return;
-    }
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
 
-    try {
-      const response = await fetch(`/api/templates/${templateId}`, {
-        method: 'DELETE',
-      });
+    confirm(
+      {
+        title: 'Eliminar Template',
+        description: `¿Estás seguro de que quieres eliminar el template "${template.name}"?`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        variant: 'destructive'
+      },
+      async () => {
+        try {
+          const response = await fetch(`/api/templates/${templateId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
 
-      if (response.ok) {
-        toast.success('Template eliminado exitosamente');
-        loadTemplates();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Error al eliminar el template');
+          if (response.ok) {
+            toast.success('Template eliminado exitosamente');
+            loadTemplates();
+          } else {
+            const data = await response.json();
+            toast.error(data.error || 'Error al eliminar el template');
+          }
+        } catch (error) {
+          console.error('Failed to delete template:', error);
+          toast.error('Error de conexión');
+        }
       }
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-      toast.error('Error de conexión');
-    }
+    );
   };
 
   const handleToggleStatus = async (templateId: string, currentStatus: boolean) => {
+    if (!templateId) {
+      toast.error('Error: ID del template no válido');
+      return;
+    }
+    
     try {
       const response = await fetch(`/api/templates/${templateId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ is_active: !currentStatus }),
       });
 
@@ -469,7 +495,12 @@ export default function TemplatesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTemplates.map((template) => (
+                  {filteredTemplates.map((template) => {
+                    if (!template.id) {
+                      console.error('Template without ID:', template);
+                      return null;
+                    }
+                    return (
                     <TableRow key={template.id}>
                       <TableCell>
                         <div>
@@ -524,7 +555,8 @@ export default function TemplatesPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -551,7 +583,7 @@ export default function TemplatesPage() {
               <div className="space-y-6">
                 {/* Información básica */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-3">
                     <Label htmlFor="name">Nombre *</Label>
                     <Input
                       id="name"
@@ -560,7 +592,7 @@ export default function TemplatesPage() {
                       placeholder="Nombre del template"
                     />
                   </div>
-                  <div>
+                  <div className="space-y-3">
                     <Label htmlFor="category">Categoría</Label>
                     <Input
                       id="category"
@@ -571,7 +603,7 @@ export default function TemplatesPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-3">
                   <Label htmlFor="description">Descripción</Label>
                   <Textarea
                     id="description"
@@ -583,7 +615,7 @@ export default function TemplatesPage() {
                 </div>
 
                 {/* Tipo de template */}
-                <div>
+                <div className="space-y-3">
                   <Label>Tipo de Template *</Label>
                   <RadioGroup
                     value={formData.type}
@@ -818,6 +850,17 @@ export default function TemplatesPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Confirmation Toast */}
+        {confirmationData && (
+          <ConfirmationToast
+            isOpen={true}
+            options={confirmationData.options}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+            isLoading={isConfirming}
+          />
         )}
       </div>
     </AuthGuard>

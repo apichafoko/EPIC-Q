@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener usuarios
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       include: {
         hospital: {
           select: {
@@ -117,7 +117,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     const { name, email, role, hospital_id, hospital_name, sendInvitation } = validationResult.data;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -145,7 +145,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
         finalHospitalId = hospital_id;
       } else if (hospital_name) {
         // Create new hospital
-        const newHospital = await prisma.hospital.create({
+        const newHospital = await prisma.hospitals.create({
           data: {
             name: hospital_name.trim(),
             province: 'Por definir', // Default values that coordinator will update
@@ -160,7 +160,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     }
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         name,
         email,
@@ -177,7 +177,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     // Get hospital name for emails and notifications
     let hospitalName = 'Sistema EPIC-Q';
     if (role === 'coordinator' && finalHospitalId) {
-      const hospital = await prisma.hospital.findUnique({
+      const hospital = await prisma.hospitals.findUnique({
         where: { id: finalHospitalId },
         select: { name: true }
       });

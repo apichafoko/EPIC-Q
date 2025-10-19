@@ -17,10 +17,10 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
     const skip = (page - 1) * limit;
 
     const [hospitals, total] = await Promise.all([
-      prisma.hospital.findMany({
+      prisma.hospitals.findMany({
         include: {
-          details: true,
-          contacts: true,
+          hospital_details: true,
+          hospital_contacts: true,
           _count: {
             select: {
               project_hospitals: true,
@@ -33,7 +33,7 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
         skip,
         take: limit,
       }),
-      prisma.hospital.count()
+      prisma.hospitals.count()
     ]);
 
     return NextResponse.json({
@@ -64,7 +64,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     const validatedData = createHospitalSchema.parse(body);
 
     // Crear hospital
-    const hospital = await prisma.hospital.create({
+    const hospital = await prisma.hospitals.create({
       data: {
         name: validatedData.name.trim(),
         province: validatedData.province?.trim(),

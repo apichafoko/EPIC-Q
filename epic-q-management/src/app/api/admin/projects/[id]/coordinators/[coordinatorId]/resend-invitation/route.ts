@@ -13,7 +13,7 @@ export async function POST(
       const { id: projectId, coordinatorId } = await params;
 
       // Verificar que el proyecto existe
-      const project = await prisma.project.findUnique({
+      const project = await prisma.projects.findUnique({
         where: { id: projectId }
       });
 
@@ -25,7 +25,7 @@ export async function POST(
       }
 
       // Verificar que el coordinador está en el proyecto
-      const projectCoordinator = await prisma.projectCoordinator.findFirst({
+      const projectCoordinator = await prisma.project_coordinators.findFirst({
         where: {
           project_id: projectId,
           id: coordinatorId
@@ -55,7 +55,7 @@ export async function POST(
       const newInvitationToken = randomBytes(32).toString('hex');
 
       // Actualizar el token de invitación
-      await prisma.projectCoordinator.update({
+      await prisma.project_coordinators.update({
         where: { id: projectCoordinator.id },
         data: {
           invitation_token: newInvitationToken,
@@ -64,13 +64,16 @@ export async function POST(
       });
 
       // Enviar email de invitación
-      await projectInvitationService.sendProjectInvitation(
-        projectCoordinator.user.email,
-        projectCoordinator.user.name,
-        project.name,
-        newInvitationToken,
-        projectCoordinator.hospital.name
-      );
+      await projectInvitationService.sendProjectInvitation({
+        projectName: project.name,
+        hospitalName: projectCoordinator.hospital.name,
+        coordinatorName: projectCoordinator.user.name,
+        coordinatorEmail: projectCoordinator.user.email,
+        invitationToken: newInvitationToken,
+        requiredPeriods: 2, // Valor por defecto
+        projectDescription: project.description,
+        adminName: context.user.name
+      });
 
       return NextResponse.json({
         success: true,

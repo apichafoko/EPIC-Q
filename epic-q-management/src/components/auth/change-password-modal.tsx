@@ -121,7 +121,7 @@ export function ChangePasswordModal({ isOpen, onSuccess }: ChangePasswordModalPr
             </Alert>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="currentPassword">Contraseña Actual</Label>
             <div className="relative">
               <Input
@@ -148,7 +148,7 @@ export function ChangePasswordModal({ isOpen, onSuccess }: ChangePasswordModalPr
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="newPassword">Nueva Contraseña</Label>
             <div className="relative">
               <Input
@@ -176,7 +176,7 @@ export function ChangePasswordModal({ isOpen, onSuccess }: ChangePasswordModalPr
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
             <div className="relative">
               <Input

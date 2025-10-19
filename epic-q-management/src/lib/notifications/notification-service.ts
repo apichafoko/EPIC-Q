@@ -21,13 +21,13 @@ export class NotificationService {
    * Create a new notification
    */
   static async createNotification(data: CreateNotificationData) {
-    const notification = await prisma.notification.create({
+    const notification = await prisma.notifications.create({
       data: {
         userId: data.userId,
         title: data.title,
         message: data.message,
         type: data.type,
-        read: false,
+        isRead: false,
       },
     });
 
@@ -55,7 +55,7 @@ export class NotificationService {
       where.read = filters.read;
     }
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await prisma.notifications.findMany({
       where,
       orderBy: { created_at: 'desc' },
       take: filters.limit || 50,
@@ -69,9 +69,9 @@ export class NotificationService {
    * Mark notification as read
    */
   static async markAsRead(notificationId: string) {
-    return await prisma.notification.update({
+    return await prisma.notifications.update({
       where: { id: notificationId },
-      data: { read: true },
+      data: { isRead: true },
     });
   }
 
@@ -79,9 +79,9 @@ export class NotificationService {
    * Mark all notifications as read for a user
    */
   static async markAllAsRead(userId: string) {
-    return await prisma.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true },
+    return await prisma.notifications.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
     });
   }
 
@@ -89,8 +89,8 @@ export class NotificationService {
    * Get unread count for a user
    */
   static async getUnreadCount(userId: string) {
-    return await prisma.notification.count({
-      where: { userId, read: false },
+    return await prisma.notifications.count({
+      where: { userId, isRead: false },
     });
   }
 
@@ -98,7 +98,7 @@ export class NotificationService {
    * Delete notification
    */
   static async deleteNotification(notificationId: string) {
-    return await prisma.notification.delete({
+    return await prisma.notifications.delete({
       where: { id: notificationId },
     });
   }
@@ -107,7 +107,7 @@ export class NotificationService {
    * Create notification for all coordinators
    */
   static async notifyAllCoordinators(title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
-    const coordinators = await prisma.user.findMany({
+    const coordinators = await prisma.users.findMany({
       where: { role: 'coordinator' },
       select: { id: true },
     });
@@ -130,7 +130,7 @@ export class NotificationService {
    * Create notification for hospital coordinators
    */
   static async notifyHospitalCoordinators(hospitalId: string, title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
-    const coordinators = await prisma.user.findMany({
+    const coordinators = await prisma.users.findMany({
       where: { 
         role: 'coordinator',
         hospital_id: hospitalId,

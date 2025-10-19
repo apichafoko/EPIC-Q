@@ -18,13 +18,13 @@ export class InternalNotificationService {
         await EmailTemplateService.incrementUsageCount(template.id);
 
         // Crear notificación interna
-        await prisma.notification.create({
+        await prisma.notifications.create({
           data: {
             userId: userId,
             title: processed.subject || '¡Bienvenido al sistema EPIC-Q!',
             message: processed.body || '',
             type: 'welcome',
-            read: false
+            isRead: false
           }
         });
 
@@ -33,7 +33,7 @@ export class InternalNotificationService {
       }
 
       // Fallback si no hay template
-      await prisma.notification.create({
+      await prisma.notifications.create({
         data: {
           userId: userId,
           title: '¡Bienvenido al sistema EPIC-Q!',
@@ -53,7 +53,7 @@ export class InternalNotificationService {
 
   static async sendCustomNotification(userId: string, title: string, message: string, type: string = 'info') {
     try {
-      await prisma.notification.create({
+      await prisma.notifications.create({
         data: {
           userId: userId,
           title: title,
@@ -73,7 +73,7 @@ export class InternalNotificationService {
 
   static async getUserNotifications(userId: string, limit: number = 10) {
     try {
-      const notifications = await prisma.notification.findMany({
+      const notifications = await prisma.notifications.findMany({
         where: { userId: userId },
         orderBy: { createdAt: 'desc' },
         take: limit
@@ -88,7 +88,7 @@ export class InternalNotificationService {
 
   static async markAsRead(notificationId: string) {
     try {
-      await prisma.notification.update({
+      await prisma.notifications.update({
         where: { id: notificationId },
         data: { read: true }
       });
@@ -102,7 +102,7 @@ export class InternalNotificationService {
 
   static async markAllAsRead(userId: string) {
     try {
-      await prisma.notification.updateMany({
+      await prisma.notifications.updateMany({
         where: { 
           userId: userId,
           read: false 

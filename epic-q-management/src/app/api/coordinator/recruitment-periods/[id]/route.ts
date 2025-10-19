@@ -51,7 +51,7 @@ export async function PUT(
     }
 
     // Verificar que el período pertenece al hospital del coordinador
-    const existingPeriod = await prisma.recruitmentPeriod.findFirst({
+    const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         id: periodId,
         hospital_id: authResult.user.hospitalId
@@ -66,7 +66,7 @@ export async function PUT(
     }
 
     // Actualizar período
-    const updatedPeriod = await prisma.recruitmentPeriod.update({
+    const updatedPeriod = await prisma.recruitment_periods.update({
       where: { id: periodId },
       data: {
         start_date: startDate ? new Date(startDate) : undefined,
@@ -137,7 +137,7 @@ export async function DELETE(
     const periodId = params.id;
 
     // Verificar que el período pertenece al hospital del coordinador
-    const existingPeriod = await prisma.recruitmentPeriod.findFirst({
+    const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         id: periodId,
         hospital_id: authResult.user.hospitalId
@@ -152,7 +152,7 @@ export async function DELETE(
     }
 
     // Eliminar período
-    await prisma.recruitmentPeriod.delete({
+    await prisma.recruitment_periods.delete({
       where: { id: periodId }
     });
 

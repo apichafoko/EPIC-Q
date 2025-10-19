@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar proyectos
     if (!filters.types || filters.types.includes('project')) {
-      const projects = await prisma.project.findMany({
+      const projects = await prisma.projects.findMany({
         where: {
           name: {
             contains: query,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      const hospitals = await prisma.hospital.findMany({
+      const hospitals = await prisma.hospitals.findMany({
         where: hospitalWhere,
         take: Math.ceil(limit / 4),
         select: {
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      const coordinators = await prisma.user.findMany({
+      const coordinators = await prisma.users.findMany({
         where: coordinatorWhere,
         take: Math.ceil(limit / 4),
         select: {

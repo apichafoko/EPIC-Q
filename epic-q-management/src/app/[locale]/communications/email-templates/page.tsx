@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth/auth-guard';
+import { ConfirmationToast } from '@/components/ui/confirmation-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +64,7 @@ export default function EmailTemplatesPage() {
   const { t } = useTranslations();
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const { confirm, isConfirming, confirmationData, handleConfirm, handleCancel } = useConfirmation();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -118,26 +121,36 @@ export default function EmailTemplatesPage() {
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este template?')) {
-      return;
-    }
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
 
-    try {
-      const response = await fetch(`/api/admin/email-templates/${templateId}`, {
-        method: 'DELETE',
-      });
+    confirm(
+      {
+        title: 'Eliminar Template',
+        description: `¿Estás seguro de que quieres eliminar el template "${template.name}"?`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        variant: 'destructive'
+      },
+      async () => {
+        try {
+          const response = await fetch(`/api/admin/email-templates/${templateId}`, {
+            method: 'DELETE',
+          });
 
-      if (response.ok) {
-        toast.success('Template eliminado exitosamente');
-        loadTemplates();
-      } else {
-        const data = await response.json();
-        toast.error(data.error || 'Error al eliminar el template');
+          if (response.ok) {
+            toast.success('Template eliminado exitosamente');
+            loadTemplates();
+          } else {
+            const data = await response.json();
+            toast.error(data.error || 'Error al eliminar el template');
+          }
+        } catch (error) {
+          console.error('Failed to delete template:', error);
+          toast.error('Error de conexión');
+        }
       }
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-      toast.error('Error de conexión');
-    }
+    );
   };
 
   const handleToggleStatus = async (templateId: string, currentStatus: boolean) => {
@@ -409,6 +422,17 @@ export default function EmailTemplatesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Confirmation Toast */}
+        {confirmationData && (
+          <ConfirmationToast
+            isOpen={true}
+            options={confirmationData.options}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+            isLoading={isConfirming}
+          />
+        )}
       </div>
     </AuthGuard>
   );

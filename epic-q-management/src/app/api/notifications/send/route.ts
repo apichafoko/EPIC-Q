@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (shouldSendEmail && type === 'email') {
       try {
         const { prisma } = await import('@/lib/database');
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
           where: { id: userId },
           select: { email: true, name: true },
         });

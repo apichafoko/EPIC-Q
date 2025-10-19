@@ -1,4 +1,5 @@
 import { EmailService } from './email-service';
+import { EmailTemplateService } from './email-template-service';
 import { prisma } from '@/lib/database';
 
 interface ProjectInvitationData {
@@ -10,6 +11,7 @@ interface ProjectInvitationData {
   requiredPeriods: number;
   projectDescription?: string;
   adminName?: string;
+  temporaryPassword?: string;
 }
 
 class ProjectInvitationService {
@@ -21,10 +23,43 @@ class ProjectInvitationService {
 
   async sendProjectInvitation(data: ProjectInvitationData): Promise<boolean> {
     try {
+      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/auth/login`;
+      
+      // Usar el template profesional de bienvenida
+      const template = await EmailTemplateService.getTemplateByName('bienvenida_email_completo');
+      
+      if (template) {
+        const variables = {
+          userName: data.coordinatorName,
+          userEmail: data.coordinatorEmail,
+          userRole: 'Coordinador',
+          hospitalName: data.hospitalName,
+          temporaryPassword: data.temporaryPassword || 'Se generará automáticamente al crear la cuenta',
+          loginUrl: loginUrl,
+          systemName: 'EPIC-Q Management System'
+        };
+        
+        const processed = EmailTemplateService.processTemplate(template, variables);
+        
+        // Incrementar contador de uso
+        await EmailTemplateService.incrementUsageCount(template.id);
+        
+        const emailSent = await this.emailService.sendEmail({
+          to: data.coordinatorEmail,
+          subject: processed.subject,
+          html: processed.body,
+        });
+
+        if (emailSent) {
+          await this.logInvitationSent(data);
+        }
+
+        return emailSent;
+      }
+      
+      // Fallback al template hardcodeado si no hay template en BD
       const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/accept-invitation?token=${data.invitationToken}`;
-      
       const subject = `Invitación al Proyecto ${data.projectName} - EPIC-Q`;
-      
       const html = this.generateInvitationEmailHTML(data, invitationUrl);
       const text = this.generateInvitationEmailText(data, invitationUrl);
 
@@ -36,7 +71,6 @@ class ProjectInvitationService {
       });
 
       if (emailSent) {
-        // Registrar el envío en la base de datos
         await this.logInvitationSent(data);
       }
 
@@ -284,7 +318,7 @@ Si no esperabas recibir esta invitación, puedes ignorar este email.
   async sendInvitationAcceptedNotification(projectCoordinatorId: string): Promise<boolean> {
     try {
       // Obtener información del coordinador y proyecto
-      const projectCoordinator = await prisma.projectCoordinator.findUnique({
+      const projectCoordinator = await prisma.project_coordinators.findUnique({
         where: { id: projectCoordinatorId },
         include: {
           user: true,

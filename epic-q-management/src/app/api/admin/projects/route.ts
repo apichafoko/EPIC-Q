@@ -18,7 +18,7 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
 
     // Obtener proyectos con conteos
     const [projects, total] = await Promise.all([
-      prisma.project.findMany({
+      prisma.projects.findMany({
         where,
         include: {
           _count: {
@@ -34,7 +34,7 @@ export const GET = withAdminAuth(async (request: NextRequest, context: AuthConte
         skip,
         take: limit,
       }),
-      prisma.project.count({ where })
+      prisma.projects.count({ where })
     ]);
 
     return NextResponse.json({
@@ -70,14 +70,12 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     }
 
     // Crear proyecto
-    const project = await prisma.project.create({
+    const project = await prisma.projects.create({
       data: {
         name: body.name.trim(),
-        description: body.description?.trim(),
+        description: body.description?.trim() || null,
         start_date: body.start_date ? new Date(body.start_date) : null,
         end_date: body.end_date ? new Date(body.end_date) : null,
-        total_target_cases: body.total_target_cases ? parseInt(body.total_target_cases) : null,
-        default_required_periods: body.default_required_periods ? parseInt(body.default_required_periods) : 2,
       },
       include: {
         _count: {

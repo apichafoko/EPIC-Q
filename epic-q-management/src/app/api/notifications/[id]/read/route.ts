@@ -15,7 +15,7 @@ export const POST = withAuth(async (request: NextRequest, context: AuthContext) 
     }
 
     // Verificar que la notificación pertenece al usuario
-    const notification = await prisma.notification.findFirst({
+    const notification = await prisma.notifications.findFirst({
       where: {
         id: id,
         userId: user.id
@@ -30,7 +30,7 @@ export const POST = withAuth(async (request: NextRequest, context: AuthContext) 
     }
 
     // Marcar como leída
-    await prisma.notification.update({
+    await prisma.notifications.update({
       where: { id: id },
       data: { read: true }
     });

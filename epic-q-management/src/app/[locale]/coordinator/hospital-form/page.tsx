@@ -38,6 +38,7 @@ export default function HospitalFormPage() {
     name: "",
     province: "",
     city: "",
+    participatedLasos: false,
     isLocationEditable: true, // Por defecto editable hasta que se carguen los datos
     
     // Structural Data
@@ -54,7 +55,8 @@ export default function HospitalFormPage() {
     notes: "",
     
     // Primary Coordinator
-    coordinatorName: "",
+    coordinatorFirstName: "",
+    coordinatorLastName: "",
     coordinatorEmail: "",
     coordinatorPhone: "",
     coordinatorPosition: ""
@@ -78,10 +80,29 @@ export default function HospitalFormPage() {
       name: hospital.name || "",
       province: hospital.province || "",
       city: hospital.city || "",
+      participatedLasos: hospital.participated_lasos || false,
       // Marcar si los campos de ubicación son editables
       isLocationEditable: !hasLocationData
     }));
   }, [currentProject]);
+
+  // Precargar información del coordinador desde el usuario actual
+  useEffect(() => {
+    if (!user) return;
+    
+    // Separar el nombre completo en nombre y apellido
+    const fullName = user.name || "";
+    const nameParts = fullName.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+    
+    setFormData(prev => ({
+      ...prev,
+      coordinatorFirstName: firstName,
+      coordinatorLastName: lastName,
+      coordinatorEmail: user.email || ""
+    }));
+  }, [user]);
 
   const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
@@ -161,9 +182,10 @@ export default function HospitalFormPage() {
   const validateStep3 = (): { isValid: boolean; pendingFields: string[] } => {
     const pending: string[] = [];
     
-    if (!formData.coordinatorName.trim()) pending.push('coordinatorName');
+    if (!formData.coordinatorFirstName.trim()) pending.push('coordinatorFirstName');
+    if (!formData.coordinatorLastName.trim()) pending.push('coordinatorLastName');
     if (!formData.coordinatorEmail.trim()) pending.push('coordinatorEmail');
-    if (!formData.coordinatorPhone.trim()) pending.push('coordinatorPhone');
+    // Teléfono es opcional, no se valida como requerido
     if (!formData.coordinatorPosition.trim()) pending.push('coordinatorPosition');
 
     return {
@@ -177,6 +199,11 @@ export default function HospitalFormPage() {
       console.error('No hospital ID available');
       return;
     }
+
+    console.log('Saving form data:', {
+      hospitalId: currentProject.coordinatorInfo.hospital.id,
+      formData: formData
+    });
 
     await executeWithSaving(async () => {
       const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
@@ -276,6 +303,11 @@ export default function HospitalFormPage() {
       return;
     }
 
+    console.log('Finishing form with data:', {
+      hospitalId: currentProject.coordinatorInfo.hospital.id,
+      formData: formData
+    });
+
     await executeWithSaving(async () => {
       const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
         method: 'PUT',
@@ -325,7 +357,7 @@ export default function HospitalFormPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="name">Nombre del Hospital</Label>
           <Input
             id="name"
@@ -336,7 +368,7 @@ export default function HospitalFormPage() {
           <p className="text-xs text-gray-500">Este campo fue proporcionado por el administrador</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="province" className={isFieldPending('province') ? 'text-red-600 font-medium' : ''}>
             Provincia {isFieldPending('province') && <span className="text-red-500">*</span>}
           </Label>
@@ -388,7 +420,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="city" className={isFieldPending('city') ? 'text-red-600 font-medium' : ''}>
             Ciudad {isFieldPending('city') && <span className="text-red-500">*</span>}
           </Label>
@@ -415,6 +447,20 @@ export default function HospitalFormPage() {
             <p className="text-xs text-gray-500">Esta información ya está cargada en el sistema</p>
           )}
         </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="participatedLasos">¿Participó el hospital en el estudio LASOS?</Label>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="participatedLasos"
+              checked={formData.participatedLasos}
+              onCheckedChange={(checked) => handleInputChange('participatedLasos', checked)}
+            />
+            <Label htmlFor="participatedLasos" className="text-sm font-normal">
+              Sí, este hospital participó en el estudio LASOS
+            </Label>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -429,7 +475,7 @@ export default function HospitalFormPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="numBeds" className={isFieldPending('numBeds') ? 'text-red-600 font-medium' : ''}>
             Número de Camas {isFieldPending('numBeds') && <span className="text-red-500">*</span>}
           </Label>
@@ -449,7 +495,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="numOperatingRooms" className={isFieldPending('numOperatingRooms') ? 'text-red-600 font-medium' : ''}>
             Quirófanos {isFieldPending('numOperatingRooms') && <span className="text-red-500">*</span>}
           </Label>
@@ -469,7 +515,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="numIcuBeds" className={isFieldPending('numIcuBeds') ? 'text-red-600 font-medium' : ''}>
             Camas de UCI {isFieldPending('numIcuBeds') && <span className="text-red-500">*</span>}
           </Label>
@@ -489,7 +535,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="avgWeeklySurgeries" className={isFieldPending('avgWeeklySurgeries') ? 'text-red-600 font-medium' : ''}>
             Cirugías Semanales Promedio {isFieldPending('avgWeeklySurgeries') && <span className="text-red-500">*</span>}
           </Label>
@@ -509,7 +555,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="financingType" className={isFieldPending('financingType') ? 'text-red-600 font-medium' : ''}>
             Tipo de Financiamiento {isFieldPending('financingType') && <span className="text-red-500">*</span>}
           </Label>
@@ -528,7 +574,7 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="hasPreopClinic" className={isFieldPending('hasPreopClinic') ? 'text-red-600 font-medium' : ''}>
             Clínica Preoperatoria {isFieldPending('hasPreopClinic') && <span className="text-red-500">*</span>}
           </Label>
@@ -589,7 +635,7 @@ export default function HospitalFormPage() {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Label htmlFor="notes">Notas Adicionales</Label>
         <Textarea
           id="notes"
@@ -612,23 +658,39 @@ export default function HospitalFormPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="coordinatorName" className={isFieldPending('coordinatorName') ? 'text-red-600 font-medium' : ''}>
-            Nombre Completo {isFieldPending('coordinatorName') && <span className="text-red-500">*</span>}
+        <div className="space-y-3">
+          <Label htmlFor="coordinatorFirstName" className={isFieldPending('coordinatorFirstName') ? 'text-red-600 font-medium' : ''}>
+            Nombre {isFieldPending('coordinatorFirstName') && <span className="text-red-500">*</span>}
           </Label>
           <Input
-            id="coordinatorName"
-            value={formData.coordinatorName}
-            onChange={(e) => handleInputChange('coordinatorName', e.target.value)}
-            placeholder="Ej: Dr. Juan Pérez"
-            className={getFieldClasses('coordinatorName')}
+            id="coordinatorFirstName"
+            value={formData.coordinatorFirstName}
+            onChange={(e) => handleInputChange('coordinatorFirstName', e.target.value)}
+            placeholder="Ej: Juan"
+            className={getFieldClasses('coordinatorFirstName')}
           />
-          {isFieldPending('coordinatorName') && (
+          {isFieldPending('coordinatorFirstName') && (
             <p className="text-sm text-red-500">Este campo es requerido</p>
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <Label htmlFor="coordinatorLastName" className={isFieldPending('coordinatorLastName') ? 'text-red-600 font-medium' : ''}>
+            Apellido {isFieldPending('coordinatorLastName') && <span className="text-red-500">*</span>}
+          </Label>
+          <Input
+            id="coordinatorLastName"
+            value={formData.coordinatorLastName}
+            onChange={(e) => handleInputChange('coordinatorLastName', e.target.value)}
+            placeholder="Ej: Pérez"
+            className={getFieldClasses('coordinatorLastName')}
+          />
+          {isFieldPending('coordinatorLastName') && (
+            <p className="text-sm text-red-500">Este campo es requerido</p>
+          )}
+        </div>
+
+        <div className="space-y-3">
           <Label htmlFor="coordinatorEmail" className={isFieldPending('coordinatorEmail') ? 'text-red-600 font-medium' : ''}>
             Correo Electrónico {isFieldPending('coordinatorEmail') && <span className="text-red-500">*</span>}
           </Label>
@@ -645,9 +707,9 @@ export default function HospitalFormPage() {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinatorPhone" className={isFieldPending('coordinatorPhone') ? 'text-red-600 font-medium' : ''}>
-            Teléfono {isFieldPending('coordinatorPhone') && <span className="text-red-500">*</span>}
+            Teléfono
           </Label>
           <Input
             id="coordinatorPhone"
@@ -656,12 +718,10 @@ export default function HospitalFormPage() {
             placeholder="+54 11 1234-5678"
             className={getFieldClasses('coordinatorPhone')}
           />
-          {isFieldPending('coordinatorPhone') && (
-            <p className="text-sm text-red-500">Este campo es requerido</p>
-          )}
+          <p className="text-sm text-gray-500">Opcional</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinatorPosition" className={isFieldPending('coordinatorPosition') ? 'text-red-600 font-medium' : ''}>
             Cargo {isFieldPending('coordinatorPosition') && <span className="text-red-500">*</span>}
           </Label>

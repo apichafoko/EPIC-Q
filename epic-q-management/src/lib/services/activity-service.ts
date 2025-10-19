@@ -9,7 +9,7 @@ export class ActivityService {
     action: string;
     details?: any;
   }) {
-    return await prisma.activityLog.create({
+    return await prisma.activity_logs.create({
       data: {
         ...data,
         details: data.details ? JSON.stringify(data.details) : null,
@@ -20,7 +20,7 @@ export class ActivityService {
 
   // Obtener logs por usuario
   static async getLogsByUser(userId: string, limit: number = 50) {
-    return await prisma.activityLog.findMany({
+    return await prisma.activity_logs.findMany({
       where: { user_id: userId },
       include: {
         hospital: {
@@ -39,7 +39,7 @@ export class ActivityService {
 
   // Obtener logs por hospital
   static async getLogsByHospital(hospitalId: string, limit: number = 50) {
-    return await prisma.activityLog.findMany({
+    return await prisma.activity_logs.findMany({
       where: { hospital_id: hospitalId },
       include: {
         user: {
@@ -57,7 +57,7 @@ export class ActivityService {
 
   // Obtener todos los logs
   static async getAllLogs(limit: number = 100) {
-    return await prisma.activityLog.findMany({
+    return await prisma.activity_logs.findMany({
       include: {
         user: {
           select: {
@@ -82,7 +82,7 @@ export class ActivityService {
 
   // Obtener logs por acción
   static async getLogsByAction(action: string, limit: number = 50) {
-    return await prisma.activityLog.findMany({
+    return await prisma.activity_logs.findMany({
       where: { action },
       include: {
         user: {
@@ -108,7 +108,7 @@ export class ActivityService {
 
   // Obtener logs por rango de fechas
   static async getLogsByDateRange(startDate: Date, endDate: Date, limit: number = 100) {
-    return await prisma.activityLog.findMany({
+    return await prisma.activity_logs.findMany({
       where: {
         created_at: {
           gte: startDate,
@@ -145,16 +145,16 @@ export class ActivityService {
       byUser,
       recentCount
     ] = await Promise.all([
-      prisma.activityLog.count(),
-      prisma.activityLog.groupBy({
+      prisma.activity_logs.count(),
+      prisma.activity_logs.groupBy({
         by: ['action'],
         _count: { action: true }
       }),
-      prisma.activityLog.groupBy({
+      prisma.activity_logs.groupBy({
         by: ['user_id'],
         _count: { user_id: true }
       }),
-      prisma.activityLog.count({
+      prisma.activity_logs.count({
         where: {
           created_at: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Últimas 24 horas
@@ -237,7 +237,7 @@ export class ActivityService {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const result = await prisma.activityLog.deleteMany({
+    const result = await prisma.activity_logs.deleteMany({
       where: {
         created_at: {
           lt: ninetyDaysAgo

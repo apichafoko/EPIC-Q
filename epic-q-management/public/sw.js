@@ -35,6 +35,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip localhost development requests to avoid redirection issues
+  if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {

@@ -51,7 +51,7 @@ export async function updateNotificationSettings(settings: any) {
 }
 
 export async function getEmailTemplates() {
-  const templates = await prisma.emailTemplate.findMany({
+  const templates = await prisma.communication_templates.findMany({
     orderBy: { created_at: 'desc' }
   });
 
@@ -68,7 +68,7 @@ export async function getEmailTemplates() {
 }
 
 export async function createEmailTemplate(template: any) {
-  const newTemplate = await prisma.emailTemplate.create({
+  const newTemplate = await prisma.communication_templates.create({
     data: {
       name: template.name,
       subject: template.subject,
@@ -82,7 +82,7 @@ export async function createEmailTemplate(template: any) {
 }
 
 export async function updateEmailTemplate(id: string, template: any) {
-  const updatedTemplate = await prisma.emailTemplate.update({
+  const updatedTemplate = await prisma.communication_templates.update({
     where: { id },
     data: {
       name: template.name,
@@ -98,7 +98,7 @@ export async function updateEmailTemplate(id: string, template: any) {
 }
 
 export async function deleteEmailTemplate(id: string) {
-  await prisma.emailTemplate.delete({
+  await prisma.communication_templates.delete({
     where: { id }
   });
 

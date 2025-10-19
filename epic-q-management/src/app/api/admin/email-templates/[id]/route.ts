@@ -32,7 +32,7 @@ export async function GET(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -47,7 +47,7 @@ export async function GET(
     const templateId = params.id;
 
     // Obtener template
-    const template = await prisma.emailTemplate.findUnique({
+    const template = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -103,7 +103,7 @@ export async function PATCH(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -119,7 +119,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Verificar que el template existe
-    const existingTemplate = await prisma.emailTemplate.findUnique({
+    const existingTemplate = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -132,7 +132,7 @@ export async function PATCH(
 
     // Si se está cambiando el nombre, verificar que no esté en uso
     if (body.name && body.name !== existingTemplate.name) {
-      const nameExists = await prisma.emailTemplate.findFirst({
+      const nameExists = await prisma.communication_templates.findFirst({
         where: { 
           name: body.name,
           id: { not: templateId }
@@ -148,7 +148,7 @@ export async function PATCH(
     }
 
     // Actualizar template
-    const updatedTemplate = await prisma.emailTemplate.update({
+    const updatedTemplate = await prisma.communication_templates.update({
       where: { id: templateId },
       data: {
         ...body,
@@ -201,7 +201,7 @@ export async function DELETE(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -216,7 +216,7 @@ export async function DELETE(
     const templateId = params.id;
 
     // Verificar que el template existe
-    const existingTemplate = await prisma.emailTemplate.findUnique({
+    const existingTemplate = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -228,7 +228,7 @@ export async function DELETE(
     }
 
     // Eliminar template
-    await prisma.emailTemplate.delete({
+    await prisma.communication_templates.delete({
       where: { id: templateId }
     });
 

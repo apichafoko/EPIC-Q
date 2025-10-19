@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useProject } from '@/contexts/project-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import { toast } from 'sonner';
 
 export default function CoordinatorProgressPage() {
   const { t } = useTranslations();
+  const { currentProject } = useProject();
   const [progressData, setProgressData] = useState({
     ethicsSubmitted: false,
     ethicsSubmittedDate: null as Date | null,
@@ -121,8 +123,13 @@ export default function CoordinatorProgressPage() {
   };
 
   const loadEthicsInformation = async () => {
+    if (!currentProject?.id) {
+      console.log('No current project available for loading ethics information');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/coordinator/stats', {
+      const response = await fetch(`/api/coordinator/stats?projectId=${currentProject.id}`, {
         credentials: 'include'
       });
 
@@ -147,8 +154,13 @@ export default function CoordinatorProgressPage() {
   };
 
   const loadHospitalInfo = async () => {
+    if (!currentProject?.id) {
+      console.log('No current project available for loading hospital info');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/coordinator/stats', {
+      const response = await fetch(`/api/coordinator/stats?projectId=${currentProject.id}`, {
         credentials: 'include'
       });
 
@@ -507,7 +519,7 @@ export default function CoordinatorProgressPage() {
             </div>
 
             {progressData.ethicsSubmitted && (
-              <div className="ml-6 space-y-2">
+              <div className="ml-6 space-y-3">
                 <Label htmlFor="ethicsSubmittedDate">Fecha de Presentación</Label>
                 <Popover open={showCalendar === 'ethicsSubmitted'} onOpenChange={() => setShowCalendar(showCalendar === 'ethicsSubmitted' ? null : 'ethicsSubmitted')}>
                   <PopoverTrigger asChild>
@@ -548,7 +560,7 @@ export default function CoordinatorProgressPage() {
 
             {progressData.ethicsApproved && (
               <div className="ml-6 space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label htmlFor="ethicsApprovedDate">Fecha de Aprobación</Label>
                   <Popover open={showCalendar === 'ethicsApproved'} onOpenChange={() => setShowCalendar(showCalendar === 'ethicsApproved' ? null : 'ethicsApproved')}>
                     <PopoverTrigger asChild>
@@ -571,7 +583,7 @@ export default function CoordinatorProgressPage() {
                   </Popover>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label htmlFor="ethicsDocument">Documento de Aprobación (PDF)</Label>
                   <div className="flex items-center space-x-2">
                     <Input
@@ -643,7 +655,7 @@ export default function CoordinatorProgressPage() {
           <div className="space-y-4">
             <h4 className="font-medium">Agregar Nuevo Período</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Fecha de Inicio</Label>
                 <Popover open={showCalendar === 'recruitmentStart'} onOpenChange={() => setShowCalendar(showCalendar === 'recruitmentStart' ? null : 'recruitmentStart')}>
                   <PopoverTrigger asChild>
@@ -667,7 +679,7 @@ export default function CoordinatorProgressPage() {
                 </Popover>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Fecha de Fin</Label>
                 <Popover open={showCalendar === 'recruitmentEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'recruitmentEnd' ? null : 'recruitmentEnd')}>
                   <PopoverTrigger asChild>
@@ -768,7 +780,7 @@ export default function CoordinatorProgressPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Debes configurar al menos un período de reclutamiento para continuar con el estudio.
+            Debes configurar los períodos mínimos obligatorios para el estudio.
           </AlertDescription>
         </Alert>
       )}
@@ -796,7 +808,7 @@ export default function CoordinatorProgressPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label>Fecha de Inicio</Label>
                   <Popover open={showCalendar === 'editStart'} onOpenChange={() => setShowCalendar(showCalendar === 'editStart' ? null : 'editStart')}>
                     <PopoverTrigger asChild>
@@ -820,7 +832,7 @@ export default function CoordinatorProgressPage() {
                   </Popover>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label>Fecha de Fin</Label>
                   <Popover open={showCalendar === 'editEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'editEnd' ? null : 'editEnd')}>
                     <PopoverTrigger asChild>
@@ -850,7 +862,7 @@ export default function CoordinatorProgressPage() {
               </div>
 
               {/* Estado calculado automáticamente */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Estado</Label>
                 <div className="p-3 bg-gray-50 rounded-md">
                   <p className="text-sm text-gray-600">

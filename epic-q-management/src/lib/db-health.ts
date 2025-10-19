@@ -12,12 +12,12 @@ export class DatabaseHealthService {
       
       // Verificar tablas principales
       const tableChecks = await Promise.allSettled([
-        prisma.hospital.count(),
+        prisma.hospitals.count(),
         prisma.contact.count(),
-        prisma.communication.count(),
-        prisma.emailTemplate.count(),
-        prisma.alert.count(),
-        prisma.user.count()
+        prisma.communications.count(),
+        prisma.communication_templates.count(),
+        prisma.alerts.count(),
+        prisma.users.count()
       ]);
       
       const responseTime = Date.now() - startTime;
@@ -65,7 +65,7 @@ export class DatabaseHealthService {
       const issues = [];
       
       // Verificar hospitales sin detalles
-      const hospitalsWithoutDetails = await prisma.hospital.count({
+      const hospitalsWithoutDetails = await prisma.hospitals.count({
         where: { details: null }
       });
       if (hospitalsWithoutDetails > 0) {
@@ -73,7 +73,7 @@ export class DatabaseHealthService {
       }
       
       // Verificar hospitales sin contactos
-      const hospitalsWithoutContacts = await prisma.hospital.count({
+      const hospitalsWithoutContacts = await prisma.hospitals.count({
         where: { contacts: { none: {} } }
       });
       if (hospitalsWithoutContacts > 0) {
@@ -81,7 +81,7 @@ export class DatabaseHealthService {
       }
       
       // Verificar hospitales sin progreso
-      const hospitalsWithoutProgress = await prisma.hospital.count({
+      const hospitalsWithoutProgress = await prisma.hospitals.count({
         where: { progress: null }
       });
       if (hospitalsWithoutProgress > 0) {
@@ -89,7 +89,7 @@ export class DatabaseHealthService {
       }
       
       // Verificar comunicaciones sin hospital
-      const orphanedCommunications = await prisma.communication.count({
+      const orphanedCommunications = await prisma.communications.count({
         where: { hospital: null }
       });
       if (orphanedCommunications > 0) {
@@ -146,9 +146,9 @@ export class DatabaseHealthService {
       
       // Ejecutar consultas de prueba
       await Promise.all([
-        prisma.hospital.findMany({ take: 10 }),
+        prisma.hospitals.findMany({ take: 10 }),
         prisma.contact.findMany({ take: 10 }),
-        prisma.communication.findMany({ take: 10 })
+        prisma.communications.findMany({ take: 10 })
       ]);
       
       const responseTime = Date.now() - startTime;
@@ -205,18 +205,18 @@ export class DatabaseHealthService {
         totalAlerts,
         activeAlerts
       ] = await Promise.all([
-        prisma.hospital.count(),
-        prisma.hospital.count({ where: { status: 'active_recruiting' } }),
-        prisma.communication.count(),
-        prisma.communication.count({
+        prisma.hospitals.count(),
+        prisma.hospitals.count({ where: { status: 'active_recruiting' } }),
+        prisma.communications.count(),
+        prisma.communications.count({
           where: {
             created_at: {
               gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Últimos 7 días
             }
           }
         }),
-        prisma.alert.count(),
-        prisma.alert.count({ where: { is_resolved: false } })
+        prisma.alerts.count(),
+        prisma.alerts.count({ where: { is_resolved: false } })
       ]);
       
       return {

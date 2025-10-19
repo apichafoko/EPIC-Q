@@ -19,19 +19,14 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
     where.type = filters.type;
   }
 
-  if (filters?.hospital_id && filters.hospital_id !== 'all') {
-    where.hospital_id = filters.hospital_id;
-  }
+  // Note: hospital_id filter not available in CommunicationFilters interface
 
-  const total = await prisma.communication.count({ where });
-  const communications = await prisma.communication.findMany({
+  const total = await prisma.communications.count({ where });
+  const communications = await prisma.communications.findMany({
     where,
     include: {
       hospital: {
         select: { name: true, city: true, province: true }
-      },
-      sender: {
-        select: { name: true, email: true }
       }
     },
     skip: (page - 1) * limit,
@@ -43,13 +38,13 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
     id: c.id,
     hospital_id: c.hospital_id,
     hospital_name: c.hospital?.name || 'Hospital no encontrado',
-    type: c.type,
-    subject: c.subject,
-    content: c.content,
-    sent_at: c.created_at,
+    type: c.type || undefined,
+    subject: c.subject || undefined,
+    content: c.content || undefined,
+    sent_at: c.created_at.toISOString(),
     read_at: null, // Campo no existe en el esquema
-    user_id: c.sent_by,
-    user_name: c.sender?.name || 'Usuario desconocido',
+    user_id: c.sent_by || undefined,
+    user_name: 'Usuario desconocido', // Campo no disponible
     priority: 'normal', // Campo no existe en el esquema
     status: c.status || 'sent',
     attachments: [], // Campo no existe en el esquema
@@ -64,11 +59,10 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
 }
 
 export async function getCommunicationById(id: string) {
-  const communication = await prisma.communication.findUnique({
+  const communication = await prisma.communications.findUnique({
     where: { id },
     include: {
-      hospital: true,
-      sender: true
+      hospital: true
     },
   });
 
@@ -80,13 +74,13 @@ export async function getCommunicationById(id: string) {
     id: communication.id,
     hospital_id: communication.hospital_id,
     hospital_name: communication.hospital?.name || 'Hospital no encontrado',
-    type: communication.type,
-    subject: communication.subject,
-    content: communication.content,
-    sent_at: communication.created_at,
+    type: communication.type || undefined,
+    subject: communication.subject || undefined,
+    content: communication.content || undefined,
+    sent_at: communication.created_at.toISOString(),
     read_at: null, // Campo no existe en el esquema
-    user_id: communication.sent_by,
-    user_name: communication.sender?.name || 'Usuario desconocido',
+    user_id: communication.sent_by || undefined,
+    user_name: 'Usuario desconocido', // Campo no disponible
     priority: 'normal', // Campo no existe en el esquema
     status: communication.status || 'sent',
     attachments: [], // Campo no existe en el esquema
@@ -94,10 +88,9 @@ export async function getCommunicationById(id: string) {
 }
 
 export async function getCommunicationTypes() {
-  const types = await prisma.communication.findMany({
+  const types = await prisma.communications.findMany({
     select: { type: true },
     distinct: ['type'],
-    where: { type: { not: null } },
     orderBy: { type: 'asc' }
   });
 
@@ -111,10 +104,10 @@ export async function getCommunicationStats() {
     calls,
     notes
   ] = await Promise.all([
-    prisma.communication.count(),
-    prisma.communication.count({ where: { type: 'email' } }),
-    prisma.communication.count({ where: { type: 'call' } }),
-    prisma.communication.count({ where: { type: 'note' } })
+    prisma.communications.count(),
+    prisma.communications.count({ where: { type: 'email' } }),
+    prisma.communications.count({ where: { type: 'call' } }),
+    prisma.communications.count({ where: { type: 'note' } })
   ]);
 
   return {

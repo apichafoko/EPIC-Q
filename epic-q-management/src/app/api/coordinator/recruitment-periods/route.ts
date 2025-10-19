@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener ProjectCoordinator para verificar acceso al proyecto
-    const projectCoordinator = await prisma.projectCoordinator.findFirst({
+    const projectCoordinator = await prisma.project_coordinators.findFirst({
       where: {
         user_id: authResult.user.id,
         project_id: projectId,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener ProjectHospital
-    const projectHospital = await prisma.projectHospital.findFirst({
+    const projectHospital = await prisma.project_hospitals.findFirst({
       where: {
         project_id: projectId,
         hospital_id: projectCoordinator.hospital_id
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener períodos de reclutamiento del proyecto
-    const periods = await prisma.projectRecruitmentPeriod.findMany({
+    const periods = await prisma.recruitment_periods.findMany({
       where: {
         project_hospital_id: projectHospital.id
       },
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener ProjectCoordinator para verificar acceso al proyecto
-    const projectCoordinator = await prisma.projectCoordinator.findFirst({
+    const projectCoordinator = await prisma.project_coordinators.findFirst({
       where: {
         user_id: authResult.user.id,
         project_id: projectId,
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener ProjectHospital
-    const projectHospital = await prisma.projectHospital.findFirst({
+    const projectHospital = await prisma.project_hospitals.findFirst({
       where: {
         project_id: projectId,
         hospital_id: projectCoordinator.hospital_id
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar si ya se alcanzó el límite de períodos
-    const existingPeriodsCount = await prisma.projectRecruitmentPeriod.count({
+    const existingPeriodsCount = await prisma.recruitment_periods.count({
       where: { project_hospital_id: projectHospital.id }
     });
 
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener el siguiente número de período para este hospital en el proyecto
-    const lastPeriod = await prisma.projectRecruitmentPeriod.findFirst({
+    const lastPeriod = await prisma.recruitment_periods.findFirst({
       where: { project_hospital_id: projectHospital.id },
       orderBy: { period_number: 'desc' }
     });
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
     const nextPeriodNumber = lastPeriod ? lastPeriod.period_number + 1 : 1;
 
     // Crear nuevo período de reclutamiento
-    const newPeriod = await prisma.projectRecruitmentPeriod.create({
+    const newPeriod = await prisma.recruitment_periods.create({
       data: {
         project_hospital_id: projectHospital.id,
         period_number: nextPeriodNumber,

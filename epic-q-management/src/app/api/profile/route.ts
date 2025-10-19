@@ -30,7 +30,7 @@ export const PUT = withRoleAuth(
       const validatedData = updateProfileSchema.parse(body);
       
       // Actualizar usuario
-      const updatedUser = await prisma.user.update({
+      const updatedUser = await prisma.users.update({
         where: { id: userId },
         data: {
           name: validatedData.name,

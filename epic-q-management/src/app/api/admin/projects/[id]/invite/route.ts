@@ -42,7 +42,7 @@ export async function POST(
     console.log('Validated data:', validatedData);
     
     // Verificar que el proyecto existe
-    const project = await prisma.project.findUnique({
+    const project = await prisma.projects.findUnique({
       where: { id: projectId }
     });
 
@@ -54,7 +54,7 @@ export async function POST(
     }
 
     // Verificar que el hospital existe
-    const hospital = await prisma.hospital.findUnique({
+    const hospital = await prisma.hospitals.findUnique({
       where: { id: validatedData.hospital_id }
     });
 
@@ -66,7 +66,7 @@ export async function POST(
     }
 
     // Verificar si el hospital ya está en el proyecto
-    const existingProjectHospital = await prisma.projectHospital.findFirst({
+    const existingProjectHospital = await prisma.project_hospitals.findFirst({
       where: {
         project_id: projectId,
         hospital_id: validatedData.hospital_id
@@ -81,7 +81,7 @@ export async function POST(
     }
 
     // Buscar o crear el usuario
-    let user = await prisma.user.findUnique({
+    let user = await prisma.users.findUnique({
       where: { email: validatedData.email }
     });
 
@@ -93,7 +93,7 @@ export async function POST(
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
       
       // Crear nuevo usuario
-      user = await prisma.user.create({
+      user = await prisma.users.create({
         data: {
           email: validatedData.email,
           name: validatedData.name,
@@ -129,7 +129,7 @@ export async function POST(
     }
 
     // Verificar si el usuario ya está en el proyecto con este hospital
-    const existingProjectCoordinator = await prisma.projectCoordinator.findFirst({
+    const existingProjectCoordinator = await prisma.project_coordinators.findFirst({
       where: {
         project_id: projectId,
         user_id: user.id,
@@ -152,7 +152,7 @@ export async function POST(
       tempPassword = Math.random().toString(36).slice(-8);
       const hashedPassword = await bcrypt.hash(tempPassword, 12);
       
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: user.id },
         data: {
           password: hashedPassword,

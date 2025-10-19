@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
     // Update user with reset token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         resetToken,
@@ -110,7 +110,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find user with valid reset token
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
         resetToken: token,
         resetTokenExpiry: {
@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Update user password and clear reset token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,

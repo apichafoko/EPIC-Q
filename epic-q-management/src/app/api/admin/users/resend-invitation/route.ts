@@ -28,7 +28,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     }
 
     // Get user information
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
         hospital: {
@@ -54,7 +54,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     const hashedTempPassword = await bcrypt.hash(tempPassword, 12);
 
     // Update user with new token and temporary password
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: userId },
       data: {
         resetToken,

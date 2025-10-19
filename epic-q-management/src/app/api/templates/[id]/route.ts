@@ -35,9 +35,9 @@ export async function GET(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -47,10 +47,10 @@ export async function GET(
       );
     }
 
-    const templateId = params.id;
+    const { id: templateId } = await params;
 
-    // Obtener template
-    const template = await prisma.communicationTemplate.findUnique({
+    // Buscar template en la tabla unificada
+    const template = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -63,7 +63,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      template
+      template: template
     });
 
   } catch (error) {
@@ -77,7 +77,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación manualmente
@@ -105,9 +105,9 @@ export async function PATCH(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -117,11 +117,11 @@ export async function PATCH(
       );
     }
 
-    const templateId = params.id;
+    const { id: templateId } = await params;
     const body = await request.json();
 
-    // Verificar que el template existe
-    const existingTemplate = await prisma.communicationTemplate.findUnique({
+    // Buscar template en la tabla unificada
+    const existingTemplate = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -134,7 +134,7 @@ export async function PATCH(
 
     // Si se está cambiando el nombre, verificar que no esté en uso
     if (body.name && body.name !== existingTemplate.name) {
-      const nameExists = await prisma.communicationTemplate.findFirst({
+      const nameExists = await prisma.communication_templates.findFirst({
         where: { 
           name: body.name,
           id: { not: templateId }
@@ -149,13 +149,26 @@ export async function PATCH(
       }
     }
 
-    // Actualizar template
-    const updatedTemplate = await prisma.communicationTemplate.update({
+    // Actualizar template en la tabla unificada
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    // Solo actualizar campos que estén presentes en el body
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.is_active !== undefined) updateData.is_active = body.is_active;
+    if (body.type !== undefined) updateData.type = body.type;
+    if (body.internal_subject !== undefined) updateData.internal_subject = body.internal_subject;
+    if (body.internal_body !== undefined) updateData.internal_body = body.internal_body;
+    if (body.email_subject !== undefined) updateData.email_subject = body.email_subject;
+    if (body.email_body !== undefined) updateData.email_body = body.email_body;
+    if (body.category !== undefined) updateData.category = body.category;
+    if (body.variables !== undefined) updateData.variables = body.variables;
+
+    const updatedTemplate = await prisma.communication_templates.update({
       where: { id: templateId },
-      data: {
-        ...body,
-        updated_at: new Date()
-      }
+      data: updateData
     });
 
     return NextResponse.json({
@@ -174,7 +187,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación manualmente
@@ -202,9 +215,9 @@ export async function DELETE(
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -214,10 +227,10 @@ export async function DELETE(
       );
     }
 
-    const templateId = params.id;
+    const { id: templateId } = await params;
 
-    // Verificar que el template existe
-    const existingTemplate = await prisma.communicationTemplate.findUnique({
+    // Buscar template en la tabla unificada
+    const existingTemplate = await prisma.communication_templates.findUnique({
       where: { id: templateId }
     });
 
@@ -229,7 +242,7 @@ export async function DELETE(
     }
 
     // Eliminar template
-    await prisma.communicationTemplate.delete({
+    await prisma.communication_templates.delete({
       where: { id: templateId }
     });
 

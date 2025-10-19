@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar la invitación por token
-    const invitation = await prisma.projectCoordinator.findFirst({
+    const invitation = await prisma.project_coordinators.findFirst({
       where: {
         invitation_token: token,
         is_active: false
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Activar la invitación
-    await prisma.projectCoordinator.update({
+    await prisma.project_coordinators.update({
       where: {
         id: invitation.id
       },

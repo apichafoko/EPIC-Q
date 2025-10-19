@@ -174,7 +174,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label htmlFor="name">Nombre Completo</Label>
                   <Input
                     id="name"
@@ -185,7 +185,7 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label htmlFor="email">Correo Electrónico</Label>
                   <Input
                     id="email"
@@ -207,7 +207,7 @@ export default function ProfilePage() {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="language">Idioma</Label>
                     <Select
                       value={formData.preferredLanguage}
@@ -230,7 +230,7 @@ export default function ProfilePage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="country">País</Label>
                     <Select
                       value={formData.country}
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="timezone">Zona Horaria</Label>
                     <Select
                       value={formData.timezone}

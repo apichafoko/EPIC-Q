@@ -11,12 +11,12 @@ export async function getExecutiveSummary() {
     activeAlerts,
     recentCommunications
   ] = await Promise.all([
-    prisma.hospital.count(),
-    prisma.hospital.count({ where: { status: 'active_recruiting' } }),
-    prisma.caseMetric.aggregate({ _sum: { cases_created: true } }).then(res => res._sum.cases_created || 0),
-    prisma.hospitalProgress.aggregate({ _avg: { progress_percentage: true } }).then(res => Math.round(res._avg.progress_percentage || 0)),
-    prisma.alert.count({ where: { is_resolved: false } }),
-    prisma.communication.count({ where: { created_at: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } })
+    prisma.hospitals.count(),
+    prisma.hospitals.count({ where: { status: 'active_recruiting' } }),
+    prisma.case_metrics.aggregate({ _sum: { cases_created: true } }).then(res => res._sum.cases_created || 0),
+    prisma.hospital_progress.aggregate({ _avg: { progress_percentage: true } }).then(res => Math.round(res._avg.progress_percentage || 0)),
+    prisma.alerts.count({ where: { is_resolved: false } }),
+    prisma.communications.count({ where: { created_at: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } })
   ]);
 
   return {
@@ -30,7 +30,7 @@ export async function getExecutiveSummary() {
 }
 
 export async function getHospitalStatusReport() {
-  const statusCounts = await prisma.hospital.groupBy({
+  const statusCounts = await prisma.hospitals.groupBy({
     by: ['status'],
     _count: {
       status: true
@@ -44,7 +44,7 @@ export async function getHospitalStatusReport() {
 }
 
 export async function getProvinceDistribution() {
-  const provinceCounts = await prisma.hospital.groupBy({
+  const provinceCounts = await prisma.hospitals.groupBy({
     by: ['province'],
     _count: {
       province: true
@@ -63,7 +63,7 @@ export async function getProvinceDistribution() {
 }
 
 export async function getProgressReport() {
-  const progressData = await prisma.hospitalProgress.findMany({
+  const progressData = await prisma.hospital_progress.findMany({
     include: {
       hospital: {
         select: { name: true, province: true }
@@ -82,7 +82,7 @@ export async function getProgressReport() {
 }
 
 export async function getCaseMetricsReport() {
-  const caseMetrics = await prisma.caseMetric.findMany({
+  const caseMetrics = await prisma.case_metrics.findMany({
     include: {
       hospital: {
         select: { name: true, province: true }
@@ -101,7 +101,7 @@ export async function getCaseMetricsReport() {
 }
 
 export async function getCommunicationReport() {
-  const communications = await prisma.communication.findMany({
+  const communications = await prisma.communications.findMany({
     include: {
       hospital: {
         select: { name: true, province: true }
@@ -126,7 +126,7 @@ export async function getCommunicationReport() {
 }
 
 export async function getAlertReport() {
-  const alerts = await prisma.alert.findMany({
+  const alerts = await prisma.alerts.findMany({
     include: {
       hospital: {
         select: { name: true, province: true }

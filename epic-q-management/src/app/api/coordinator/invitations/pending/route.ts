@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar invitaciones pendientes para el usuario
-    const pendingInvitations = await prisma.projectCoordinator.findMany({
+    const pendingInvitations = await prisma.project_coordinators.findMany({
       where: {
         user_id: userId,
         is_active: false,

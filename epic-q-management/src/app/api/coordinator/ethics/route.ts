@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest) {
     const { ethicsSubmitted, ethicsApproved, ethicsSubmittedDate, ethicsApprovedDate } = body;
 
     // Obtener ProjectCoordinator para verificar acceso al proyecto
-    const projectCoordinator = await prisma.projectCoordinator.findFirst({
+    const projectCoordinator = await prisma.project_coordinators.findFirst({
       where: {
         user_id: authResult.user.id,
         project_id: projectId,
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Obtener ProjectHospital
-    const projectHospital = await prisma.projectHospital.findFirst({
+    const projectHospital = await prisma.project_hospitals.findFirst({
       where: {
         project_id: projectId,
         hospital_id: projectCoordinator.hospital_id
@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest) {
     const approvedDate = ethicsApprovedDate ? new Date(ethicsApprovedDate) : null;
 
     // Actualizar el progreso del hospital en el proyecto
-    const updatedProgress = await prisma.projectHospitalProgress.upsert({
+    const updatedProgress = await prisma.project_hospitalsProgress.upsert({
       where: { project_hospital_id: projectHospital.id },
       update: {
         ethics_submitted: ethicsSubmitted,

@@ -64,6 +64,32 @@ export default function HospitalsPage() {
     setCurrentPage(1);
   };
 
+  const handleRefresh = () => {
+    // Recargar datos
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [hospitalsData, provincesData, statusesData] = await Promise.all([
+          getHospitals(filters, currentPage, itemsPerPage),
+          getProvinces(),
+          getStatuses()
+        ]);
+        
+        setHospitals(hospitalsData.hospitals);
+        setTotalPages(hospitalsData.totalPages);
+        setTotalHospitals(hospitalsData.total);
+        setProvinces(provincesData);
+        setStatuses(statusesData);
+      } catch (error) {
+        console.error('Error loading hospitals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  };
+
   // Calcular estadísticas
   const stats = {
     total: totalHospitals,
@@ -113,7 +139,7 @@ export default function HospitalsPage() {
             Email Masivo
           </Button>
           <Button asChild>
-            <Link href="/hospitals/new">
+            <Link href="/es/hospitals/new">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Hospital
             </Link>
@@ -158,6 +184,7 @@ export default function HospitalsPage() {
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
         loading={loading}
+        onRefresh={handleRefresh}
       />
     </div>
   );

@@ -39,7 +39,6 @@ interface Project {
   start_date?: string;
   end_date?: string;
   status: 'active' | 'completed' | 'archived';
-  total_target_cases?: number;
   created_at: string;
   updated_at: string;
   project_hospitals: ProjectHospital[];
@@ -114,7 +113,6 @@ export default function ProjectDetailPage() {
     start_date: '',
     end_date: '',
     status: 'active' as 'active' | 'completed' | 'archived',
-    total_target_cases: '',
     default_required_periods: 2
   });
 
@@ -194,7 +192,6 @@ export default function ProjectDetailPage() {
         start_date: data.project.start_date ? data.project.start_date.split('T')[0] : '',
         end_date: data.project.end_date ? data.project.end_date.split('T')[0] : '',
         status: data.project.status,
-        total_target_cases: data.project.total_target_cases?.toString() || '',
         default_required_periods: data.project.default_required_periods || 2
       });
     } catch (error) {
@@ -870,22 +867,6 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="total_target_cases">Meta de Casos</Label>
-                  {isEditing ? (
-                    <Input
-                      id="total_target_cases"
-                      type="number"
-                      value={formData.total_target_cases}
-                      onChange={(e) => setFormData({ ...formData, total_target_cases: e.target.value })}
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="mt-1 text-sm text-gray-900">
-                      {project.total_target_cases ? project.total_target_cases.toLocaleString() : 'No especificada'}
-                    </p>
-                  )}
-                </div>
 
                 <div>
                   <Label htmlFor="default_required_periods">Períodos Requeridos por Defecto</Label>

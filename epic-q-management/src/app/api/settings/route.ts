@@ -4,32 +4,14 @@ import { prisma } from '@/lib/database';
 import { z } from 'zod';
 
 const updateSettingsSchema = z.object({
-  // Notificaciones - Oculto por el momento
-  // emailNotifications: z.boolean().optional(),
-  // pushNotifications: z.boolean().optional(),
-  // weeklyReports: z.boolean().optional(),
-  // projectUpdates: z.boolean().optional(),
-  // systemAlerts: z.boolean().optional(),
-  
-  // Privacidad - Oculto por el momento
-  // profileVisibility: z.enum(['public', 'private', 'team']).optional(),
-  // dataSharing: z.boolean().optional(),
-  // analyticsTracking: z.boolean().optional(),
-  
-  // Preferencias de UI
-  theme: z.enum(['light', 'dark', 'system']).optional(),
-  compactMode: z.boolean().optional(),
-  autoSave: z.boolean().optional(),
+  // Notificaciones
+  emailNotifications: z.boolean().optional(),
+  pushNotifications: z.boolean().optional(),
   
   // Zona horaria y región
   timezone: z.string().optional(),
   country: z.string().optional(),
-  language: z.string().optional(),
-  
-  // Seguridad
-  twoFactorAuth: z.boolean().optional(),
-  sessionTimeout: z.string().optional(),
-  passwordExpiry: z.string().optional()
+  language: z.string().optional()
 });
 
 export const PUT = withRoleAuth(
@@ -40,30 +22,43 @@ export const PUT = withRoleAuth(
       const body = await request.json();
       
       // Validar datos
-      const validatedData = updateSettingsSchema.parse(body);
+      let validatedData;
+      try {
+        validatedData = updateSettingsSchema.parse(body);
+      } catch (validationError) {
+        console.error('Settings PUT - Error de validación:', validationError);
+        return NextResponse.json({
+          error: 'Datos de configuración inválidos'
+        }, { status: 400 });
+      }
       
-      // Buscar configuración existente o crear nueva
-      let userSettings = await prisma.userSettings.findUnique({
+      // Buscar configuración existente
+      let userSettings = await prisma.user_settings.findUnique({
         where: { userId }
       });
 
       if (!userSettings) {
         // Crear nueva configuración
-        userSettings = await prisma.userSettings.create({
+        userSettings = await prisma.user_settings.create({
           data: {
+            id: `settings_${userId}_${Date.now()}`,
             userId,
-            settings: validatedData
+            emailNotifications: validatedData.emailNotifications ?? true,
+            pushNotifications: validatedData.pushNotifications ?? true,
+            language: validatedData.language ?? 'es',
+            timezone: validatedData.timezone ?? null,
+            updated_at: new Date()
           }
         });
       } else {
         // Actualizar configuración existente
-        userSettings = await prisma.userSettings.update({
+        userSettings = await prisma.user_settings.update({
           where: { userId },
           data: {
-            settings: {
-              ...userSettings.settings,
-              ...validatedData
-            },
+            emailNotifications: validatedData.emailNotifications ?? userSettings.emailNotifications,
+            pushNotifications: validatedData.pushNotifications ?? userSettings.pushNotifications,
+            language: validatedData.language ?? userSettings.language,
+            timezone: validatedData.timezone ?? userSettings.timezone,
             updated_at: new Date()
           }
         });
@@ -76,7 +71,7 @@ export const PUT = withRoleAuth(
       if (validatedData.language) userUpdateData.preferredLanguage = validatedData.language;
 
       if (Object.keys(userUpdateData).length > 0) {
-        await prisma.user.update({
+        await prisma.users.update({
           where: { id: userId },
           data: {
             ...userUpdateData,
@@ -115,31 +110,28 @@ export const GET = withRoleAuth(
       const userId = context.user.id;
       
       // Buscar configuración del usuario
-      const userSettings = await prisma.userSettings.findUnique({
+      const userSettings = await prisma.user_settings.findUnique({
         where: { userId }
       });
 
       // Configuración por defecto
       const defaultSettings = {
-        // emailNotifications: true,
-        // pushNotifications: true,
-        // weeklyReports: false,
-        // projectUpdates: true,
-        // systemAlerts: true,
-        // profileVisibility: 'private',
-        // dataSharing: false,
-        // analyticsTracking: true,
-        theme: 'system',
-        compactMode: false,
-        autoSave: true,
-        twoFactorAuth: false,
-        sessionTimeout: '8',
-        passwordExpiry: '90'
+        emailNotifications: true,
+        pushNotifications: true,
+        language: 'es',
+        timezone: 'America/Argentina/Buenos_Aires',
+        country: 'AR'
       };
 
       return NextResponse.json({
         success: true,
-        settings: userSettings?.settings || defaultSettings
+        settings: userSettings ? {
+          emailNotifications: userSettings.emailNotifications,
+          pushNotifications: userSettings.pushNotifications,
+          language: userSettings.language,
+          timezone: userSettings.timezone,
+          country: 'AR' // Este campo no está en user_settings, se mantiene por defecto
+        } : defaultSettings
       });
 
     } catch (error) {

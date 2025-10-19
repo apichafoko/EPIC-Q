@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener templates
-    const templates = await prisma.communicationTemplate.findMany({
+    // Obtener todos los templates de la tabla unificada
+    const templates = await prisma.communication_templates.findMany({
       orderBy: [
         { category: 'asc' },
         { name: 'asc' }
@@ -107,9 +107,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
-      include: { hospital: true }
+      include: { hospitals: true }
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el nombre no esté en uso
-    const existingTemplate = await prisma.communicationTemplate.findFirst({
+    const existingTemplate = await prisma.communication_templates.findFirst({
       where: { name }
     });
 
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear template
-    const template = await prisma.communicationTemplate.create({
+    const template = await prisma.communication_templates.create({
       data: {
         name,
         description,

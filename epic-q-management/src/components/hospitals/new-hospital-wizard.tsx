@@ -86,7 +86,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="name">Nombre del Hospital *</Label>
           <Input
             id="name"
@@ -95,7 +95,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: Hospital Italiano de Buenos Aires"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="province">Provincia *</Label>
           <Select value={formData.province} onValueChange={(value) => updateFormData('province', value)}>
             <SelectTrigger>
@@ -113,7 +113,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="city">Ciudad *</Label>
           <Input
             id="city"
@@ -122,7 +122,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: Buenos Aires"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="status">Estado Inicial</Label>
           <Select value={formData.status} onValueChange={(value) => updateFormData('status', value)}>
             <SelectTrigger>
@@ -151,7 +151,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="financing_type">Tipo de Financiamiento</Label>
           <Select value={formData.financing_type} onValueChange={(value) => updateFormData('financing_type', value)}>
             <SelectTrigger>
@@ -168,7 +168,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="num_beds">Número de Camas</Label>
           <Input
             id="num_beds"
@@ -181,7 +181,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="num_operating_rooms">Quirófanos</Label>
           <Input
             id="num_operating_rooms"
@@ -191,7 +191,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: 5"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="num_icu_beds">Camas UTI</Label>
           <Input
             id="num_icu_beds"
@@ -204,7 +204,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="avg_weekly_surgeries">Cirugías Semanales Promedio</Label>
           <Input
             id="avg_weekly_surgeries"
@@ -214,7 +214,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: 25"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="has_preop_clinic">Consultorio Prequirúrgico</Label>
           <Select value={formData.has_preop_clinic} onValueChange={(value) => updateFormData('has_preop_clinic', value)}>
             <SelectTrigger>
@@ -270,7 +270,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <Label htmlFor="notes">Notas Adicionales</Label>
         <Textarea
           id="notes"
@@ -286,7 +286,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinator_name">Nombre Completo *</Label>
           <Input
             id="coordinator_name"
@@ -295,7 +295,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: Dr. María González"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinator_email">Email *</Label>
           <Input
             id="coordinator_email"
@@ -308,7 +308,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinator_phone">Teléfono</Label>
           <Input
             id="coordinator_phone"
@@ -317,7 +317,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             placeholder="Ej: +54 11 1234-5678"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label htmlFor="coordinator_specialty">Especialidad</Label>
           <Select value={formData.coordinator_specialty} onValueChange={(value) => updateFormData('coordinator_specialty', value)}>
             <SelectTrigger>

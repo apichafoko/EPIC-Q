@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertFilters } from '@/types';
-import { getAlerts, getAlertStats, getAlertSeverities } from '@/lib/services/alert-service';
+// import { getAlerts, getAlertStats, getAlertTypes } from '@/lib/services/alert-service';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AlertsPage() {
@@ -36,6 +36,52 @@ export default function AlertsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [typeFilter, setTypeFilter] = useState('all');
   const [alertTypes, setAlertTypes] = useState<string[]>([]);
+
+  // Funciones para llamar a los endpoints API
+  const fetchAlerts = async (filters: AlertFilters, page: number, limit: number) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search: filters.search || '',
+      type: filters.type || 'all',
+      status: filters.status || 'all',
+      hospital_id: filters.hospital_id || 'all'
+    });
+
+    const response = await fetch(`/api/alerts?${params}`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al cargar alertas');
+    }
+
+    return response.json();
+  };
+
+  const fetchAlertStats = async () => {
+    const response = await fetch('/api/alerts/stats', {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al cargar estadísticas');
+    }
+
+    return response.json();
+  };
+
+  const fetchAlertTypes = async () => {
+    const response = await fetch('/api/alerts/types', {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al cargar tipos de alertas');
+    }
+
+    return response.json();
+  };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -110,9 +156,9 @@ export default function AlertsPage() {
         };
         
         const [alertsData, severitiesData, statsData] = await Promise.all([
-          getAlerts(currentFilters, currentPage, 25),
-          getAlertSeverities(),
-          getAlertStats()
+          fetchAlerts(currentFilters, currentPage, 25),
+          fetchAlertTypes(),
+          fetchAlertStats()
         ]);
 
         setAlerts(alertsData.alerts);

@@ -24,7 +24,7 @@ export const POST = withRoleAuth(
       const validatedData = changePasswordSchema.parse(body);
       
       // Obtener usuario actual
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         select: { password: true, isTemporaryPassword: true }
       });
@@ -55,7 +55,7 @@ export const POST = withRoleAuth(
       const hashedNewPassword = await bcrypt.hash(validatedData.newPassword, 12);
 
       // Actualizar contraseña
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: userId },
         data: {
           password: hashedNewPassword,

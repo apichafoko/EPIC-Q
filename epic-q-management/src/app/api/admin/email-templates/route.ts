@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener templates
-    const templates = await prisma.emailTemplate.findMany({
+    const templates = await prisma.communication_templates.findMany({
       orderBy: [
         { category: 'asc' },
         { name: 'asc' }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el nombre no esté en uso
-    const existingTemplate = await prisma.emailTemplate.findFirst({
+    const existingTemplate = await prisma.communication_templates.findFirst({
       where: { name }
     });
 
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear template
-    const template = await prisma.emailTemplate.create({
+    const template = await prisma.communication_templates.create({
       data: {
         name,
         subject,

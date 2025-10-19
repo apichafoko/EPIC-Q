@@ -158,17 +158,18 @@ class EmailService {
   async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string, userName?: string, userRole?: string, temporaryPassword?: string) {
     const loginUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/auth/login`;
     
-    // Intentar usar template si está disponible
-    const template = await EmailTemplateService.getTemplateByName('user_invitation');
+      // Intentar usar template específico para coordinadores si está disponible
+      const template = await EmailTemplateService.getTemplateByName('coordinator_invitation');
     
     if (template) {
       const variables: TemplateVariables = {
         userName: userName || 'Usuario',
         userEmail: email,
-        userRole: userRole || 'Coordinador',
+        projectName: 'Proyecto EPIC-Q', // Valor por defecto, se puede personalizar
         hospitalName: hospitalName,
+        requiredPeriods: 2, // Valor por defecto
+        projectDescription: 'Estudio Perioperatorio Integral de Cuidados Quirúrgicos',
         invitationLink: loginUrl,
-        systemName: process.env.EMAIL_FROM_NAME || 'EPIC-Q Management System',
         temporaryPassword: temporaryPassword || 'No disponible'
       };
       
@@ -240,8 +241,8 @@ class EmailService {
   async sendWelcomeEmail(email: string, userName: string, userRole: string, hospitalName: string, temporaryPassword: string) {
     const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
 
-    // Usar el template user_invitation que tiene toda la información necesaria
-    const template = await EmailTemplateService.getTemplateByName('user_invitation');
+    // Usar el template bienvenida_email_completo que tiene el diseño profesional
+    const template = await EmailTemplateService.getTemplateByName('bienvenida_email_completo');
 
     if (template) {
       const variables: TemplateVariables = {
@@ -250,7 +251,7 @@ class EmailService {
         userRole: userRole,
         hospitalName: hospitalName,
         temporaryPassword: temporaryPassword,
-        invitationLink: loginUrl,
+        loginUrl: loginUrl, // Cambiar de invitationLink a loginUrl para coincidir con el template
         systemName: 'EPIC-Q Management System'
       };
 

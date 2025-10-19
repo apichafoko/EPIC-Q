@@ -7,7 +7,7 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
     const userId = context.user.id;
 
     // Obtener proyectos donde el usuario es coordinador
-    const projectCoordinators = await prisma.projectCoordinator.findMany({
+    const projectCoordinators = await prisma.project_coordinators.findMany({
       where: {
         user_id: userId,
         is_active: true
@@ -45,7 +45,6 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
       start_date: pc.project.start_date,
       end_date: pc.project.end_date,
       status: pc.project.status,
-      total_target_cases: pc.project.total_target_cases,
       created_at: pc.project.created_at,
       updated_at: pc.project.updated_at,
       // Información específica del coordinador en este proyecto

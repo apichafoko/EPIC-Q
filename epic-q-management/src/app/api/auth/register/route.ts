@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const tokenExpiry = new Date(Date.now() + 7 * 24 * 3600000); // 7 days
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         email,
         name,

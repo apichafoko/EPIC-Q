@@ -5,7 +5,7 @@ import { CaseMetrics, RecruitmentPeriod } from '@/types';
 export class CaseMetricsService {
   // Obtener métricas por hospital
   static async getMetricsByHospital(hospitalId: string) {
-    return await prisma.caseMetrics.findMany({
+    return await prisma.case_metrics.findMany({
       where: { hospital_id: hospitalId },
       orderBy: { recorded_date: 'desc' }
     });
@@ -20,14 +20,14 @@ export class CaseMetricsService {
     completion_percentage?: number;
     last_case_date?: Date;
   }) {
-    return await prisma.caseMetrics.create({
+    return await prisma.case_metrics.create({
       data
     });
   }
 
   // Actualizar métrica
   static async updateMetric(id: string, data: Partial<CaseMetrics>) {
-    return await prisma.caseMetrics.update({
+    return await prisma.case_metrics.update({
       where: { id },
       data
     });
@@ -35,7 +35,7 @@ export class CaseMetricsService {
 
   // Obtener métricas por rango de fechas
   static async getMetricsByDateRange(hospitalId: string, startDate: Date, endDate: Date) {
-    return await prisma.caseMetrics.findMany({
+    return await prisma.case_metrics.findMany({
       where: {
         hospital_id: hospitalId,
         recorded_date: {
@@ -49,7 +49,7 @@ export class CaseMetricsService {
 
   // Obtener resumen de métricas por hospital
   static async getMetricsSummary(hospitalId: string) {
-    const metrics = await prisma.caseMetrics.findMany({
+    const metrics = await prisma.case_metrics.findMany({
       where: { hospital_id: hospitalId },
       orderBy: { recorded_date: 'desc' }
     });
@@ -81,7 +81,7 @@ export class CaseMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const metrics = await prisma.caseMetrics.findMany({
+    const metrics = await prisma.case_metrics.findMany({
       where: {
         hospital_id: hospitalId,
         recorded_date: {
@@ -127,7 +127,7 @@ export class CaseMetricsService {
 export class RecruitmentPeriodService {
   // Obtener períodos por hospital
   static async getPeriodsByHospital(hospitalId: string) {
-    return await prisma.recruitmentPeriod.findMany({
+    return await prisma.recruitment_periods.findMany({
       where: { hospital_id: hospitalId },
       orderBy: { period_number: 'asc' }
     });
@@ -141,14 +141,14 @@ export class RecruitmentPeriodService {
     end_date: Date;
     status?: string;
   }) {
-    return await prisma.recruitmentPeriod.create({
+    return await prisma.recruitment_periods.create({
       data
     });
   }
 
   // Actualizar período
   static async updatePeriod(id: string, data: Partial<RecruitmentPeriod>) {
-    return await prisma.recruitmentPeriod.update({
+    return await prisma.recruitment_periods.update({
       where: { id },
       data
     });
@@ -156,7 +156,7 @@ export class RecruitmentPeriodService {
 
   // Eliminar período
   static async deletePeriod(id: string) {
-    return await prisma.recruitmentPeriod.delete({
+    return await prisma.recruitment_periods.delete({
       where: { id }
     });
   }
@@ -171,7 +171,7 @@ export class RecruitmentPeriodService {
     const { hospital_id, period_number, start_date, end_date } = data;
 
     // Verificar que el período no exista
-    const existingPeriod = await prisma.recruitmentPeriod.findFirst({
+    const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         hospital_id,
         period_number
@@ -194,7 +194,7 @@ export class RecruitmentPeriodService {
     }
 
     // Verificar que no haya solapamiento con otros períodos
-    const overlappingPeriod = await prisma.recruitmentPeriod.findFirst({
+    const overlappingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         hospital_id,
         OR: [
@@ -223,7 +223,7 @@ export class RecruitmentPeriodService {
     }
 
     // Verificar que haya al menos 4 meses entre períodos
-    const lastPeriod = await prisma.recruitmentPeriod.findFirst({
+    const lastPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         hospital_id,
         period_number: {
@@ -248,7 +248,7 @@ export class RecruitmentPeriodService {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
 
-    return await prisma.recruitmentPeriod.findMany({
+    return await prisma.recruitment_periods.findMany({
       where: {
         start_date: {
           lte: futureDate,
@@ -274,7 +274,7 @@ export class RecruitmentPeriodService {
   static async getActivePeriods() {
     const today = new Date();
     
-    return await prisma.recruitmentPeriod.findMany({
+    return await prisma.recruitment_periods.findMany({
       where: {
         start_date: {
           lte: today
@@ -306,12 +306,12 @@ export class RecruitmentPeriodService {
       upcoming,
       active
     ] = await Promise.all([
-      prisma.recruitmentPeriod.count(),
-      prisma.recruitmentPeriod.groupBy({
+      prisma.recruitment_periods.count(),
+      prisma.recruitment_periods.groupBy({
         by: ['status'],
         _count: { status: true }
       }),
-      prisma.recruitmentPeriod.count({
+      prisma.recruitment_periods.count({
         where: {
           start_date: {
             gte: new Date()
@@ -319,7 +319,7 @@ export class RecruitmentPeriodService {
           status: 'planned'
         }
       }),
-      prisma.recruitmentPeriod.count({
+      prisma.recruitment_periods.count({
         where: {
           start_date: {
             lte: new Date()

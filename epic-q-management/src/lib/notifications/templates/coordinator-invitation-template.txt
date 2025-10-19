@@ -1,0 +1,42 @@
+EPIC-Q - Sistema de Gestión de Proyectos
+==========================================
+
+¡Hola {{userName}}!
+
+Has sido invitado a participar como coordinador en el proyecto "{{projectName}}" del sistema EPIC-Q.
+
+DETALLES DEL PROYECTO:
+- Proyecto: {{projectName}}
+- Hospital: {{hospitalName}}
+- Períodos Requeridos: {{requiredPeriods}} período{{requiredPeriods !== 1 ? 's' : ''}}
+{{#if projectDescription}}- Descripción: {{projectDescription}}{{/if}}
+
+🔑 TUS CREDENCIALES DE ACCESO:
+- Email: {{userEmail}}
+- Contraseña Temporal: {{temporaryPassword}}
+
+📋 PASOS PARA COMENZAR:
+1. Haz clic en el enlace de inicio de sesión a continuación
+2. Ingresa tus credenciales temporales
+3. Cambia tu contraseña por una segura
+4. Completa la información de tu hospital
+5. Configura los períodos de reclutamiento
+
+INICIAR SESIÓN:
+{{invitationLink}}
+
+⚠️ IMPORTANTE:
+Por seguridad, debes cambiar tu contraseña temporal en el primer acceso. 
+Guarda estas credenciales hasta que completes el proceso de configuración.
+
+Como coordinador, serás responsable de:
+- Completar la información del hospital
+- Gestionar el progreso del comité de ética
+- Configurar los períodos de reclutamiento
+- Supervisar el avance del proyecto
+
+Si tienes alguna pregunta o necesitas ayuda, no dudes en contactar al administrador del proyecto.
+
+---
+Este es un email automático del sistema EPIC-Q. Por favor, no respondas a este mensaje.
+Si no esperabas recibir esta invitación, puedes ignorar este email.

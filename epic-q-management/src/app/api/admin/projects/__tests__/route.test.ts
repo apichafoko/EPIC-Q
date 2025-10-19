@@ -94,7 +94,6 @@ describe('/api/admin/projects', () => {
         description: 'New Description',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        total_target_cases: 1000,
       };
 
       const mockCreatedProject = {
@@ -132,7 +131,6 @@ describe('/api/admin/projects', () => {
             description: projectData.description,
             start_date: new Date(projectData.start_date),
             end_date: new Date(projectData.end_date),
-            total_target_cases: projectData.total_target_cases,
           }),
         })
       );

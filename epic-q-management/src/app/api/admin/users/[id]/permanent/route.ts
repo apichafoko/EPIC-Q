@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database';
+import { CascadeService } from '@/lib/services/cascade-service';
 
 export async function DELETE(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function DELETE(
     }
 
     // Verificar que el usuario existe y es admin
-    const adminUser = await prisma.user.findUnique({
+    const adminUser = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -46,15 +47,9 @@ export async function DELETE(
 
     const userId = params.id;
 
-    // Verificar que el usuario a eliminar existe y está inactivo
-    const userToDelete = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        hospital: true,
-        // Incluir relaciones que podrían necesitar eliminación en cascada
-        notifications: true,
-        // Agregar más relaciones según el esquema de la base de datos
-      }
+    // Verificar que el usuario a eliminar existe
+    const userToDelete = await prisma.users.findUnique({
+      where: { id: userId }
     });
 
     if (!userToDelete) {
@@ -64,33 +59,69 @@ export async function DELETE(
       );
     }
 
-    // Solo permitir eliminación de usuarios inactivos
-    if (userToDelete.isActive) {
-      return NextResponse.json(
-        { error: 'Solo se pueden eliminar usuarios inactivos' },
-        { status: 400 }
-      );
-    }
-
     // No permitir que un admin se elimine a sí mismo
     if (userToDelete.id === adminUser.id) {
       return NextResponse.json(
-        { error: 'No puedes eliminarte a ti mismo' },
+        { 
+          error: 'No se puede eliminar el usuario',
+          details: 'No puedes eliminarte a ti mismo. Contacta al soporte técnico si necesitas ayuda.'
+        },
         { status: 400 }
       );
     }
 
-    // Eliminar usuario y todas sus relaciones en cascada
-    // Prisma manejará automáticamente las eliminaciones en cascada si están configuradas en el schema
-    await prisma.user.delete({
-      where: { id: userId }
-    });
+    // Solo permitir eliminación de usuarios inactivos
+    if (userToDelete.isActive) {
+      return NextResponse.json(
+        { 
+          error: 'No se puede eliminar el usuario',
+          details: 'Solo se pueden eliminar usuarios inactivos. Primero debes desactivar el usuario.'
+        },
+        { status: 400 }
+      );
+    }
 
-    console.log(`Usuario ${userToDelete.email} eliminado permanentemente por admin ${adminUser.email}`);
+    // Usar el servicio de cascada para analizar las acciones necesarias
+    const cascadeResult = await CascadeService.deleteCoordinatorWithCascade(userId);
+
+    if (!cascadeResult.success) {
+      return NextResponse.json(
+        { 
+          error: cascadeResult.message,
+          details: cascadeResult.warnings?.join(' ') || undefined
+        },
+        { status: 400 }
+      );
+    }
+
+    // Si hay acciones de cascada, devolver información para confirmación
+    if (cascadeResult.actions && cascadeResult.actions.length > 0) {
+      return NextResponse.json({
+        requiresConfirmation: true,
+        message: cascadeResult.message,
+        warnings: cascadeResult.warnings,
+        actions: cascadeResult.actions,
+        userId: userId
+      });
+    }
+
+    // Si no hay acciones de cascada, proceder con la eliminación
+    const deleteResult = await CascadeService.executeCoordinatorDeletion(userId);
+
+    if (!deleteResult.success) {
+      return NextResponse.json(
+        { 
+          error: deleteResult.message,
+          details: deleteResult.actions?.map(a => a.description).join(', ')
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Usuario eliminado permanentemente'
+      message: deleteResult.message,
+      actions: deleteResult.actions
     });
 
   } catch (error) {

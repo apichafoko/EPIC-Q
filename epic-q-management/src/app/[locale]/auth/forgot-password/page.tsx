@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                 </Alert>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input
                   id="email"

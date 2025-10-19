@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
 import { AuthGuard } from '@/components/auth/auth-guard';
+import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,7 @@ interface ProjectWithCounts extends Project {
 export default function AdminProjectsPage() {
   const { t } = useTranslations();
   const router = useRouter();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,22 +75,31 @@ export default function AdminProjectsPage() {
     description: '',
     start_date: '',
     end_date: '',
-    total_target_cases: '',
     default_required_periods: 2,
   });
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    // Solo cargar proyectos si el usuario está autenticado
+    if (user) {
+      loadProjects();
+    }
+  }, [user]);
 
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/projects');
+      console.log('Loading projects...');
+      const response = await fetch('/api/admin/projects', {
+        credentials: 'include'
+      });
+      console.log('Projects response status:', response.status);
       const result = await response.json();
+      console.log('Projects response data:', result);
       
       if (result.success) {
         setProjects(result.projects);
+      } else {
+        console.error('Projects API error:', result.error);
       }
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -113,10 +124,6 @@ export default function AdminProjectsPage() {
       }
     }
 
-    if (formData.total_target_cases && (isNaN(parseInt(formData.total_target_cases)) || parseInt(formData.total_target_cases) <= 0)) {
-      alert('La meta de casos debe ser un número positivo');
-      return false;
-    }
 
     return true;
   };
@@ -129,7 +136,6 @@ export default function AdminProjectsPage() {
     await executeWithCreating(async () => {
       const projectData = {
         ...formData,
-        total_target_cases: formData.total_target_cases ? parseInt(formData.total_target_cases) : undefined,
       };
 
       const response = await fetch('/api/admin/projects', {
@@ -137,6 +143,7 @@ export default function AdminProjectsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(projectData),
       });
 
@@ -149,7 +156,6 @@ export default function AdminProjectsPage() {
           description: '',
           start_date: '',
           end_date: '',
-          total_target_cases: '',
           default_required_periods: 2,
         });
         loadProjects();
@@ -214,7 +220,7 @@ export default function AdminProjectsPage() {
               </DialogHeader>
               
               <div className="space-y-4">
-                <div>
+                <div className="space-y-3">
                   <Label htmlFor="name">Nombre del Proyecto *</Label>
                   <Input
                     id="name"
@@ -224,7 +230,7 @@ export default function AdminProjectsPage() {
                   />
                 </div>
                 
-                <div>
+                <div className="space-y-3">
                   <Label htmlFor="description">Descripción</Label>
                   <Textarea
                     id="description"
@@ -236,7 +242,7 @@ export default function AdminProjectsPage() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-3">
                     <Label htmlFor="start_date">Fecha de Inicio</Label>
                     <Input
                       id="start_date"
@@ -246,7 +252,7 @@ export default function AdminProjectsPage() {
                     />
                   </div>
                   
-                  <div>
+                  <div className="space-y-3">
                     <Label htmlFor="end_date">Fecha de Fin</Label>
                     <Input
                       id="end_date"
@@ -256,19 +262,8 @@ export default function AdminProjectsPage() {
                     />
                   </div>
                 </div>
-                
-                <div>
-                  <Label htmlFor="total_target_cases">Meta de Casos</Label>
-                  <Input
-                    id="total_target_cases"
-                    type="number"
-                    value={formData.total_target_cases}
-                    onChange={(e) => setFormData({ ...formData, total_target_cases: e.target.value })}
-                    placeholder="1000"
-                  />
-                </div>
 
-                <div>
+                <div className="space-y-3">
                   <Label htmlFor="default_required_periods">Períodos Requeridos por Defecto</Label>
                   <Input
                     id="default_required_periods"

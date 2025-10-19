@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { useLoadingState } from '@/hooks/useLoadingState';
+// import { useLoadingState } from '@/hooks/useLoadingState';
 import { toast } from 'sonner';
 import { 
   Settings, 
@@ -28,7 +28,11 @@ import {
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
   const { t, locale } = useTranslations();
-  const { isLoading, executeWithLoading } = useLoadingState();
+  // const { isLoading, executeWithLoading } = useLoadingState();
+  
+  // Estados de carga separados para cada acción
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const [settings, setSettings] = useState({
     // Notificaciones - Oculto por el momento
@@ -96,30 +100,31 @@ export default function SettingsPage() {
   };
 
   const saveSettings = async () => {
-    await executeWithLoading(async () => {
-      try {
-        const response = await fetch('/api/settings', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(settings),
-        });
+    setIsSavingSettings(true);
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(settings),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (response.ok && data.success) {
-          toast.success('Configuración guardada exitosamente');
-          await refreshUser();
-        } else {
-          toast.error('Error al guardar la configuración: ' + (data.error || 'Error desconocido'));
-        }
-      } catch (error) {
-        console.error('Error saving settings:', error);
-        toast.error('Error al guardar la configuración');
+      if (response.ok && data.success) {
+        toast.success('Configuración guardada exitosamente');
+        await refreshUser();
+      } else {
+        toast.error('Error al guardar la configuración: ' + (data.error || 'Error desconocido'));
       }
-    });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Error al guardar la configuración');
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const changePassword = async () => {
@@ -133,37 +138,38 @@ export default function SettingsPage() {
       return;
     }
 
-    await executeWithLoading(async () => {
-      try {
-        const response = await fetch('/api/auth/change-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            currentPassword: passwordData.currentPassword,
-            newPassword: passwordData.newPassword
-          }),
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success('Contraseña cambiada exitosamente');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
         });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          toast.success('Contraseña cambiada exitosamente');
-          setPasswordData({
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: ''
-          });
-        } else {
-          toast.error('Error al cambiar la contraseña: ' + (data.error || 'Error desconocido'));
-        }
-      } catch (error) {
-        console.error('Error changing password:', error);
-        toast.error('Error al cambiar la contraseña');
+      } else {
+        toast.error('Error al cambiar la contraseña: ' + (data.error || 'Error desconocido'));
       }
-    });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast.error('Error al cambiar la contraseña');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const timezones = [
@@ -291,7 +297,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Idioma</Label>
               <Select
                 value={settings.language}
@@ -313,7 +319,7 @@ export default function SettingsPage() {
               </Select>
                   </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
               <Label>País</Label>
               <Select
                 value={settings.country}
@@ -335,7 +341,7 @@ export default function SettingsPage() {
               </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
               <Label>Zona Horaria</Label>
                       <Select 
                 value={settings.timezone}
@@ -369,7 +375,7 @@ export default function SettingsPage() {
             </CardDescription>
             </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Visibilidad del Perfil</Label>
               <Select
                 value={settings.profileVisibility}
@@ -423,7 +429,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="currentPassword">Contraseña Actual</Label>
               <div className="relative">
                 <Input
@@ -445,7 +451,7 @@ export default function SettingsPage() {
               </div>
                 </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="newPassword">Nueva Contraseña</Label>
               <div className="relative">
                 <Input
@@ -467,7 +473,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
               <div className="relative">
                 <Input
@@ -489,8 +495,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-            <Button onClick={changePassword} disabled={isLoading} className="w-full">
-              {isLoading ? 'Cambiando...' : 'Cambiar Contraseña'}
+            <Button onClick={changePassword} disabled={isChangingPassword} className="w-full">
+              {isChangingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
             </Button>
             </CardContent>
           </Card>
@@ -498,9 +504,9 @@ export default function SettingsPage() {
 
       {/* Botón de Guardar */}
       <div className="flex justify-end">
-        <Button onClick={saveSettings} disabled={isLoading} size="lg">
+        <Button onClick={saveSettings} disabled={isSavingSettings} size="lg">
           <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Guardando...' : 'Guardar Configuración'}
+          {isSavingSettings ? 'Guardando...' : 'Guardar Configuración'}
         </Button>
       </div>
     </div>

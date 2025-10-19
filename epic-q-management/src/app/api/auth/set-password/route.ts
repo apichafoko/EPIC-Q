@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user with valid reset token (used for invitation)
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
         resetToken: token,
         resetTokenExpiry: {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Update user password and clear reset token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,

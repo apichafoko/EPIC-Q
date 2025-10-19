@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MoreHorizontal, Eye, Edit, Mail, Phone, Settings } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { MoreHorizontal, Eye, Edit, Mail, Phone, Settings, Trash2, Shield, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
@@ -34,6 +36,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Hospital, statusConfig } from '@/types';
+import { useLoadingState } from '@/hooks/useLoadingState';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import { ConfirmationToast } from '@/components/ui/confirmation-toast';
+import { CascadeConfirmationModal } from '@/components/ui/cascade-confirmation-modal';
+import { toast } from 'sonner';
 
 interface HospitalTableProps {
   hospitals: Hospital[];
@@ -43,6 +50,7 @@ interface HospitalTableProps {
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (itemsPerPage: number) => void;
   loading?: boolean;
+  onRefresh?: () => void;
 }
 
 export function HospitalTable({ 
@@ -52,13 +60,30 @@ export function HospitalTable({
   itemsPerPage, 
   onPageChange, 
   onItemsPerPageChange,
-  loading = false
+  loading = false,
+  onRefresh
 }: HospitalTableProps) {
+  const params = useParams();
+  const locale = params.locale || 'es';
   const [sortField, setSortField] = useState<keyof Hospital>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [showPeriodsModal, setShowPeriodsModal] = useState(false);
-  const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
-  const [requiredPeriods, setRequiredPeriods] = useState(2);
+  // Removed periods configuration - periods are project-specific
+  
+  // Estados para bulk actions
+  const [selectedHospitals, setSelectedHospitals] = useState<string[]>([]);
+  const [showBulkDeactivateModal, setShowBulkDeactivateModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showCascadeModal, setShowCascadeModal] = useState(false);
+  const [cascadeData, setCascadeData] = useState<any>(null);
+  
+  // Estados de carga
+  const { isLoading: isDeactivating, executeWithLoading: executeWithDeactivating } = useLoadingState();
+  const { isLoading: isDeleting, executeWithLoading: executeWithDeleting } = useLoadingState();
+  const { isLoading: isBulkDeactivating, executeWithLoading: executeWithBulkDeactivating } = useLoadingState();
+  const { isLoading: isBulkDeleting, executeWithLoading: executeWithBulkDeleting } = useLoadingState();
+  
+  // Hook de confirmación
+  const { confirm, isConfirming, confirmationData, handleConfirm, handleCancel } = useConfirmation();
 
   const handleSort = (field: keyof Hospital) => {
     if (sortField === field) {
@@ -69,38 +94,192 @@ export function HospitalTable({
     }
   };
 
-  const handleEditPeriods = (hospital: Hospital) => {
-    setSelectedHospital(hospital);
-    setRequiredPeriods(hospital.required_periods || 2);
-    setShowPeriodsModal(true);
+  // Removed period configuration functions - periods are project-specific
+
+  // Funciones para bulk actions
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedHospitals(hospitals.map(hospital => hospital.id));
+    } else {
+      setSelectedHospitals([]);
+    }
   };
 
-  const handleSavePeriods = async () => {
-    if (!selectedHospital) return;
-    
-    try {
-      const response = await fetch(`/api/hospitals/${selectedHospital.id}`, {
-        method: 'PUT',
+  const handleSelectHospital = (hospitalId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedHospitals(prev => [...prev, hospitalId]);
+    } else {
+      setSelectedHospitals(prev => prev.filter(id => id !== hospitalId));
+    }
+  };
+
+  const handleBulkDeactivate = () => {
+    if (selectedHospitals.length === 0) return;
+    setShowBulkDeactivateModal(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedHospitals.length === 0) return;
+    setShowBulkDeleteModal(true);
+  };
+
+  const confirmBulkDeactivate = async () => {
+    if (selectedHospitals.length === 0) return;
+
+    await executeWithBulkDeactivating(async () => {
+      const response = await fetch('/api/hospitals/bulk-deactivate', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          required_periods: requiredPeriods
-        }),
+        body: JSON.stringify({ hospitalIds: selectedHospitals }),
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
-        // Actualizar la lista de hospitales
-        window.location.reload();
+        toast.success(`${selectedHospitals.length} hospitales desactivados exitosamente`, {
+          description: 'Los hospitales ya no aparecerán como activos en el sistema'
+        });
+        onRefresh?.();
+        setSelectedHospitals([]);
+        setShowBulkDeactivateModal(false);
       } else {
-        console.error('Error updating periods');
+        toast.error('Error al desactivar hospitales', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
       }
-    } catch (error) {
-      console.error('Error updating periods:', error);
-    } finally {
-      setShowPeriodsModal(false);
-      setSelectedHospital(null);
-    }
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedHospitals.length === 0) return;
+
+    await executeWithBulkDeleting(async () => {
+      const response = await fetch('/api/hospitals/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ hospitalIds: selectedHospitals }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(`${selectedHospitals.length} hospitales eliminados permanentemente`, {
+          description: 'Todos los datos de los hospitales han sido borrados de la base de datos'
+        });
+        onRefresh?.();
+        setSelectedHospitals([]);
+        setShowBulkDeleteModal(false);
+      } else {
+        toast.error('Error al eliminar hospitales', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
+      }
+    });
+  };
+
+  // Funciones para acciones individuales
+  const handleDeactivateHospital = (hospital: Hospital) => {
+    console.log('handleDeactivateHospital called for:', hospital.name);
+    confirm(
+      {
+        title: 'Desactivar Hospital',
+        description: `¿Estás seguro de que quieres desactivar el hospital "${hospital.name}"?`,
+        confirmText: 'Desactivar',
+        cancelText: 'Cancelar',
+        variant: 'destructive'
+      },
+      async () => {
+        console.log('Confirmation callback executed for deactivate');
+        await executeWithDeactivating(async () => {
+          const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            toast.success('Hospital desactivado exitosamente', {
+              description: `El hospital "${hospital.name}" ha sido desactivado`
+            });
+            onRefresh?.();
+          } else {
+            toast.error('Error al desactivar hospital', {
+              description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+            });
+          }
+        });
+      }
+    );
+  };
+
+  const handleDeleteHospital = async (hospital: Hospital) => {
+    console.log('handleDeleteHospital called for:', hospital.name);
+    
+    await executeWithDeleting(async () => {
+      const response = await fetch(`/api/hospitals/${hospital.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.requiresConfirmation) {
+          // Mostrar modal de confirmación de cascada
+          setCascadeData({
+            hospitalId: hospital.id,
+            hospitalName: hospital.name,
+            ...data
+          });
+          setShowCascadeModal(true);
+        } else {
+          // Eliminación directa exitosa
+          toast.success('Hospital eliminado exitosamente', {
+            description: `El hospital "${hospital.name}" ha sido eliminado permanentemente`
+          });
+          onRefresh?.();
+        }
+      } else {
+        toast.error('Error al eliminar hospital', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
+      }
+    });
+  };
+
+  const handleConfirmCascadeDeletion = async (deleteCoordinators: boolean) => {
+    if (!cascadeData) return;
+
+    await executeWithDeleting(async () => {
+      const response = await fetch(`/api/hospitals/${cascadeData.hospitalId}/confirm-delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deleteCoordinators }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Hospital eliminado exitosamente', {
+          description: `El hospital "${cascadeData.hospitalName}" ha sido eliminado permanentemente`
+        });
+        onRefresh?.();
+        setShowCascadeModal(false);
+        setCascadeData(null);
+      } else {
+        toast.error('Error al eliminar hospital', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
+      }
+    });
   };
 
   const sortedHospitals = [...hospitals].sort((a, b) => {
@@ -157,11 +336,58 @@ export function HospitalTable({
 
   return (
     <div className="space-y-4">
+      {/* Bulk Actions Bar */}
+      {selectedHospitals.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedHospitals.length} hospital{selectedHospitals.length !== 1 ? 'es' : ''} seleccionado{selectedHospitals.length !== 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDeactivate}
+                disabled={isBulkDeactivating}
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                {isBulkDeactivating ? 'Desactivando...' : 'Desactivar'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isBulkDeleting ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedHospitals([])}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedHospitals.length === hospitals.length && hospitals.length > 0}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Seleccionar todos los hospitales"
+                />
+              </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('redcap_id')}
@@ -187,20 +413,7 @@ export function HospitalTable({
                 Estado
               </TableHead>
               <TableHead>Coordinador</TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleSort('required_periods')}
-              >
-                Períodos Req.
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleSort('progress_percentage')}
-              >
-                Progreso
-              </TableHead>
-              <TableHead>Casos</TableHead>
-              <TableHead>Completitud</TableHead>
+              <TableHead>Proyectos</TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-gray-50"
                 onClick={() => handleSort('updated_at')}
@@ -218,10 +431,8 @@ export function HospitalTable({
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                  <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div></TableCell>
-                  <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
-                  <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
-                  <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                   <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
@@ -234,6 +445,13 @@ export function HospitalTable({
 
               return (
                 <TableRow key={hospital.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedHospitals.includes(hospital.id)}
+                      onCheckedChange={(checked) => handleSelectHospital(hospital.id, checked as boolean)}
+                      aria-label={`Seleccionar ${hospital.name}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-sm">
                     {hospital.redcap_id || '-'}
                   </TableCell>
@@ -252,30 +470,9 @@ export function HospitalTable({
                     <div className="font-medium text-sm">{coordinator}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-sm font-medium">{hospital.required_periods || 2}</span>
-                      <span className="text-xs text-gray-500">períodos</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Progress 
-                        value={hospital.progress || 0} 
-                        className="flex-1 h-2"
-                      />
-                      <span className="text-sm font-medium w-12 text-right">
-                        {hospital.progress || 0}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="font-medium">{hospital.cases || 0}</div>
-                    <div className="text-xs text-gray-500">creados</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${getProgressColor(hospital.completion || 0)}`} />
-                      <span className="text-sm font-medium">{hospital.completion || 0}%</span>
+                    <div className="text-sm">
+                      <div className="font-medium">{hospital.active_projects || 0} proyecto{(hospital.active_projects || 0) !== 1 ? 's' : ''} activo{(hospital.active_projects || 0) !== 1 ? 's' : ''}</div>
+                      <div className="text-xs text-gray-500">{(hospital.historical_projects || 0)} proyecto{(hospital.historical_projects || 0) !== 1 ? 's' : ''} histórico{(hospital.historical_projects || 0) !== 1 ? 's' : ''}</div>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">
@@ -292,29 +489,38 @@ export function HospitalTable({
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/hospitals/${hospital.id}`}>
+                          <Link href={`/${locale}/hospitals/${hospital.id}`}>
                             <Eye className="h-4 w-4 mr-2" />
                             Ver detalles
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/hospitals/${hospital.id}/edit`}>
+                          <Link href={`/${locale}/hospitals/${hospital.id}/edit`}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditPeriods(hospital)}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Configurar Períodos
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
                           <Mail className="h-4 w-4 mr-2" />
                           Enviar email
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Phone className="h-4 w-4 mr-2" />
-                          Llamar
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => handleDeactivateHospital(hospital)}
+                          disabled={isDeactivating}
+                          className="text-orange-600"
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          {isDeactivating ? 'Desactivando...' : 'Desactivar'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteHospital(hospital)}
+                          disabled={isDeleting}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? 'Eliminando...' : 'Eliminar'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -372,42 +578,83 @@ export function HospitalTable({
         </div>
       </div>
 
-      {/* Modal para configurar períodos */}
-      <Dialog open={showPeriodsModal} onOpenChange={setShowPeriodsModal}>
+      {/* Removed periods configuration modal - periods are project-specific */}
+
+      {/* Modal de confirmación para desactivar múltiples hospitales */}
+      <Dialog open={showBulkDeactivateModal} onOpenChange={setShowBulkDeactivateModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Configurar Períodos de Reclutamiento</DialogTitle>
+            <DialogTitle>Desactivar Hospitales</DialogTitle>
             <DialogDescription>
-              Define cuántos períodos de reclutamiento debe completar {selectedHospital?.name}
+              ¿Estás seguro de que quieres desactivar {selectedHospitals.length} hospital{selectedHospitals.length !== 1 ? 'es' : ''}? 
+              Los hospitales desactivados no aparecerán como activos en el sistema.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="periods">Períodos Requeridos</Label>
-              <Input
-                id="periods"
-                type="number"
-                min="1"
-                max="10"
-                value={requiredPeriods}
-                onChange={(e) => setRequiredPeriods(parseInt(e.target.value) || 1)}
-                className="w-full"
-              />
-              <p className="text-sm text-gray-500">
-                El coordinador deberá crear {requiredPeriods} período{requiredPeriods !== 1 ? 's' : ''} de reclutamiento
-              </p>
-            </div>
-          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPeriodsModal(false)}>
+            <Button variant="outline" onClick={() => setShowBulkDeactivateModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSavePeriods}>
-              Guardar
+            <Button 
+              onClick={confirmBulkDeactivate}
+              disabled={isBulkDeactivating}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isBulkDeactivating ? 'Desactivando...' : 'Desactivar'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de confirmación para eliminar múltiples hospitales */}
+      <Dialog open={showBulkDeleteModal} onOpenChange={setShowBulkDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eliminar Hospitales Permanentemente</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que quieres eliminar permanentemente {selectedHospitals.length} hospital{selectedHospitals.length !== 1 ? 'es' : ''}? 
+              Esta acción no se puede deshacer y todos los datos serán borrados de la base de datos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDeleteModal(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmBulkDelete}
+              disabled={isBulkDeleting}
+              variant="destructive"
+            >
+              {isBulkDeleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toast de confirmación */}
+      <ConfirmationToast
+        isOpen={isConfirming}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        options={confirmationData?.options}
+        isLoading={isDeactivating || isDeleting}
+      />
+
+      {/* Modal de confirmación de cascada */}
+      {cascadeData && (
+        <CascadeConfirmationModal
+          isOpen={showCascadeModal}
+          onClose={() => {
+            setShowCascadeModal(false);
+            setCascadeData(null);
+          }}
+          onConfirm={handleConfirmCascadeDeletion}
+          title={`Eliminar Hospital: ${cascadeData.hospitalName}`}
+          description={cascadeData.message}
+          actions={cascadeData.actions || []}
+          warnings={cascadeData.warnings || []}
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   );
 }

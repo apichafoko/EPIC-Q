@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // Verificar que el usuario existe y es admin
     console.log('Looking for user with ID:', decoded.userId);
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       include: { hospital: true }
     });
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener templates
     console.log('Fetching templates from database...');
-    const templates = await prisma.communicationTemplate.findMany({
+    const templates = await prisma.communication_templates.findMany({
       orderBy: [
         { category: 'asc' },
         { name: 'asc' }

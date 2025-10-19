@@ -10,7 +10,7 @@ export async function GET(
     try {
       const { id: userId } = await params;
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         include: {
           hospital: true,
@@ -65,7 +65,7 @@ export async function DELETE(
       const { id: userId } = await params;
 
       // Verificar que el usuario existe
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId }
       });
 
@@ -79,13 +79,16 @@ export async function DELETE(
       // No permitir que un admin se desactive a sí mismo
       if (userId === context.user.id) {
         return NextResponse.json(
-          { error: 'No puedes desactivar tu propia cuenta' },
+          { 
+            error: 'No se puede desactivar el usuario',
+            details: 'No puedes desactivar tu propia cuenta. Contacta al soporte técnico si necesitas ayuda.'
+          },
           { status: 400 }
         );
       }
 
       // Desactivar usuario (no eliminar)
-      const deactivatedUser = await prisma.user.update({
+      const deactivatedUser = await prisma.users.update({
         where: { id: userId },
         data: {
           isActive: false,

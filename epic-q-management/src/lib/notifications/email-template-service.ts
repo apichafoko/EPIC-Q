@@ -26,18 +26,18 @@ export interface TemplateVariables {
 
 export class EmailTemplateService {
   /**
-   * Obtener template por nombre
+   * Obtener template por nombre (busca en la tabla unificada communication_templates)
    */
-  static async getTemplateByName(name: string): Promise<EmailTemplate | null> {
+  static async getTemplateByName(name: string): Promise<any | null> {
     try {
-      const template = await prisma.emailTemplate.findFirst({
+      const template = await prisma.communication_templates.findFirst({
         where: {
           name,
           is_active: true
         }
       });
 
-      return template as EmailTemplate | null;
+      return template;
     } catch (error) {
       console.error('Error getting template by name:', error);
       return null;
@@ -49,7 +49,7 @@ export class EmailTemplateService {
    */
   static async getTemplateById(id: string): Promise<EmailTemplate | null> {
     try {
-      const template = await prisma.emailTemplate.findUnique({
+      const template = await prisma.communication_templates.findUnique({
         where: { id }
       });
 
@@ -65,7 +65,7 @@ export class EmailTemplateService {
    */
   static async getAllTemplates(): Promise<EmailTemplate[]> {
     try {
-      const templates = await prisma.emailTemplate.findMany({
+      const templates = await prisma.communication_templates.findMany({
         orderBy: [
           { category: 'asc' },
           { name: 'asc' }
@@ -90,7 +90,7 @@ export class EmailTemplateService {
     category: string;
   }): Promise<EmailTemplate | null> {
     try {
-      const template = await prisma.emailTemplate.create({
+      const template = await prisma.communication_templates.create({
         data: {
           name: templateData.name,
           subject: templateData.subject,
@@ -121,7 +121,7 @@ export class EmailTemplateService {
     is_active?: boolean;
   }): Promise<EmailTemplate | null> {
     try {
-      const template = await prisma.emailTemplate.update({
+      const template = await prisma.communication_templates.update({
         where: { id },
         data: {
           ...templateData,
@@ -141,7 +141,7 @@ export class EmailTemplateService {
    */
   static async deleteTemplate(id: string): Promise<boolean> {
     try {
-      await prisma.emailTemplate.delete({
+      await prisma.communication_templates.delete({
         where: { id }
       });
       return true;
@@ -156,7 +156,7 @@ export class EmailTemplateService {
    */
   static async incrementUsageCount(id: string): Promise<void> {
     try {
-      await prisma.emailTemplate.update({
+      await prisma.communication_templates.update({
         where: { id },
         data: {
           usage_count: {

@@ -17,25 +17,25 @@ export class DashboardService {
         trends
       ] = await Promise.all([
         // Total de hospitales
-        prisma.hospital.count(),
+        prisma.hospitals.count(),
         
         // Hospitales activos (en reclutamiento activo)
-        prisma.hospital.count({
+        prisma.hospitals.count({
           where: { status: 'active_recruiting' }
         }),
         
         // Total de casos creados
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           _sum: { cases_created: true }
         }).then(result => result._sum.cases_created || 0),
         
         // Completitud promedio
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           _avg: { completion_percentage: true }
         }).then(result => Math.round(result._avg.completion_percentage || 0)),
         
         // Alertas activas
-        prisma.alert.count({
+        prisma.alerts.count({
           where: { is_resolved: false }
         }),
         
@@ -62,7 +62,7 @@ export class DashboardService {
    */
   static async getHospitalsByStatus() {
     try {
-      const statusDistribution = await prisma.hospital.groupBy({
+      const statusDistribution = await prisma.hospitals.groupBy({
         by: ['status'],
         _count: { status: true },
         orderBy: { _count: { status: 'desc' } }
@@ -83,23 +83,23 @@ export class DashboardService {
   /**
    * Obtener distribución de severidad de alertas
    */
-  static async getAlertsBySeverity() {
+  static async getAlertsByType() {
     try {
-      const severityDistribution = await prisma.alert.groupBy({
-        by: ['severity'],
-        _count: { severity: true },
+      const typeDistribution = await prisma.alerts.groupBy({
+        by: ['type'],
+        _count: { type: true },
         where: { is_resolved: false },
-        orderBy: { _count: { severity: 'desc' } }
+        orderBy: { _count: { type: 'desc' } }
       });
 
-      return severityDistribution.map(item => ({
-        severity: item.severity,
-        count: item._count.severity,
-        label: getSeverityLabel(item.severity),
-        color: getSeverityColor(item.severity)
+      return typeDistribution.map(item => ({
+        type: item.type,
+        count: item._count.type,
+        label: getTypeLabel(item.type),
+        color: getTypeColor(item.type)
       }));
     } catch (error) {
-      console.error('Error getting alerts by severity:', error);
+      console.error('Error getting alerts by type:', error);
       throw error;
     }
   }
@@ -109,10 +109,10 @@ export class DashboardService {
    */
   static async getRecentAlerts(limit: number = 5) {
     try {
-      const alerts = await prisma.alert.findMany({
+      const alerts = await prisma.alerts.findMany({
         where: { is_resolved: false },
         include: {
-          hospital: {
+          hospitals: {
             select: { name: true }
           }
         },
@@ -143,17 +143,20 @@ export class DashboardService {
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      const periods = await prisma.recruitmentPeriod.findMany({
+      const periods = await prisma.recruitment_periods.findMany({
         where: {
           start_date: {
             gte: now,
             lte: nextMonth
-          },
-          status: 'planned'
+          }
         },
         include: {
-          hospital: {
-            select: { name: true }
+          project_hospitals: {
+            include: {
+              hospitals: {
+                select: { name: true }
+              }
+            }
           }
         },
         orderBy: { start_date: 'asc' },
@@ -162,7 +165,7 @@ export class DashboardService {
 
       return periods.map(period => ({
         id: period.id,
-        hospital_name: period.hospital?.name || 'Hospital desconocido',
+        hospital_name: period.project_hospitals?.hospitals?.name || 'Hospital desconocido',
         period_number: period.period_number,
         start_date: period.start_date,
         end_date: period.end_date,
@@ -192,14 +195,14 @@ export class DashboardService {
         currentAverageCompletion,
         currentActiveAlerts
       ] = await Promise.all([
-        prisma.hospital.count({
+        prisma.hospitals.count({
           where: {
             created_at: {
               lte: now
             }
           }
         }),
-        prisma.hospital.count({
+        prisma.hospitals.count({
           where: { 
             status: 'active_recruiting',
             created_at: {
@@ -207,7 +210,7 @@ export class DashboardService {
             }
           }
         }),
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           where: {
             recorded_date: {
               gte: currentMonth,
@@ -216,7 +219,7 @@ export class DashboardService {
           },
           _sum: { cases_created: true }
         }).then(result => result._sum.cases_created || 0),
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           where: {
             recorded_date: {
               gte: currentMonth,
@@ -225,7 +228,7 @@ export class DashboardService {
           },
           _avg: { completion_percentage: true }
         }).then(result => Math.round(result._avg.completion_percentage || 0)),
-        prisma.alert.count({
+        prisma.alerts.count({
           where: { 
             is_resolved: false,
             created_at: {
@@ -243,14 +246,14 @@ export class DashboardService {
         previousAverageCompletion,
         previousActiveAlerts
       ] = await Promise.all([
-        prisma.hospital.count({
+        prisma.hospitals.count({
           where: {
             created_at: {
               lte: previousMonthEnd
             }
           }
         }),
-        prisma.hospital.count({
+        prisma.hospitals.count({
           where: { 
             status: 'active_recruiting',
             created_at: {
@@ -258,7 +261,7 @@ export class DashboardService {
             }
           }
         }),
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           where: {
             recorded_date: {
               gte: previousMonth,
@@ -267,7 +270,7 @@ export class DashboardService {
           },
           _sum: { cases_created: true }
         }).then(result => result._sum.cases_created || 0),
-        prisma.caseMetrics.aggregate({
+        prisma.case_metrics.aggregate({
           where: {
             recorded_date: {
               gte: previousMonth,
@@ -276,7 +279,7 @@ export class DashboardService {
           },
           _avg: { completion_percentage: true }
         }).then(result => Math.round(result._avg.completion_percentage || 0)),
-        prisma.alert.count({
+        prisma.alerts.count({
           where: { 
             is_resolved: false,
             created_at: {
@@ -316,12 +319,7 @@ export class DashboardService {
 // Funciones auxiliares para etiquetas y colores
 function getStatusLabel(status: string | null): string {
   const labels: Record<string, string> = {
-    'initial_contact': 'Contacto Inicial',
-    'pending_evaluation': 'Evaluación Pendiente',
-    'ethics_approval_process': 'Aprobación Ética',
-    'redcap_setup': 'Configuración RedCap',
-    'active_recruiting': 'Reclutamiento Activo',
-    'completed': 'Completado',
+    'active': 'Activo',
     'inactive': 'Inactivo'
   };
   return labels[status || ''] || status || 'Desconocido';
@@ -329,33 +327,30 @@ function getStatusLabel(status: string | null): string {
 
 function getStatusColor(status: string | null): string {
   const colors: Record<string, string> = {
-    'initial_contact': '#fbbf24',
-    'pending_evaluation': '#f97316',
-    'ethics_approval_process': '#3b82f6',
-    'redcap_setup': '#8b5cf6',
-    'active_recruiting': '#10b981',
-    'completed': '#6b7280',
+    'active': '#10b981',
     'inactive': '#ef4444'
   };
   return colors[status || ''] || '#6b7280';
 }
 
-function getSeverityLabel(severity: string | null): string {
+function getTypeLabel(type: string | null): string {
   const labels: Record<string, string> = {
-    'critical': 'Crítica',
-    'high': 'Alta',
-    'medium': 'Media',
-    'low': 'Baja'
+    'system': 'Sistema',
+    'data': 'Datos',
+    'compliance': 'Cumplimiento',
+    'performance': 'Rendimiento',
+    'security': 'Seguridad'
   };
-  return labels[severity || ''] || severity || 'Desconocida';
+  return labels[type || ''] || type || 'Desconocido';
 }
 
-function getSeverityColor(severity: string | null): string {
+function getTypeColor(type: string | null): string {
   const colors: Record<string, string> = {
-    'critical': '#ef4444',
-    'high': '#f97316',
-    'medium': '#fbbf24',
-    'low': '#3b82f6'
+    'system': '#ef4444',
+    'data': '#f97316',
+    'compliance': '#fbbf24',
+    'performance': '#3b82f6',
+    'security': '#8b5cf6'
   };
-  return colors[severity || ''] || '#6b7280';
+  return colors[type || ''] || '#6b7280';
 }

@@ -7,335 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Project {
-  id                  String              @id @default(uuid()) @db.Uuid
-  name                String              @db.VarChar(255)
-  description         String?
-  start_date          DateTime?           @db.Date
-  end_date            DateTime?           @db.Date
-  status              String              @default("active") @db.VarChar(50) // active, completed, archived
-  total_target_cases  Int?
-  default_required_periods Int            @default(2) // Períodos requeridos por defecto para nuevas invitaciones
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
-  
-  // Relaciones
-  project_hospitals   ProjectHospital[]
-  project_coordinators ProjectCoordinator[]
-  
-  // Índices para optimización
-  @@index([status])
-  @@index([created_at])
-  @@index([start_date, end_date])
-  @@map("projects")
-}
-
-model ProjectHospital {
-  id                  String              @id @default(uuid()) @db.Uuid
-  project_id          String              @db.Uuid
-  hospital_id         String              @db.Uuid
-  required_periods    Int                 @default(2)
-  joined_at           DateTime            @default(now())
-  status              String              @default("active") @db.VarChar(50)
-  
-  project             Project             @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  hospital            Hospital            @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  progress            ProjectHospitalProgress?
-  recruitment_periods ProjectRecruitmentPeriod[]
-  
-  // Índices para optimización
-  @@unique([project_id, hospital_id])
-  @@index([project_id])
-  @@index([hospital_id])
-  @@index([status])
-  @@index([joined_at])
-  @@map("project_hospitals")
-}
-
-model ProjectCoordinator {
-  id                  String              @id @default(uuid()) @db.Uuid
-  project_id          String              @db.Uuid
-  user_id             String              @db.Uuid
-  hospital_id         String              @db.Uuid
-  role                String              @default("coordinator") @db.VarChar(50)
-  invited_at          DateTime            @default(now())
-  accepted_at         DateTime?
-  invitation_token    String?             @unique @db.VarChar(255)
-  is_active           Boolean             @default(true)
-  
-  project             Project             @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  user                User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  hospital            Hospital            @relation(fields: [hospital_id], references: [id])
-  
-  // Índices para optimización
-  @@unique([project_id, user_id, hospital_id])
-  @@index([project_id])
-  @@index([user_id])
-  @@index([hospital_id])
-  @@index([is_active])
-  @@index([invitation_token])
-  @@index([invited_at])
-  @@map("project_coordinators")
-}
-
-model ProjectHospitalProgress {
-  id                         String              @id @default(uuid()) @db.Uuid
-  project_hospital_id        String              @unique @db.Uuid
-  descriptive_form_status    String?             @db.VarChar(20)
-  ethics_submitted           Boolean?
-  ethics_approved            Boolean?
-  ethics_submitted_date      DateTime?           @db.Date
-  ethics_approved_date       DateTime?           @db.Date
-  updated_at                 DateTime            @updatedAt
-  
-  project_hospital           ProjectHospital     @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
-  
-  @@map("project_hospital_progress")
-}
-
-model ProjectRecruitmentPeriod {
-  id                      String              @id @default(uuid()) @db.Uuid
-  project_hospital_id     String              @db.Uuid
-  period_number           Int                 @db.SmallInt
-  start_date              DateTime            @db.Date
-  end_date                DateTime            @db.Date
-  status                  String              @db.VarChar(20)
-  created_at              DateTime            @default(now())
-  updated_at              DateTime            @updatedAt
-  
-  project_hospital        ProjectHospital     @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
-  
-  // Índices para optimización
-  @@unique([project_hospital_id, period_number])
-  @@index([project_hospital_id])
-  @@index([period_number])
-  @@index([status])
-  @@index([start_date, end_date])
-  @@index([created_at])
-  @@map("project_recruitment_periods")
-}
-
-model Hospital {
-  id                  String              @id @default(uuid()) @db.Uuid
-  redcap_id           String?             @unique @db.VarChar(50)
-  name                String              @db.VarChar(255)
-  province            String?             @db.VarChar(100)
-  city                String?             @db.VarChar(100)
-  status              String?             @db.VarChar(50)
-  participated_lasos  Boolean?
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
-  activity_logs       ActivityLog[]
-  alerts              Alert[]
-  case_metrics        CaseMetrics[]
-  communications      Communication[]
-  contacts            Contact[]
-  details             HospitalDetails?
-  progress            HospitalProgress?   // Mantener para compatibilidad durante migración
-  recruitment_periods RecruitmentPeriod[] // Mantener para compatibilidad durante migración
-  users               User[]              // Mantener para compatibilidad durante migración
-  project_hospitals   ProjectHospital[]
-  project_coordinators ProjectCoordinator[]
-
-  // Índices para optimización
-  @@index([status])
-  @@index([province])
-  @@index([city])
-  @@index([created_at])
-  @@index([participated_lasos])
-  @@map("hospitals")
-}
-
-model HospitalDetails {
-  hospital_id             String   @id @db.Uuid
-  num_beds                Int?
-  num_operating_rooms     Int?
-  num_icu_beds            Int?
-  avg_weekly_surgeries    Int?
-  has_residency_program   Boolean?
-  has_preop_clinic        String?  @db.VarChar(20)
-  has_rapid_response_team Boolean?
-  financing_type          String?  @db.VarChar(50)
-  has_ethics_committee    Boolean?
-  university_affiliated   Boolean?
-  notes                   String?
-  hospital                Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@map("hospital_details")
-}
-
-model Contact {
-  id          String   @id @default(uuid()) @db.Uuid
-  hospital_id String   @db.Uuid
-  role        String?  @db.VarChar(50)
-  name        String?  @db.VarChar(255)
-  email       String?  @db.VarChar(255)
-  phone       String?  @db.VarChar(50)
-  specialty   String?  @db.VarChar(100)
-  is_primary  Boolean  @default(false)
-  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@map("contacts")
-}
-
-model HospitalProgress {
-  hospital_id                String    @id @db.Uuid
-  descriptive_form_status    String?   @db.VarChar(20)
-  ethics_submitted           Boolean?
-  ethics_approved            Boolean?
-  ethics_submitted_date      DateTime? @db.Date
-  ethics_approved_date       DateTime? @db.Date
-  redcap_unit_created        Boolean?
-  coordinator_user_created   Boolean?
-  collaborator_users_created String?   @db.VarChar(20)
-  num_collaborators          Int?
-  ready_for_recruitment      Boolean?
-  dates_assigned_period1     Boolean?
-  dates_assigned_period2     Boolean?
-  updated_at                 DateTime  @updatedAt
-  hospital                   Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@map("hospital_progress")
-}
-
-model RecruitmentPeriod {
-  id            String    @id @default(uuid()) @db.Uuid
-  hospital_id   String    @db.Uuid
-  period_number Int       @db.SmallInt
-  start_date    DateTime? @db.Date
-  end_date      DateTime? @db.Date
-  status        String?   @db.VarChar(20)
-  hospital      Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@unique([hospital_id, period_number])
-  @@map("recruitment_periods")
-}
-
-model CaseMetrics {
-  id                    String    @id @default(uuid()) @db.Uuid
-  hospital_id           String    @db.Uuid
-  recorded_date         DateTime  @db.Date
-  cases_created         Int       @default(0)
-  cases_completed       Int       @default(0)
-  completion_percentage Decimal?  @db.Decimal(5, 2)
-  last_case_date        DateTime? @db.Date
-  hospital              Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@map("case_metrics")
-}
-
-model Communication {
-  id            String   @id @default(uuid()) @db.Uuid
-  hospital_id   String   @db.Uuid
-  type          String?  @db.VarChar(50)
-  subject       String?  @db.VarChar(255)
-  content       String?
-  sent_by       String?  @db.Uuid
-  sent_to       String?  @db.VarChar(255)
-  template_used String?  @db.VarChar(100)
-  status        String?  @db.VarChar(20)
-  created_at    DateTime @default(now())
-  hospital      Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  sender        User?    @relation("CommunicationSender", fields: [sent_by], references: [id])
-
-  @@map("communications")
-}
-
-model EmailTemplate {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String?  @db.VarChar(100)
-  subject     String?  @db.VarChar(255)
-  body        String?
-  variables   Json?
-  category    String?  @db.VarChar(50)
-  is_active   Boolean  @default(true)
-  usage_count Int      @default(0)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  @@map("email_templates")
-}
-
-model CommunicationTemplate {
-  id              String   @id @default(uuid()) @db.Uuid
-  name            String   @unique @db.VarChar(100)
-  description     String?  @db.VarChar(255)
-  type            TemplateType @default(internal)
-  internal_subject String? @db.VarChar(255)
-  internal_body   String?
-  email_subject   String?  @db.VarChar(255)
-  email_body      String?
-  variables       Json?
-  category        String?  @db.VarChar(50)
-  is_active       Boolean  @default(true)
-  usage_count     Int      @default(0)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-
-  @@map("communication_templates")
-}
-
-enum TemplateType {
-  internal
-  email
-  both
-}
-
-model Alert {
-  id          String    @id @default(uuid()) @db.Uuid
-  hospital_id String    @db.Uuid
-  alert_type  String?   @db.VarChar(50)
-  severity    String?   @db.VarChar(20)
-  title       String?   @db.VarChar(255)
-  message     String?
-  is_resolved Boolean   @default(false)
-  created_at  DateTime  @default(now())
-  resolved_at DateTime?
-  hospital    Hospital  @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-
-  @@map("alerts")
-}
-
-model User {
-  id                  String          @id @default(uuid()) @db.Uuid
-  email               String          @unique @db.VarChar(255)
-  name                String?         @db.VarChar(255)
-  password            String?         @db.VarChar(255)
-  role                UserRole        @default(coordinator)
-  hospital_id         String?         @db.Uuid // Mantener para compatibilidad durante migración
-  emailVerified       DateTime?
-  resetToken          String?         @db.VarChar(255)
-  resetTokenExpiry    DateTime?
-  lastLogin           DateTime?
-  isActive            Boolean         @default(true)
-  isTemporaryPassword Boolean         @default(false)
-  preferredLanguage   String          @default("es") @db.VarChar(5)
-  timezone            String?         @db.VarChar(100)
-  country             String?         @db.VarChar(2)
-  created_at          DateTime        @default(now())
-  updated_at          DateTime        @updatedAt
-  pushSubscription    String?
-  accounts            Account[]
-  activity_logs       ActivityLog[]
-  sent_communications Communication[] @relation("CommunicationSender")
-  notifications       Notification[]
-  user_settings       UserSettings?
-  sessions            Session[]
-  hospital            Hospital?       @relation(fields: [hospital_id], references: [id]) // Mantener para compatibilidad
-  project_coordinators ProjectCoordinator[]
-
-  // Índices para optimización
-  @@index([role])
-  @@index([isActive])
-  @@index([isTemporaryPassword])
-  @@index([created_at])
-  @@index([hospital_id])
-  @@map("users")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String  @db.Uuid
+model accounts {
+  id                String  @id
+  userId            String
   type              String
   provider          String
   providerAccountId String
@@ -346,70 +20,269 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@map("accounts")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String   @db.Uuid
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-model Notification {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @db.Uuid
-  title      String   @db.VarChar(255)
-  message    String
-  type       String   @db.VarChar(50)
-  read       Boolean  @default(false)
+model activity_logs {
+  id         String   @id
+  userId     String
+  action     String
+  details    String?
+  ipAddress  String?
+  userAgent  String?
   created_at DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
+  users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model ActivityLog {
-  id          String    @id @default(uuid()) @db.Uuid
-  user_id     String?   @db.Uuid
-  hospital_id String?   @db.Uuid
-  action      String?   @db.VarChar(100)
-  details     Json?
+model alerts {
+  id          String    @id
+  hospital_id String
+  type        String
+  title       String
+  message     String
+  is_resolved Boolean   @default(false)
+  resolved_at DateTime?
   created_at  DateTime  @default(now())
-  hospital    Hospital? @relation(fields: [hospital_id], references: [id])
-  user        User?     @relation(fields: [user_id], references: [id])
-
-  @@map("activity_log")
+  updated_at  DateTime
+  hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
-model UserSettings {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @unique @db.Uuid
-  settings   Json     // Configuraciones personalizadas del usuario
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("user_settings")
+model case_metrics {
+  id                    String    @id
+  hospital_id           String
+  recorded_date         DateTime
+  cases_created         Int       @default(0)
+  completion_percentage Int       @default(0)
+  last_case_date        DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime
+  hospitals             hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
-enum UserRole {
-  admin
-  coordinator
+model communication_templates {
+  id               String   @id
+  name             String   @unique
+  description      String?
+  type             String   @default("internal")
+  category         String   @default("general")
+  is_active        Boolean  @default(true)
+  usage_count      Int      @default(0)
+  internal_subject String?
+  internal_body    String?
+  email_subject    String?
+  email_body       String?
+  variables        String[] @default([])
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+}
+
+model communications {
+  id          String     @id
+  hospital_id String?
+  project_id  String?
+  user_id     String?
+  type        String
+  subject     String
+  body        String
+  sent_at     DateTime   @default(now())
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  hospitals   hospitals? @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects    projects?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  users       users?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model hospital_contacts {
+  id          String    @id
+  hospital_id String
+  role        String
+  name        String
+  email       String?
+  phone       String?
+  specialty   String?
+  is_primary  Boolean   @default(false)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+  hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+}
+
+model hospital_details {
+  id                        String    @id
+  hospital_id               String    @unique
+  director_name             String?
+  director_email            String?
+  director_phone            String?
+  ethics_committee          String?
+  ethics_committee_email    String?
+  ethics_committee_phone    String?
+  research_department       String?
+  research_department_email String?
+  research_department_phone String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime
+  hospitals                 hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+}
+
+model hospital_progress {
+  id                  String             @id
+  hospital_id         String
+  project_id          String
+  status              String             @default("pending")
+  progress_percentage Int                @default(0)
+  notes               String?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime
+  project_hospital_id String?            @unique
+  hospitals           hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  project_hospitals   project_hospitals? @relation(fields: [project_hospital_id], references: [id])
+}
+
+model hospitals {
+  id                   String                 @id
+  name                 String
+  province             String
+  city                 String
+  address              String?
+  phone                String?
+  email                String?
+  website              String?
+  bed_count            Int?
+  lasos_participation  Boolean                @default(false)
+  status               String                 @default("active")
+  created_at           DateTime               @default(now())
+  updated_at           DateTime
+  alerts               alerts[]
+  case_metrics         case_metrics[]
+  communications       communications[]
+  hospital_contacts    hospital_contacts[]
+  hospital_details     hospital_details?
+  hospital_progress    hospital_progress[]
+  project_coordinators project_coordinators[]
+  project_hospitals    project_hospitals[]
+  users                users[]
+}
+
+model notifications {
+  id         String    @id
+  userId     String
+  title      String
+  message    String
+  type       String    @default("info")
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  created_at DateTime  @default(now())
+  users      users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model project_coordinators {
+  id          String    @id
+  project_id  String
+  hospital_id String
+  user_id     String
+  is_active   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+  hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects    projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, hospital_id, user_id])
+}
+
+model project_hospitals {
+  id                     String                @id
+  project_id             String
+  hospital_id            String
+  status                 String                @default("pending")
+  redcap_id              String?
+  ethics_committee       String?
+  ethics_committee_email String?
+  ethics_committee_phone String?
+  created_at             DateTime              @default(now())
+  updated_at             DateTime
+  hospital_progress      hospital_progress?
+  hospitals              hospitals             @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects               projects              @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  recruitment_periods    recruitment_periods[]
+
+  @@unique([project_id, hospital_id])
+}
+
+model projects {
+  id                   String                 @id
+  name                 String
+  description          String?
+  status               String                 @default("active")
+  start_date           DateTime?
+  end_date             DateTime?
+  required_periods     Int                    @default(1)
+  created_at           DateTime               @default(now())
+  updated_at           DateTime
+  communications       communications[]
+  project_coordinators project_coordinators[]
+  project_hospitals    project_hospitals[]
+}
+
+model recruitment_periods {
+  id                  String            @id
+  start_date          DateTime
+  end_date            DateTime
+  target_cases        Int?
+  created_at          DateTime          @default(now())
+  updated_at          DateTime
+  period_number       Int
+  project_hospital_id String
+  project_hospitals   project_hospitals @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_hospital_id, period_number])
+}
+
+model sessions {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model user_settings {
+  id                 String   @id
+  userId             String   @unique
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  language           String   @default("es")
+  timezone           String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime
+  users              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id                   String                 @id
+  email                String                 @unique
+  name                 String?
+  password             String
+  role                 String                 @default("coordinator")
+  hospitalId           String?
+  emailVerified        DateTime?
+  resetToken           String?
+  resetTokenExpiry     DateTime?
+  lastLogin            DateTime?
+  isActive             Boolean                @default(true)
+  isTemporaryPassword  Boolean                @default(false)
+  preferredLanguage    String                 @default("es")
+  timezone             String?
+  country              String?
+  created_at           DateTime               @default(now())
+  updated_at           DateTime
+  accounts             accounts[]
+  activity_logs        activity_logs[]
+  communications       communications[]
+  notifications        notifications[]
+  project_coordinators project_coordinators[]
+  sessions             sessions[]
+  user_settings        user_settings?
+  hospitals            hospitals?             @relation(fields: [hospitalId], references: [id])
 }

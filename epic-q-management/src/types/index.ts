@@ -2,16 +2,53 @@
 
 export interface Hospital {
   id: string;
-  redcap_id?: string;
   name: string;
   province: string;
   city: string;
-  status: 'initial_contact' | 'pending_evaluation' | 'ethics_approval_process' | 
-          'redcap_setup' | 'active_recruiting' | 'completed' | 'inactive' | 
-          'active' | 'pending' | 'inactive' | null | undefined;
+  status: 'active' | 'inactive';
   participated_lasos: boolean;
-  required_periods?: number;
+  // Removed required_periods - periods are project-specific
   progress_percentage: number;
+  // New project-related fields
+  active_projects?: number;
+  historical_projects?: number;
+  projects?: Array<{
+    id: string;
+    name: string;
+    status: string;
+    start_date?: string;
+    end_date?: string;
+    required_periods: number;
+    redcap_id?: string;
+    project_hospital_status: string;
+    joined_at: string;
+    progress?: ProjectHospitalProgress;
+    coordinators: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      is_active: boolean;
+      accepted_at?: string;
+    }>;
+  }>;
+  // Legacy fields for backward compatibility
+  coordinator?: string;
+  progress?: number;
+  cases?: number;
+  completion?: number;
+  last_activity?: string;
+  total_beds?: number;
+  icu_beds?: number;
+  operating_rooms?: number;
+  annual_surgeries?: number;
+  coordinator_name?: string;
+  coordinator_email?: string;
+  coordinator_phone?: string;
+  coordinator_specialty?: string;
+  ethics_submitted?: boolean;
+  ethics_approved?: boolean;
+  ethics_approval_date?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -135,7 +172,6 @@ export interface Project {
   start_date?: string;
   end_date?: string;
   status: 'active' | 'completed' | 'archived';
-  total_target_cases?: number;
   created_at: string;
   updated_at: string;
 }
@@ -144,9 +180,11 @@ export interface ProjectHospital {
   id: string;
   project_id: string;
   hospital_id: string;
+  redcap_id?: string;
   required_periods: number;
   joined_at: string;
-  status: 'active' | 'inactive' | 'completed';
+  status: 'initial_contact' | 'pending_evaluation' | 'ethics_approval_process' | 
+          'redcap_setup' | 'active_recruiting' | 'completed' | 'inactive';
   project?: Project;
   hospital?: Hospital;
   progress?: ProjectHospitalProgress;
@@ -190,8 +228,22 @@ export interface ProjectRecruitmentPeriod {
   updated_at: string;
 }
 
-// Configuraciones
-export const statusConfig = {
+// Configuraciones de estado para hospitales
+export const hospitalStatusConfig = {
+  active: {
+    label: 'Activo',
+    color: 'bg-green-100 text-green-800',
+    icon: '🟢'
+  },
+  inactive: {
+    label: 'Inactivo',
+    color: 'bg-red-100 text-red-800',
+    icon: '🔴'
+  }
+} as const;
+
+// Configuraciones de estado para proyecto-hospital (estados de progreso)
+export const projectHospitalStatusConfig = {
   initial_contact: {
     label: 'Contacto Inicial',
     color: 'bg-yellow-100 text-yellow-800',
@@ -221,23 +273,13 @@ export const statusConfig = {
     label: 'Completado',
     color: 'bg-gray-100 text-gray-800',
     icon: '⚪'
-  },
-  inactive: {
-    label: 'Inactivo',
-    color: 'bg-red-100 text-red-800',
-    icon: '🔴'
-  },
-  // Estados adicionales que pueden venir de la base de datos
-  active: {
-    label: 'Activo',
-    color: 'bg-green-100 text-green-800',
-    icon: '🟢'
-  },
-  pending: {
-    label: 'Pendiente',
-    color: 'bg-yellow-100 text-yellow-800',
-    icon: '🟡'
   }
+} as const;
+
+// Mantener statusConfig para compatibilidad (deprecated)
+export const statusConfig = {
+  ...hospitalStatusConfig,
+  ...projectHospitalStatusConfig
 } as const;
 
 export const provinces = [

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación al Proyecto {{projectName}} - EPIC-Q</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .logo {
+            background: #2563eb;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .title {
+            color: #1e40af;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            margin: 5px 0 0;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .project-info {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #475569;
+        }
+        .info-value {
+            color: #1e293b;
+        }
+        .credentials-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .credentials-title {
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+        }
+        .credential-label {
+            font-weight: 600;
+            color: #92400e;
+        }
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background: #fbbf24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #92400e;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+            transition: background-color 0.2s;
+        }
+        .cta-button:hover {
+            background: #1d4ed8;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .warning {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #dc2626;
+        }
+        .warning-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .steps {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .steps-title {
+            font-weight: 600;
+            color: #0369a1;
+            margin-bottom: 15px;
+        }
+        .step {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .step::before {
+            content: counter(step-counter);
+            counter-increment: step-counter;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #0ea5e9;
+            color: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .steps {
+            counter-reset: step-counter;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">EQ</div>
+            <h1 class="title">EPIC-Q</h1>
+            <p class="subtitle">Sistema de Gestión de Proyectos</p>
+        </div>
+
+        <div class="content">
+            <div class="greeting">
+                ¡Hola {{userName}}!
+            </div>
+
+            <p>Has sido invitado a participar como coordinador en el proyecto <strong>{{projectName}}</strong> del sistema EPIC-Q.</p>
+
+            <div class="project-info">
+                <div class="info-row">
+                    <span class="info-label">Proyecto:</span>
+                    <span class="info-value">{{projectName}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Hospital:</span>
+                    <span class="info-value">{{hospitalName}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Períodos Requeridos:</span>
+                    <span class="info-value">{{requiredPeriods}} período{{requiredPeriods !== 1 ? 's' : ''}}</span>
+                </div>
+                {{#if projectDescription}}
+                <div class="info-row">
+                    <span class="info-label">Descripción:</span>
+                    <span class="info-value">{{projectDescription}}</span>
+                </div>
+                {{/if}}
+            </div>
+
+            <div class="credentials-box">
+                <div class="credentials-title">🔑 Tus Credenciales de Acceso</div>
+                <div class="credential-item">
+                    <span class="credential-label">Email:</span>
+                    <span class="credential-value">{{userEmail}}</span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Contraseña Temporal:</span>
+                    <span class="credential-value">{{temporaryPassword}}</span>
+                </div>
+            </div>
+
+            <div class="steps">
+                <div class="steps-title">📋 Pasos para Comenzar</div>
+                <div class="step">Haz clic en el botón "Iniciar Sesión" a continuación</div>
+                <div class="step">Ingresa tus credenciales temporales</div>
+                <div class="step">Cambia tu contraseña por una segura</div>
+                <div class="step">Completa la información de tu hospital</div>
+                <div class="step">Configura los períodos de reclutamiento</div>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{invitationLink}}" class="cta-button">
+                    Iniciar Sesión
+                </a>
+            </div>
+
+            <div class="warning">
+                <div class="warning-title">⚠️ Importante</div>
+                <p>Por seguridad, debes cambiar tu contraseña temporal en el primer acceso. Guarda estas credenciales hasta que completes el proceso de configuración.</p>
+            </div>
+
+            <p>Como coordinador, serás responsable de:</p>
+            <ul>
+                <li>Completar la información del hospital</li>
+                <li>Gestionar el progreso del comité de ética</li>
+                <li>Configurar los períodos de reclutamiento</li>
+                <li>Supervisar el avance del proyecto</li>
+            </ul>
+
+            <p>Si tienes alguna pregunta o necesitas ayuda, no dudes en contactar al administrador del proyecto.</p>
+        </div>
+
+        <div class="footer">
+            <p>Este es un email automático del sistema EPIC-Q. Por favor, no respondas a este mensaje.</p>
+            <p>Si no esperabas recibir esta invitación, puedes ignorar este email.</p>
+        </div>
+    </div>
+</body>
+</html>

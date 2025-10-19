@@ -35,6 +35,8 @@ import {
 } from '@/components/ui/select';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useLoadingState } from '@/hooks/useLoadingState';
+import { Checkbox } from '@/components/ui/checkbox';
+import { BulkActions } from '@/components/ui/bulk-actions';
 import { 
   Plus, 
   Search, 
@@ -45,7 +47,9 @@ import {
   Edit, 
   Trash2,
   Shield,
-  User
+  User,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 interface User {
@@ -69,23 +73,27 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [resendingInvitation, setResendingInvitation] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [userToReactivate, setUserToReactivate] = useState<User | null>(null);
-  const [reactivatingUser, setReactivatingUser] = useState<string | null>(null);
+  
+  // Estados para bulk actions
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showBulkDeactivateModal, setShowBulkDeactivateModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   
   // Estados de carga usando el hook personalizado
   const { isLoading: isResending, executeWithLoading: executeWithResending } = useLoadingState();
   const { isLoading: isDeleting, executeWithLoading: executeWithDeleting } = useLoadingState();
   const { isLoading: isReactivating, executeWithLoading: executeWithReactivating } = useLoadingState();
+  const { isLoading: isDeactivating, executeWithLoading: executeWithDeactivating } = useLoadingState();
+  const { isLoading: isBulkDeactivating, executeWithLoading: executeWithBulkDeactivating } = useLoadingState();
+  const { isLoading: isBulkDeleting, executeWithLoading: executeWithBulkDeleting } = useLoadingState();
 
       useEffect(() => {
         if (authLoading) return; // Still loading
@@ -160,16 +168,23 @@ export default function UsersPage() {
     setShowEditModal(true);
   };
 
-  const handleDeactivateUser = (user: User) => {
-    setUserToDeactivate(user);
+  const handleDeactivateUser = (userToDeactivate: User) => {
+    // Verificar si el usuario admin está intentando desactivarse a sí mismo
+    if (userToDeactivate.id === user?.id) {
+      toast.error('No puedes desactivarte a ti mismo', {
+        description: 'Para desactivar tu cuenta de administrador, contacta al soporte técnico.'
+      });
+      return;
+    }
+    
+    setUserToDeactivate(userToDeactivate);
     setShowDeactivateModal(true);
   };
 
   const confirmDeactivateUser = async () => {
     if (!userToDeactivate) return;
 
-    try {
-      setDeactivatingUser(userToDeactivate.id);
+    await executeWithDeactivating(async () => {
       const response = await fetch(`/api/admin/users/${userToDeactivate.id}`, {
         method: 'DELETE',
         headers: {
@@ -185,25 +200,27 @@ export default function UsersPage() {
         });
         // Recargar la lista de usuarios
         loadUsers();
+        // Cerrar modal
+        setShowDeactivateModal(false);
+        setUserToDeactivate(null);
       } else {
         toast.error('Error al desactivar el usuario', {
-          description: data.error || 'Inténtalo de nuevo más tarde'
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
         });
       }
-    } catch (error) {
-      console.error('Failed to deactivate user:', error);
-      toast.error('Error de conexión', {
-        description: 'No se pudo conectar con el servidor'
-      });
-    } finally {
-      setDeactivatingUser(null);
-      setShowDeactivateModal(false);
-      setUserToDeactivate(null);
-    }
+    });
   };
 
-  const handleDeleteUser = (user: User) => {
-    setUserToDelete(user);
+  const handleDeleteUser = (userToDelete: User) => {
+    // Verificar si el usuario admin está intentando eliminarse a sí mismo
+    if (userToDelete.id === user?.id) {
+      toast.error('No puedes eliminarte a ti mismo', {
+        description: 'Para eliminar tu cuenta de administrador, contacta al soporte técnico.'
+      });
+      return;
+    }
+    
+    setUserToDelete(userToDelete);
     setShowDeleteModal(true);
   };
 
@@ -228,7 +245,7 @@ export default function UsersPage() {
         loadUsers();
       } else {
         toast.error('Error al eliminar el usuario', {
-          description: data.error || 'Inténtalo de nuevo más tarde'
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
         });
       }
     });
@@ -245,8 +262,7 @@ export default function UsersPage() {
   const confirmReactivateUser = async () => {
     if (!userToReactivate) return;
 
-    try {
-      setReactivatingUser(userToReactivate.id);
+    await executeWithReactivating(async () => {
       const response = await fetch(`/api/admin/users/${userToReactivate.id}/reactivate`, {
         method: 'PATCH',
         headers: {
@@ -262,21 +278,131 @@ export default function UsersPage() {
         });
         // Recargar la lista de usuarios
         loadUsers();
+        // Cerrar modal
+        setShowReactivateModal(false);
+        setUserToReactivate(null);
       } else {
         toast.error('Error al reactivar el usuario', {
           description: data.error || 'Inténtalo de nuevo más tarde'
         });
       }
-    } catch (error) {
-      console.error('Failed to reactivate user:', error);
-      toast.error('Error de conexión', {
-        description: 'No se pudo conectar con el servidor'
-      });
-    } finally {
-      setReactivatingUser(null);
-      setShowReactivateModal(false);
-      setUserToReactivate(null);
+    });
+  };
+
+  // Funciones para bulk actions
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      // Excluir al usuario admin actual de la selección
+      setSelectedUsers(filteredUsers.filter(u => u.id !== user?.id).map(u => u.id));
+    } else {
+      setSelectedUsers([]);
     }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    // No permitir seleccionar al usuario admin actual
+    if (userId === user?.id) {
+      toast.error('No puedes seleccionarte a ti mismo', {
+        description: 'Para gestionar tu cuenta de administrador, contacta al soporte técnico.'
+      });
+      return;
+    }
+    
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  const handleBulkDeactivate = () => {
+    if (selectedUsers.length === 0) return;
+    
+    // Verificar si el usuario admin está intentando desactivarse a sí mismo
+    if (selectedUsers.includes(user?.id || '')) {
+      toast.error('No puedes desactivarte a ti mismo', {
+        description: 'Para desactivar tu cuenta de administrador, contacta al soporte técnico.'
+      });
+      return;
+    }
+    
+    setShowBulkDeactivateModal(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedUsers.length === 0) return;
+    
+    // Verificar si el usuario admin está intentando eliminarse a sí mismo
+    if (selectedUsers.includes(user?.id || '')) {
+      toast.error('No puedes eliminarte a ti mismo', {
+        description: 'Para eliminar tu cuenta de administrador, contacta al soporte técnico.'
+      });
+      return;
+    }
+    
+    setShowBulkDeleteModal(true);
+  };
+
+  const confirmBulkDeactivate = async () => {
+    if (selectedUsers.length === 0) return;
+
+    await executeWithBulkDeactivating(async () => {
+      const response = await fetch('/api/admin/users/bulk-deactivate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds: selectedUsers }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(`${selectedUsers.length} usuarios desactivados exitosamente`, {
+          description: 'Los usuarios ya no podrán acceder al sistema'
+        });
+        // Recargar la lista de usuarios
+        loadUsers();
+        // Limpiar selección y cerrar modal
+        setSelectedUsers([]);
+        setShowBulkDeactivateModal(false);
+      } else {
+        toast.error('Error al desactivar usuarios', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
+      }
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedUsers.length === 0) return;
+
+    await executeWithBulkDeleting(async () => {
+      const response = await fetch('/api/admin/users/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds: selectedUsers }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast.success(`${selectedUsers.length} usuarios eliminados permanentemente`, {
+          description: 'Todos los datos de los usuarios han sido borrados de la base de datos'
+        });
+        // Recargar la lista de usuarios
+        loadUsers();
+        // Limpiar selección y cerrar modal
+        setSelectedUsers([]);
+        setShowBulkDeleteModal(false);
+      } else {
+        toast.error('Error al eliminar usuarios', {
+          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+        });
+      }
+    });
   };
 
       if (authLoading) {
@@ -312,10 +438,20 @@ export default function UsersPage() {
     return <Badge variant="outline"><User className="h-3 w-3 mr-1" />Coordinador</Badge>;
   };
 
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? 
-      <Badge variant="default" className="bg-green-100 text-green-800">Activo</Badge> :
-      <Badge variant="secondary">Inactivo</Badge>;
+  const getStatusBadge = (isActive: boolean, userId: string) => {
+    return (
+      <div className="flex items-center space-x-2">
+        {isActive ? 
+          <Badge variant="default" className="bg-green-100 text-green-800">Activo</Badge> :
+          <Badge variant="secondary">Inactivo</Badge>
+        }
+        {userId === user?.id && (
+          <Badge variant="outline" className="text-blue-600 border-blue-200">
+            Tu cuenta
+          </Badge>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -441,34 +577,90 @@ export default function UsersPage() {
           {loading ? (
             <div className="text-center py-8">{t('users.table.loading')}</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('users.table.user')}</TableHead>
-                  <TableHead>{t('users.table.role')}</TableHead>
-                  <TableHead>{t('users.table.hospital')}</TableHead>
-                  <TableHead>{t('users.table.status')}</TableHead>
-                  <TableHead>{t('users.table.lastAccess')}</TableHead>
-                  <TableHead className="text-right">{t('users.table.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
+            <>
+              {/* Bulk Actions Bar */}
+              {selectedUsers.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-blue-900">
+                        {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''} seleccionado{selectedUsers.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkDeactivate}
+                        disabled={isBulkDeactivating}
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Desactivar
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        disabled={isBulkDeleting}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedUsers([])}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Seleccionar todos los usuarios"
+                      />
+                    </TableHead>
+                    <TableHead>{t('users.table.user')}</TableHead>
+                    <TableHead>{t('users.table.role')}</TableHead>
+                    <TableHead>{t('users.table.hospital')}</TableHead>
+                    <TableHead>{t('users.table.status')}</TableHead>
+                    <TableHead>{t('users.table.lastAccess')}</TableHead>
+                    <TableHead className="text-right">{t('users.table.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
+                {filteredUsers.map((u) => (
+                  <TableRow key={u.id} className={u.id === user?.id ? 'bg-blue-50' : ''}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedUsers.includes(u.id)}
+                        onCheckedChange={(checked) => handleSelectUser(u.id, checked as boolean)}
+                        disabled={u.id === user?.id}
+                        aria-label={`Seleccionar ${u.name || u.email}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{user.name || t('users.table.noName')}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="font-medium">{u.name || t('users.table.noName')}</div>
+                        <div className="text-sm text-gray-500">{u.email}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>{getRoleBadge(u.role)}</TableCell>
                     <TableCell>
-                      {user.hospital_name || t('users.table.unassigned')}
+                      {u.hospital_name || t('users.table.unassigned')}
                     </TableCell>
-                    <TableCell>{getStatusBadge(user.isActive)}</TableCell>
+                    <TableCell>{getStatusBadge(u.isActive, u.id)}</TableCell>
                     <TableCell>
-                      {user.lastLogin ? 
-                        new Date(user.lastLogin).toLocaleDateString() : 
+                      {u.lastLogin ? 
+                        new Date(u.lastLogin).toLocaleDateString() : 
                         t('users.table.never')
                       }
                     </TableCell>
@@ -482,45 +674,45 @@ export default function UsersPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>{t('users.table.actions')}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                          <DropdownMenuItem onClick={() => handleEditUser(u)}>
                             <Edit className="h-4 w-4 mr-2" />
                             {t('users.table.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => handleResendInvitation(user.id)}
-                            disabled={resendingInvitation === user.id}
+                            onClick={() => handleResendInvitation(u.id)}
+                            disabled={isResending}
                           >
                             <Mail className="h-4 w-4 mr-2" />
-                            {resendingInvitation === user.id ? t('users.table.sending') : t('users.table.resendInvitation')}
+                            {isResending ? t('users.table.sending') : t('users.table.resendInvitation')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {user.isActive ? (
+                          {u.isActive ? (
                             <DropdownMenuItem 
                               className="text-red-600"
-                              onClick={() => handleDeactivateUser(user)}
-                              disabled={deactivatingUser === user.id}
+                              onClick={() => handleDeactivateUser(u)}
+                              disabled={isDeactivating || u.id === user?.id}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              {deactivatingUser === user.id ? 'Desactivando...' : t('users.table.deactivate')}
+                              {isDeactivating ? 'Desactivando...' : t('users.table.deactivate')}
                             </DropdownMenuItem>
                           ) : (
                             <>
                               <DropdownMenuItem 
                                 className="text-green-600"
-                                onClick={() => handleReactivateUser(user)}
-                                disabled={reactivatingUser === user.id}
+                                onClick={() => handleReactivateUser(u)}
+                                disabled={isReactivating}
                               >
                                 <User className="h-4 w-4 mr-2" />
-                                {reactivatingUser === user.id ? 'Reactivando...' : t('users.table.reactivate')}
+                                {isReactivating ? 'Reactivando...' : t('users.table.reactivate')}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="text-red-700 font-semibold"
-                                onClick={() => handleDeleteUser(user)}
-                                disabled={deletingUser === user.id}
+                                onClick={() => handleDeleteUser(u)}
+                                disabled={isDeleting || u.id === user?.id}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                {deletingUser === user.id ? 'Eliminando...' : t('users.table.delete')}
+                                {isDeleting ? 'Eliminando...' : t('users.table.delete')}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -531,6 +723,7 @@ export default function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>
@@ -583,17 +776,18 @@ export default function UsersPage() {
                     setShowDeactivateModal(false);
                     setUserToDeactivate(null);
                   }}
-                  disabled={deactivatingUser === userToDeactivate.id}
+                  disabled={isDeactivating}
                 >
                   {t('users.confirmDeactivate.cancel')}
                 </Button>
-                <Button
+                <LoadingButton
                   variant="destructive"
                   onClick={confirmDeactivateUser}
-                  disabled={deactivatingUser === userToDeactivate.id}
+                  loading={isDeactivating}
+                  loadingText={t('users.confirmDeactivate.deactivating')}
                 >
-                  {deactivatingUser === userToDeactivate.id ? t('users.confirmDeactivate.deactivating') : t('users.confirmDeactivate.confirm')}
-                </Button>
+                  {t('users.confirmDeactivate.confirm')}
+                </LoadingButton>
               </div>
             </div>
           </div>
@@ -631,17 +825,18 @@ export default function UsersPage() {
                     setShowDeleteModal(false);
                     setUserToDelete(null);
                   }}
-                  disabled={deletingUser === userToDelete.id}
+                  disabled={isDeleting}
                 >
                   {t('users.confirmDelete.cancel')}
                 </Button>
-                <Button
+                <LoadingButton
                   variant="destructive"
                   onClick={confirmDeleteUser}
-                  disabled={deletingUser === userToDelete.id}
+                  loading={isDeleting}
+                  loadingText={t('users.confirmDelete.deleting')}
                 >
-                  {deletingUser === userToDelete.id ? t('users.confirmDelete.deleting') : t('users.confirmDelete.confirm')}
-                </Button>
+                  {t('users.confirmDelete.confirm')}
+                </LoadingButton>
               </div>
             </div>
           </div>
@@ -679,18 +874,111 @@ export default function UsersPage() {
                     setShowReactivateModal(false);
                     setUserToReactivate(null);
                   }}
-                  disabled={reactivatingUser === userToReactivate.id}
+                  disabled={isReactivating}
                 >
                   {t('users.confirmReactivate.cancel')}
                 </Button>
-                <Button
+                <LoadingButton
                   variant="default"
                   className="bg-green-600 hover:bg-green-700"
                   onClick={confirmReactivateUser}
-                  disabled={reactivatingUser === userToReactivate.id}
+                  loading={isReactivating}
+                  loadingText={t('users.confirmReactivate.reactivating')}
                 >
-                  {reactivatingUser === userToReactivate.id ? t('users.confirmReactivate.reactivating') : t('users.confirmReactivate.confirm')}
+                  {t('users.confirmReactivate.confirm')}
+                </LoadingButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Deactivate Confirmation Modal */}
+      {showBulkDeactivateModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl border border-gray-200">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                <Shield className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Desactivar Múltiples Usuarios
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                ¿Estás seguro de que quieres desactivar {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''}?
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                <p className="text-sm text-blue-800 font-medium">
+                  ⚠️ Acción Reversible
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Los usuarios no podrán acceder al sistema, pero pueden ser reactivados posteriormente.
+                </p>
+              </div>
+              <div className="flex space-x-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkDeactivateModal(false)}
+                  disabled={isBulkDeactivating}
+                >
+                  Cancelar
                 </Button>
+                <LoadingButton
+                  variant="destructive"
+                  onClick={confirmBulkDeactivate}
+                  loading={isBulkDeactivating}
+                  loadingText="Desactivando..."
+                >
+                  Desactivar {selectedUsers.length} Usuario{selectedUsers.length !== 1 ? 's' : ''}
+                </LoadingButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl border border-gray-200">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Eliminar Múltiples Usuarios Permanentemente
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                ¿Estás seguro de que quieres eliminar permanentemente {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''}?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+                <p className="text-sm text-red-800 font-medium">
+                  ⚠️ Acción Irreversible
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  Se borrará toda la información de los usuarios de la base de datos. Esta acción no se puede deshacer.
+                </p>
+              </div>
+              <div className="flex space-x-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  disabled={isBulkDeleting}
+                >
+                  Cancelar
+                </Button>
+                <LoadingButton
+                  variant="destructive"
+                  onClick={confirmBulkDelete}
+                  loading={isBulkDeleting}
+                  loadingText="Eliminando..."
+                >
+                  Eliminar {selectedUsers.length} Usuario{selectedUsers.length !== 1 ? 's' : ''}
+                </LoadingButton>
               </div>
             </div>
           </div>

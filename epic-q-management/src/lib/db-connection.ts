@@ -19,6 +19,11 @@ const createPrismaClient = () => {
   // Configuración para PostgreSQL local
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 };
 
@@ -109,12 +114,12 @@ export async function getDatabaseStats() {
       userCount,
       alertCount
     ] = await Promise.all([
-      prisma.hospital.count(),
+      prisma.hospitals.count(),
       prisma.contact.count(),
-      prisma.communication.count(),
-      prisma.emailTemplate.count(),
-      prisma.user.count(),
-      prisma.alert.count()
+      prisma.communications.count(),
+      prisma.communication_templates.count(),
+      prisma.users.count(),
+      prisma.alerts.count()
     ]);
 
     return {
@@ -137,17 +142,17 @@ export async function clearDatabase() {
   try {
     console.log('🧹 Limpiando base de datos...');
     
-    await prisma.activityLog.deleteMany();
-    await prisma.communication.deleteMany();
-    await prisma.caseMetrics.deleteMany();
-    await prisma.recruitmentPeriod.deleteMany();
-    await prisma.hospitalProgress.deleteMany();
+    await prisma.activity_logs.deleteMany();
+    await prisma.communications.deleteMany();
+    await prisma.case_metrics.deleteMany();
+    await prisma.recruitment_periods.deleteMany();
+    await prisma.hospital_progress.deleteMany();
     await prisma.contact.deleteMany();
-    await prisma.hospitalDetails.deleteMany();
-    await prisma.hospital.deleteMany();
-    await prisma.emailTemplate.deleteMany();
-    await prisma.alert.deleteMany();
-    await prisma.user.deleteMany();
+    await prisma.hospital_details.deleteMany();
+    await prisma.hospitals.deleteMany();
+    await prisma.communication_templates.deleteMany();
+    await prisma.alerts.deleteMany();
+    await prisma.users.deleteMany();
 
     console.log('✅ Base de datos limpiada exitosamente');
     return { success: true, message: 'Base de datos limpiada' };

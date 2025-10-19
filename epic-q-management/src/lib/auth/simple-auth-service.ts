@@ -11,10 +11,10 @@ export class SimpleAuthService {
       const { email, password } = credentials;
 
       // Buscar usuario en la base de datos
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email },
         include: { 
-          hospital: true
+          hospitals: true
         }
       });
 
@@ -51,8 +51,8 @@ export class SimpleAuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        hospitalId: user.hospital_id,
-        hospital: user.hospital ? {
+        hospitalId: user.hospitalId,
+        hospital: user.hospitals ? {
           id: user.hospital.id,
           name: user.hospital.name
         } : null,
@@ -80,10 +80,10 @@ export class SimpleAuthService {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
       
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: decoded.userId },
         include: { 
-          hospital: true
+          hospitals: true
         }
       });
 
@@ -96,8 +96,8 @@ export class SimpleAuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        hospitalId: user.hospital_id,
-        hospital: user.hospital ? {
+        hospitalId: user.hospitalId,
+        hospital: user.hospitals ? {
           id: user.hospital.id,
           name: user.hospital.name
         } : null,

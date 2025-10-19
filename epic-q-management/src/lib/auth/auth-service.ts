@@ -11,7 +11,7 @@ export class AuthService {
       const { email, password } = credentials;
 
       // Buscar usuario en la base de datos
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email },
         include: {
           hospital: {
@@ -40,7 +40,7 @@ export class AuthService {
       }
 
       // Actualizar último login
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: user.id },
         data: { lastLogin: new Date() }
       });
@@ -87,7 +87,7 @@ export class AuthService {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
       
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: decoded.userId },
         include: {
           hospital: {

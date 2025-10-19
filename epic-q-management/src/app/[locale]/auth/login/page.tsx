@@ -62,7 +62,7 @@ export default function LoginPage() {
                 </Alert>
               )}
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label htmlFor="email">{t('auth.login.email')}</Label>
                 <Input
                   id="email"
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label htmlFor="password">{t('auth.login.password')}</Label>
                 <div className="relative">
                   <Input

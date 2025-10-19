@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [kpis, hospitalsByStatus, alertsBySeverity, recentAlerts, upcomingRecruitment] = await Promise.all([
+    const [kpis, hospitalsByStatus, alertsByType, recentAlerts, upcomingRecruitment] = await Promise.all([
       DashboardService.getDashboardKPIs(),
       DashboardService.getHospitalsByStatus(),
-      DashboardService.getAlertsBySeverity(),
+      DashboardService.getAlertsByType(),
       DashboardService.getRecentAlerts(5),
       DashboardService.getUpcomingRecruitment(5)
     ]);
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       data: {
         kpis,
         hospitalsByStatus,
-        alertsBySeverity,
+        alertsByType,
         recentAlerts,
         upcomingRecruitment
       }

@@ -11,7 +11,7 @@ export async function DELETE(
       const { id: projectId, coordinatorId } = await params;
 
       // Verificar que el proyecto existe
-      const project = await prisma.project.findUnique({
+      const project = await prisma.projects.findUnique({
         where: { id: projectId }
       });
 
@@ -23,7 +23,7 @@ export async function DELETE(
       }
 
       // Verificar que el coordinador está en el proyecto
-      const projectCoordinator = await prisma.projectCoordinator.findFirst({
+      const projectCoordinator = await prisma.project_coordinators.findFirst({
         where: {
           project_id: projectId,
           id: coordinatorId
@@ -41,7 +41,7 @@ export async function DELETE(
       }
 
       // Eliminar el coordinador del proyecto
-      await prisma.projectCoordinator.delete({
+      await prisma.project_coordinators.delete({
         where: { id: projectCoordinator.id }
       });
 

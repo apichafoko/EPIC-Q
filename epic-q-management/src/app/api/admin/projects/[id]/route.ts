@@ -9,10 +9,6 @@ const updateProjectSchema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   status: z.enum(['active', 'completed', 'archived']).optional(),
-  total_target_cases: z.union([z.string(), z.number()]).optional().transform((val) => {
-    if (val === '' || val === null || val === undefined) return null;
-    return typeof val === 'string' ? parseInt(val) : val;
-  }),
   default_required_periods: z.number().int().min(1).max(10).optional(),
 });
 
@@ -24,18 +20,17 @@ export async function GET(
     try {
       const { id } = await params;
 
-    const project = await prisma.project.findUnique({
+    const project = await prisma.projects.findUnique({
       where: { id },
       include: {
         project_hospitals: {
           include: {
-            hospital: {
+            hospitals: {
               include: {
-                details: true,
-                contacts: true
+                hospital_details: true,
+                hospital_contacts: true
               }
             },
-            progress: true,
             recruitment_periods: {
               orderBy: { period_number: 'asc' }
             },
@@ -48,8 +43,8 @@ export async function GET(
         },
         project_coordinators: {
           include: {
-            user: true,
-            hospital: true
+            users: true,
+            hospitals: true
           }
         },
         _count: {
@@ -96,7 +91,7 @@ export async function PUT(
     const validatedData = updateProjectSchema.parse(body);
     
     // Verificar que el proyecto existe
-    const existingProject = await prisma.project.findUnique({
+    const existingProject = await prisma.projects.findUnique({
       where: { id }
     });
 
@@ -113,7 +108,6 @@ export async function PUT(
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
     if (validatedData.status !== undefined) updateData.status = validatedData.status;
-    if (validatedData.total_target_cases !== undefined) updateData.total_target_cases = validatedData.total_target_cases;
     if (validatedData.default_required_periods !== undefined) updateData.default_required_periods = validatedData.default_required_periods;
 
     if (validatedData.start_date !== undefined) {
@@ -125,7 +119,7 @@ export async function PUT(
     }
 
     // Actualizar proyecto
-    const project = await prisma.project.update({
+    const project = await prisma.projects.update({
       where: { id },
       data: updateData,
       include: {
@@ -170,7 +164,7 @@ export async function DELETE(
       const { id } = await params;
 
     // Verificar que el proyecto existe
-    const existingProject = await prisma.project.findUnique({
+    const existingProject = await prisma.projects.findUnique({
       where: { id }
     });
 
@@ -182,7 +176,7 @@ export async function DELETE(
     }
 
     // Eliminar proyecto con cascada (elimina automáticamente project_hospitals, project_coordinators, etc.)
-    await prisma.project.delete({
+    await prisma.projects.delete({
       where: { id }
     });
 

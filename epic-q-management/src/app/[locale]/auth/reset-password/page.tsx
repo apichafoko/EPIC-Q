@@ -156,7 +156,7 @@ export default function ResetPasswordPage() {
                 </Alert>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label htmlFor="password">{t('auth.newPassword')}</Label>
                 <div className="relative">
                   <Input
@@ -211,7 +211,7 @@ export default function ResetPasswordPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
                 <div className="relative">
                   <Input

@@ -222,7 +222,7 @@ export default function NewUserPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="name">{t('users.fullName')} *</Label>
               <Input
                 id="name"
@@ -237,7 +237,7 @@ export default function NewUserPage() {
             </div>
 
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="email">{t('users.email')} *</Label>
               <Input
                 id="email"
@@ -253,7 +253,7 @@ export default function NewUserPage() {
             </div>
 
             {/* Role */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="role">{t('users.role')} *</Label>
               <Select 
                 value={formData.role} 
@@ -285,7 +285,7 @@ export default function NewUserPage() {
                 <Label>{t('users.hospital')} *</Label>
                 
                 {/* Hospital Option Selection */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex space-x-4">
                     <div className="flex items-center space-x-2">
                       <input
@@ -320,7 +320,7 @@ export default function NewUserPage() {
 
                 {/* Existing Hospital Selection */}
                 {formData.hospital_option === 'existing' && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="hospital_id">Seleccionar Hospital</Label>
                     <Select 
                       value={formData.hospital_id} 
@@ -345,7 +345,7 @@ export default function NewUserPage() {
 
                 {/* New Hospital Name Input */}
                 {formData.hospital_option === 'new' && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label htmlFor="hospital_name">Nombre del Hospital</Label>
                     <Input
                       id="hospital_name"

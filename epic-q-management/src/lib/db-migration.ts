@@ -23,28 +23,28 @@ export class DatabaseMigrationService {
       
       // Limpiar datos existentes
       console.log('🧹 Limpiando datos existentes...');
-      await prisma.activityLog.deleteMany();
-      await prisma.communication.deleteMany();
-      await prisma.caseMetrics.deleteMany();
-      await prisma.recruitmentPeriod.deleteMany();
-      await prisma.hospitalProgress.deleteMany();
+      await prisma.activity_logs.deleteMany();
+      await prisma.communications.deleteMany();
+      await prisma.case_metrics.deleteMany();
+      await prisma.recruitment_periods.deleteMany();
+      await prisma.hospital_progress.deleteMany();
       await prisma.contact.deleteMany();
-      await prisma.hospitalDetails.deleteMany();
-      await prisma.hospital.deleteMany();
-      await prisma.emailTemplate.deleteMany();
-      await prisma.alert.deleteMany();
-      await prisma.user.deleteMany();
+      await prisma.hospital_details.deleteMany();
+      await prisma.hospitals.deleteMany();
+      await prisma.communication_templates.deleteMany();
+      await prisma.alerts.deleteMany();
+      await prisma.users.deleteMany();
       
       // Migrar usuarios
       console.log('👥 Migrando usuarios...');
       for (const user of mockUsers) {
-        await prisma.user.create({ data: user });
+        await prisma.users.create({ data: user });
       }
       
       // Migrar hospitales
       console.log('🏥 Migrando hospitales...');
       for (const hospital of mockHospitals) {
-        await prisma.hospital.create({
+        await prisma.hospitals.create({
           data: {
             id: hospital.id,
             redcap_id: hospital.redcap_id,
@@ -62,7 +62,7 @@ export class DatabaseMigrationService {
       // Migrar detalles de hospitales
       console.log('📋 Migrando detalles de hospitales...');
       for (const detail of mockHospitalDetails) {
-        await prisma.hospitalDetails.create({
+        await prisma.hospital_details.create({
           data: {
             hospital_id: detail.hospital_id,
             num_beds: detail.num_beds,
@@ -100,7 +100,7 @@ export class DatabaseMigrationService {
       // Migrar progreso de hospitales
       console.log('📊 Migrando progreso de hospitales...');
       for (const progress of mockHospitalProgress) {
-        await prisma.hospitalProgress.create({
+        await prisma.hospital_progress.create({
           data: {
             hospital_id: progress.hospital_id,
             descriptive_form_status: progress.descriptive_form_status,
@@ -121,7 +121,7 @@ export class DatabaseMigrationService {
       // Migrar períodos de reclutamiento
       console.log('📅 Migrando períodos de reclutamiento...');
       for (const period of mockRecruitmentPeriods) {
-        await prisma.recruitmentPeriod.create({
+        await prisma.recruitment_periods.create({
           data: {
             id: period.id,
             hospital_id: period.hospital_id,
@@ -136,7 +136,7 @@ export class DatabaseMigrationService {
       // Migrar métricas de casos
       console.log('📈 Migrando métricas de casos...');
       for (const metric of mockCaseMetrics) {
-        await prisma.caseMetrics.create({
+        await prisma.case_metrics.create({
           data: {
             id: metric.id,
             hospital_id: metric.hospital_id,
@@ -152,7 +152,7 @@ export class DatabaseMigrationService {
       // Migrar comunicaciones
       console.log('💬 Migrando comunicaciones...');
       for (const communication of mockCommunications) {
-        await prisma.communication.create({
+        await prisma.communications.create({
           data: {
             id: communication.id,
             hospital_id: communication.hospital_id,
@@ -171,7 +171,7 @@ export class DatabaseMigrationService {
       // Migrar templates de email
       console.log('📧 Migrando templates de email...');
       for (const template of mockEmailTemplates) {
-        await prisma.emailTemplate.create({
+        await prisma.communication_templates.create({
           data: {
             id: template.id,
             name: template.name,
@@ -190,7 +190,7 @@ export class DatabaseMigrationService {
       // Migrar alertas
       console.log('🚨 Migrando alertas...');
       for (const alert of mockAlerts) {
-        await prisma.alert.create({
+        await prisma.alerts.create({
           data: {
             id: alert.id,
             hospital_id: alert.hospital_id,
@@ -275,24 +275,24 @@ export class DatabaseMigrationService {
         alertCount,
         userCount
       ] = await Promise.all([
-        prisma.hospital.count(),
+        prisma.hospitals.count(),
         prisma.contact.count(),
-        prisma.communication.count(),
-        prisma.emailTemplate.count(),
-        prisma.alert.count(),
-        prisma.user.count()
+        prisma.communications.count(),
+        prisma.communication_templates.count(),
+        prisma.alerts.count(),
+        prisma.users.count()
       ]);
       
       // Verificar relaciones
-      const hospitalsWithDetails = await prisma.hospital.count({
+      const hospitalsWithDetails = await prisma.hospitals.count({
         where: { details: { isNot: null } }
       });
       
-      const hospitalsWithContacts = await prisma.hospital.count({
+      const hospitalsWithContacts = await prisma.hospitals.count({
         where: { contacts: { some: {} } }
       });
       
-      const hospitalsWithProgress = await prisma.hospital.count({
+      const hospitalsWithProgress = await prisma.hospitals.count({
         where: { progress: { isNot: null } }
       });
       
@@ -331,17 +331,17 @@ export class DatabaseMigrationService {
     try {
       console.log('🧹 Limpiando datos de migración...');
       
-      await prisma.activityLog.deleteMany();
-      await prisma.communication.deleteMany();
-      await prisma.caseMetrics.deleteMany();
-      await prisma.recruitmentPeriod.deleteMany();
-      await prisma.hospitalProgress.deleteMany();
+      await prisma.activity_logs.deleteMany();
+      await prisma.communications.deleteMany();
+      await prisma.case_metrics.deleteMany();
+      await prisma.recruitment_periods.deleteMany();
+      await prisma.hospital_progress.deleteMany();
       await prisma.contact.deleteMany();
-      await prisma.hospitalDetails.deleteMany();
-      await prisma.hospital.deleteMany();
-      await prisma.emailTemplate.deleteMany();
-      await prisma.alert.deleteMany();
-      await prisma.user.deleteMany();
+      await prisma.hospital_details.deleteMany();
+      await prisma.hospitals.deleteMany();
+      await prisma.communication_templates.deleteMany();
+      await prisma.alerts.deleteMany();
+      await prisma.users.deleteMany();
       
       return {
         success: true,

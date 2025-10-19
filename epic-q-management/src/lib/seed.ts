@@ -8,22 +8,22 @@ export async function seedDatabase() {
 
     // Limpiar datos existentes (en orden inverso por las foreign keys)
     console.log('🧹 Limpiando datos existentes...');
-    await prisma.activityLog.deleteMany();
-    await prisma.communication.deleteMany();
-    await prisma.caseMetrics.deleteMany();
-    await prisma.recruitmentPeriod.deleteMany();
-    await prisma.hospitalProgress.deleteMany();
+    await prisma.activity_logs.deleteMany();
+    await prisma.communications.deleteMany();
+    await prisma.case_metrics.deleteMany();
+    await prisma.recruitment_periods.deleteMany();
+    await prisma.hospital_progress.deleteMany();
     await prisma.contact.deleteMany();
-    await prisma.hospitalDetails.deleteMany();
-    await prisma.hospital.deleteMany();
-    await prisma.emailTemplate.deleteMany();
-    await prisma.alert.deleteMany();
-    await prisma.user.deleteMany();
+    await prisma.hospital_details.deleteMany();
+    await prisma.hospitals.deleteMany();
+    await prisma.communication_templates.deleteMany();
+    await prisma.alerts.deleteMany();
+    await prisma.users.deleteMany();
 
     // Crear usuarios
     console.log('👥 Creando usuarios...');
     for (const user of mockUsers) {
-      await prisma.user.create({
+      await prisma.users.create({
         data: user
       });
     }
@@ -31,7 +31,7 @@ export async function seedDatabase() {
     // Crear hospitales
     console.log('🏥 Creando hospitales...');
     for (const hospital of mockHospitals) {
-      await prisma.hospital.create({
+      await prisma.hospitals.create({
         data: {
           id: hospital.id,
           redcap_id: hospital.redcap_id,
@@ -49,7 +49,7 @@ export async function seedDatabase() {
     // Crear detalles de hospitales
     console.log('📋 Creando detalles de hospitales...');
     for (const detail of mockHospitalDetails) {
-      await prisma.hospitalDetails.create({
+      await prisma.hospital_details.create({
         data: {
           hospital_id: detail.hospital_id,
           num_beds: detail.num_beds,
@@ -87,7 +87,7 @@ export async function seedDatabase() {
     // Crear progreso de hospitales
     console.log('📊 Creando progreso de hospitales...');
     for (const progress of mockHospitalProgress) {
-      await prisma.hospitalProgress.create({
+      await prisma.hospital_progress.create({
         data: {
           hospital_id: progress.hospital_id,
           descriptive_form_status: progress.descriptive_form_status,
@@ -108,7 +108,7 @@ export async function seedDatabase() {
     // Crear períodos de reclutamiento
     console.log('📅 Creando períodos de reclutamiento...');
     for (const period of mockRecruitmentPeriods) {
-      await prisma.recruitmentPeriod.create({
+      await prisma.recruitment_periods.create({
         data: {
           id: period.id,
           hospital_id: period.hospital_id,
@@ -123,7 +123,7 @@ export async function seedDatabase() {
     // Crear métricas de casos
     console.log('📈 Creando métricas de casos...');
     for (const metric of mockCaseMetrics) {
-      await prisma.caseMetrics.create({
+      await prisma.case_metrics.create({
         data: {
           id: metric.id,
           hospital_id: metric.hospital_id,
@@ -139,7 +139,7 @@ export async function seedDatabase() {
     // Crear comunicaciones
     console.log('💬 Creando comunicaciones...');
     for (const communication of mockCommunications) {
-      await prisma.communication.create({
+      await prisma.communications.create({
         data: {
           id: communication.id,
           hospital_id: communication.hospital_id,
@@ -158,7 +158,7 @@ export async function seedDatabase() {
     // Crear templates de email
     console.log('📧 Creando templates de email...');
     for (const template of mockEmailTemplates) {
-      await prisma.emailTemplate.create({
+      await prisma.communication_templates.create({
         data: {
           id: template.id,
           name: template.name,
@@ -177,7 +177,7 @@ export async function seedDatabase() {
     // Crear alertas
     console.log('🚨 Creando alertas...');
     for (const alert of mockAlerts) {
-      await prisma.alert.create({
+      await prisma.alerts.create({
         data: {
           id: alert.id,
           hospital_id: alert.hospital_id,
@@ -195,12 +195,12 @@ export async function seedDatabase() {
     
     // Mostrar estadísticas
     const stats = await prisma.$transaction([
-      prisma.hospital.count(),
+      prisma.hospitals.count(),
       prisma.contact.count(),
-      prisma.communication.count(),
-      prisma.emailTemplate.count(),
-      prisma.alert.count(),
-      prisma.user.count()
+      prisma.communications.count(),
+      prisma.communication_templates.count(),
+      prisma.alerts.count(),
+      prisma.users.count()
     ]);
 
     console.log('📊 Estadísticas de la base de datos:');
@@ -222,17 +222,17 @@ export async function clearDatabase() {
   try {
     console.log('🧹 Limpiando base de datos...');
     
-    await prisma.activityLog.deleteMany();
-    await prisma.communication.deleteMany();
-    await prisma.caseMetrics.deleteMany();
-    await prisma.recruitmentPeriod.deleteMany();
-    await prisma.hospitalProgress.deleteMany();
+    await prisma.activity_logs.deleteMany();
+    await prisma.communications.deleteMany();
+    await prisma.case_metrics.deleteMany();
+    await prisma.recruitment_periods.deleteMany();
+    await prisma.hospital_progress.deleteMany();
     await prisma.contact.deleteMany();
-    await prisma.hospitalDetails.deleteMany();
-    await prisma.hospital.deleteMany();
-    await prisma.emailTemplate.deleteMany();
-    await prisma.alert.deleteMany();
-    await prisma.user.deleteMany();
+    await prisma.hospital_details.deleteMany();
+    await prisma.hospitals.deleteMany();
+    await prisma.communication_templates.deleteMany();
+    await prisma.alerts.deleteMany();
+    await prisma.users.deleteMany();
 
     console.log('✅ Base de datos limpiada exitosamente!');
   } catch (error) {
@@ -245,12 +245,12 @@ export async function clearDatabase() {
 export async function checkDatabaseStatus() {
   try {
     const stats = await prisma.$transaction([
-      prisma.hospital.count(),
+      prisma.hospitals.count(),
       prisma.contact.count(),
-      prisma.communication.count(),
-      prisma.emailTemplate.count(),
-      prisma.alert.count(),
-      prisma.user.count()
+      prisma.communications.count(),
+      prisma.communication_templates.count(),
+      prisma.alerts.count(),
+      prisma.users.count()
     ]);
 
     return {
