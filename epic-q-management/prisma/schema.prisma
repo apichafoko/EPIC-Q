@@ -120,38 +120,38 @@ model hospital_details {
   research_department       String?
   research_department_email String?
   research_department_phone String?
-  num_beds                  Int?
-  num_operating_rooms       Int?
-  num_icu_beds              Int?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @default(now())
   avg_weekly_surgeries      Int?
   financing_type            String?
   has_preop_clinic          String?
-  has_residency_program     Boolean?
+  num_beds                  Int?
+  num_icu_beds              Int?
+  num_operating_rooms       Int?
   has_ethics_committee      Boolean?
   has_rapid_response_team   Boolean?
-  university_affiliated     Boolean?
+  has_residency_program     Boolean?
   notes                     String?
-  created_at                DateTime  @default(now())
-  updated_at                DateTime  @default(now())
+  university_affiliated     Boolean?
   hospitals                 hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
 model hospital_progress {
-  id                     String             @id
-  hospital_id            String
-  project_id             String
-  status                 String             @default("pending")
-  progress_percentage    Int                @default(0)
-  notes                  String?
-  ethics_submitted       Boolean?
-  ethics_approved        Boolean?
-  ethics_submitted_date  DateTime?
-  ethics_approved_date   DateTime?
-  created_at             DateTime           @default(now())
-  updated_at             DateTime           @default(now())
-  project_hospital_id    String?            @unique
-  hospitals              hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  project_hospitals      project_hospitals? @relation(fields: [project_hospital_id], references: [id])
+  id                    String             @id
+  hospital_id           String
+  project_id            String
+  status                String             @default("pending")
+  progress_percentage   Int                @default(0)
+  notes                 String?
+  created_at            DateTime           @default(now())
+  updated_at            DateTime           @default(now())
+  project_hospital_id   String?            @unique
+  ethics_approved       Boolean?
+  ethics_approved_date  DateTime?
+  ethics_submitted      Boolean?
+  ethics_submitted_date DateTime?
+  hospitals             hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  project_hospitals     project_hospitals? @relation(fields: [project_hospital_id], references: [id])
 }
 
 model hospitals {
@@ -169,6 +169,7 @@ model hospitals {
   created_at           DateTime               @default(now())
   updated_at           DateTime               @default(now())
   alerts               alerts[]
+  case_load_statistics case_load_statistics[]
   case_metrics         case_metrics[]
   communications       communications[]
   hospital_contacts    hospital_contacts[]
@@ -196,12 +197,12 @@ model project_coordinators {
   project_id  String
   hospital_id String
   user_id     String
-  role        String    @default("coordinator")
   is_active   Boolean   @default(true)
-  invited_at  DateTime  @default(now())
-  accepted_at DateTime?
   created_at  DateTime  @default(now())
   updated_at  DateTime  @default(now())
+  accepted_at DateTime?
+  invited_at  DateTime  @default(now())
+  role        String    @default("coordinator")
   hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   projects    projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
   users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -238,21 +239,23 @@ model projects {
   required_periods     Int                    @default(1)
   created_at           DateTime               @default(now())
   updated_at           DateTime               @default(now())
+  case_load_statistics case_load_statistics[]
   communications       communications[]
   project_coordinators project_coordinators[]
   project_hospitals    project_hospitals[]
 }
 
 model recruitment_periods {
-  id                  String            @id
-  start_date          DateTime
-  end_date            DateTime
-  target_cases        Int?
-  created_at          DateTime          @default(now())
-  updated_at          DateTime          @default(now())
-  period_number       Int
-  project_hospital_id String
-  project_hospitals   project_hospitals @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
+  id                   String                 @id
+  start_date           DateTime
+  end_date             DateTime
+  target_cases         Int?
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @default(now())
+  period_number        Int
+  project_hospital_id  String
+  case_load_statistics case_load_statistics[]
+  project_hospitals    project_hospitals      @relation(fields: [project_hospital_id], references: [id], onDelete: Cascade)
 
   @@unique([project_hospital_id, period_number])
 }
@@ -303,4 +306,24 @@ model users {
   sessions             sessions[]
   user_settings        user_settings?
   hospitals            hospitals?             @relation(fields: [hospitalId], references: [id])
+}
+
+model case_load_statistics {
+  id                   String              @id @default(cuid())
+  project_id           String
+  hospital_id          String
+  period_id            String
+  cases_loaded         Int                 @default(0)
+  cases_expected       Int?
+  last_load_date       DateTime?
+  is_currently_loading Boolean             @default(false)
+  loading_status       String?
+  notes                String?
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @default(now())
+  hospitals            hospitals           @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  recruitment_periods  recruitment_periods @relation(fields: [period_id], references: [id], onDelete: Cascade)
+  projects             projects            @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, hospital_id, period_id])
 }

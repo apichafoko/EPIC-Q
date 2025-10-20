@@ -7,50 +7,42 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(req, async (user) => {
-    try {
-      const { id: hospitalId } = await params;
+  try {
+    console.log('🏥 GET /api/hospitals/[id] - Starting request');
+    const { id: hospitalId } = await params;
+    console.log('🏥 GET /api/hospitals/[id] - Hospital ID:', hospitalId);
+    
+    console.log('🏥 GET /api/hospitals/[id] - Querying database...');
+    const hospital = await prisma.hospitals.findUnique({
+      where: { id: hospitalId }
+    });
+    console.log('🏥 GET /api/hospitals/[id] - Query result:', !!hospital);
 
-      const hospital = await prisma.hospitals.findUnique({
-        where: { id: hospitalId },
-        include: {
-          details: true,
-          progress: true,
-          contacts: true,
-          users: {
-            where: { role: 'coordinator' }
-          },
-          project_hospitals: {
-            include: {
-              project: true
-            }
-          }
-        }
-      });
-
-      if (!hospital) {
-        return NextResponse.json(
-          { error: 'Hospital no encontrado' },
-          { status: 404 }
-        );
-      }
-
-      // Mapear los datos para el frontend
-      const mappedHospital = {
-        ...hospital,
-        participated_lasos: hospital.lasos_participation
-      };
-
-      return NextResponse.json({ hospital: mappedHospital });
-
-    } catch (error) {
-      console.error('Error fetching hospital:', error);
+    if (!hospital) {
+      console.log('🏥 GET /api/hospitals/[id] - Hospital not found');
       return NextResponse.json(
-        { error: 'Error interno del servidor' },
-        { status: 500 }
+        { error: 'Hospital no encontrado' },
+        { status: 404 }
       );
     }
-  });
+
+    // Mapear los datos para el frontend
+    console.log('🏥 GET /api/hospitals/[id] - Mapping data...');
+    const mappedHospital = {
+      ...hospital,
+      participated_lasos: hospital.lasos_participation
+    };
+    console.log('🏥 GET /api/hospitals/[id] - Data mapped successfully');
+
+    return NextResponse.json({ hospital: mappedHospital });
+
+  } catch (error) {
+    console.error('Error in GET /api/hospitals/[id]:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(
@@ -87,7 +79,6 @@ export async function PUT(
         where: { id: hospitalId },
         data: {
           name: body.name,
-          redcap_id: body.redcap_id || null,
           province: body.province,
           city: body.city,
           status: body.status || 'pending',

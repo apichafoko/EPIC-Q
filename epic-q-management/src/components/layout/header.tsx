@@ -1,8 +1,7 @@
 'use client';
 
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -42,17 +41,8 @@ export function Header({ userId }: HeaderProps) {
               <span className="text-gray-900">{t('common.dashboard')}</span>
             </div>
 
-        {/* Search and Actions */}
+        {/* Actions */}
         <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder={t('common.search')}
-                  className="pl-10 w-80"
-                />
-              </div>
-
           {/* Notifications */}
           {userId ? (
             <NotificationBell userId={userId} />

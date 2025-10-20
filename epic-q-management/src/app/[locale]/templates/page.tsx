@@ -101,15 +101,12 @@ export default function TemplatesPage() {
 
   // Función para procesar variables del template
   const processTemplateVariables = (template: Template) => {
-    // Obtener el logo en base64
-    const getLogoBase64 = () => {
-      try {
-        // Logo oficial de EPIC-Q en base64
-        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiByeD0iNDAiIGZpbGw9IiMxZTNhOGEiLz4KPHRleHQgeD0iNzAiIHk9IjEwMCIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSI4MCIgZmlsbD0id2hpdGUiPkVQSUM8L3RleHQ+Cjx0ZXh0IHg9IjEzMCIgeT0iMTEwIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjgwIiBmaWxsPSIjZmI5MjNjIj5RPC90ZXh0Pgo8L3N2Zz4K';
-      } catch (error) {
-        console.error('Error loading logo:', error);
-        return '';
-      }
+    // Obtener URL del logo de entorno para previsualización (fallback a base64 embebido)
+    const getEmailLogoUrl = () => {
+      const envUrl = process.env.NEXT_PUBLIC_EMAIL_LOGO_URL;
+      if (envUrl && envUrl.trim()) return envUrl.trim();
+      // Fallback: usar el asset público relativo
+      return '/logo-email.svg';
     };
 
     const sampleVariables = {
@@ -133,7 +130,7 @@ export default function TemplatesPage() {
       changeDate: '10 de Enero, 2024',
       additionalInfo: 'El caso ha sido actualizado con nueva información.',
       systemUrl: 'http://localhost:3000/es/dashboard',
-      logoUrl: getLogoBase64()
+      logoUrl: getEmailLogoUrl()
     };
 
     // Procesar subject

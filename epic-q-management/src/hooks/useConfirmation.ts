@@ -25,7 +25,8 @@ export function useConfirmation() {
     onCancel?: () => void
   ) => {
     setConfirmationData({ options, onConfirm, onCancel });
-    setIsConfirming(true); // Mostrar el toast de confirmación
+    // Al abrir el modal, NO debe estar en estado de "procesando"
+    setIsConfirming(false);
   }, []);
 
   const handleConfirm = useCallback(async () => {

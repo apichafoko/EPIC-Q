@@ -1,7 +1,7 @@
 import { EmailService } from './email-service';
 import { EmailTemplateService } from './email-template-service';
 import { prisma } from '@/lib/database';
-import { getLogoBase64 } from './email-logo';
+import { getLogoBase64, getEmailLogoUrl } from './email-logo';
 
 interface ProjectInvitationData {
   projectName: string;
@@ -201,7 +201,7 @@ class ProjectInvitationService {
 <body>
     <div class="container">
         <div class="header">
-            <img src="${getLogoBase64()}" alt="EPIC-Q Logo" class="logo" />
+            <img src="${getEmailLogoUrl()}" alt="EPIC-Q Logo" class="logo" />
             <h1 class="title">EPIC-Q</h1>
             <p class="subtitle">Sistema de Gestión de Proyectos</p>
         </div>

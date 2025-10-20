@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/database';
-import { getLogoBase64 } from './email-logo';
+import { getLogoBase64, getEmailLogoUrl } from './email-logo';
 
 export interface EmailTemplate {
   id: string;
@@ -180,7 +180,7 @@ export class EmailTemplateService {
     // Agregar logo al inicio
     const enhancedVariables = {
       ...variables,
-      logoUrl: getLogoBase64()
+      logoUrl: getEmailLogoUrl() || getLogoBase64()
     };
     
     let processedSubject = template.email_subject || template.subject || 'Invitación al sistema EPIC-Q';

@@ -65,24 +65,48 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
   const loadHospital = async () => {
     try {
       const response = await fetch(`/api/hospitals/${id}`);
-      const data = await response.json();
 
-      if (response.ok) {
-        setHospital(data.hospital);
-        setFormData({
-          name: data.hospital.name || '',
-          redcap_id: data.hospital.redcap_id || '',
-          province: data.hospital.province || '',
-          city: data.hospital.city || '',
-          status: data.hospital.status || 'pending',
-          participated_lasos: data.hospital.participated_lasos || false
-        });
-      } else {
+      if (!response.ok) {
+        let errorMessage = 'No se pudo cargar la información del hospital';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
         toast.error('Error al cargar el hospital', {
-          description: data.error || 'No se pudo cargar la información del hospital'
+          description: errorMessage
         });
         router.push('/hospitals');
+        return;
       }
+
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error('Respuesta vacía del servidor');
+        }
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Error parsing response JSON:', jsonError);
+        toast.error('Error al cargar el hospital', {
+          description: 'Error al procesar la respuesta del servidor'
+        });
+        router.push('/hospitals');
+        return;
+      }
+
+      setHospital(data.hospital);
+      setFormData({
+        name: data.hospital.name || '',
+        redcap_id: data.hospital.redcap_id || '',
+        province: data.hospital.province || '',
+        city: data.hospital.city || '',
+        status: data.hospital.status || 'pending',
+        participated_lasos: data.hospital.participated_lasos || false
+      });
     } catch (error) {
       console.error('Error loading hospital:', error);
       toast.error('Error al cargar el hospital', {

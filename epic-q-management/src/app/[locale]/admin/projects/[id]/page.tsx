@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DocumentationStackedBar } from '@/components/admin/overview/DocumentationStackedBar';
+import { ProvinceChoropleth } from '@/components/admin/overview/ProvinceChoropleth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Loader2, Plus, Edit, Trash2, UserPlus, Building2, Calendar, Target, Users, AlertTriangle, MoreHorizontal, Mail, Eye, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -113,7 +115,7 @@ export default function ProjectDetailPage() {
     start_date: '',
     end_date: '',
     status: 'active' as 'active' | 'completed' | 'archived',
-    default_required_periods: 2
+    required_periods: 2
   });
 
   // Invite form states
@@ -133,6 +135,7 @@ export default function ProjectDetailPage() {
   const [coordinatorSearchTerm, setCoordinatorSearchTerm] = useState('');
   const [hospitalStatusFilter, setHospitalStatusFilter] = useState('all');
   const [coordinatorStatusFilter, setCoordinatorStatusFilter] = useState('all');
+  const [documentationFilter, setDocumentationFilter] = useState('all');
   
   // Estados para paginación
   const [hospitalCurrentPage, setHospitalCurrentPage] = useState(1);
@@ -142,6 +145,8 @@ export default function ProjectDetailPage() {
   // Estados para selección múltiple
   const [selectedHospitals, setSelectedHospitals] = useState<string[]>([]);
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
+  const [docSort, setDocSort] = useState<'name' | 'form_desc' | 'ethics_pending_first'>('form_desc');
+  const [docOnlyPending, setDocOnlyPending] = useState(false);
   
   // Hook de notificaciones
   const { addNotification } = useNotifications();
@@ -179,10 +184,29 @@ export default function ProjectDetailPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al cargar el proyecto');
+        let errorMessage = 'Error al cargar el proyecto';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error('Respuesta vacía del servidor');
+        }
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Error parsing response JSON:', jsonError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+
       setProject(data.project);
       
       // Set form data
@@ -192,7 +216,7 @@ export default function ProjectDetailPage() {
         start_date: data.project.start_date ? data.project.start_date.split('T')[0] : '',
         end_date: data.project.end_date ? data.project.end_date.split('T')[0] : '',
         status: data.project.status,
-        default_required_periods: data.project.default_required_periods || 2
+        required_periods: data.project.required_periods || 2
       });
     } catch (error) {
       console.error('Error loading project:', error);
@@ -208,10 +232,25 @@ export default function ProjectDetailPage() {
         credentials: 'include'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setHospitals(data.hospitals || []);
+      if (!response.ok) {
+        console.error('Error loading hospitals:', response.status, response.statusText);
+        return;
       }
+
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          console.error('Empty response from hospitals API');
+          return;
+        }
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Error parsing hospitals response JSON:', jsonError);
+        return;
+      }
+
+      setHospitals(data.hospitals || []);
     } catch (error) {
       console.error('Error loading hospitals:', error);
     }
@@ -222,7 +261,7 @@ export default function ProjectDetailPage() {
     if (showInviteModal && project) {
       setInviteData(prev => ({
         ...prev,
-        required_periods: project.default_required_periods || 2
+        required_periods: project.required_periods || 2
       }));
     } else if (!showInviteModal) {
       // Reset form when modal closes
@@ -242,11 +281,29 @@ export default function ProjectDetailPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar el proyecto');
+        let errorMessage = 'Error al actualizar el proyecto';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error('Respuesta vacía del servidor');
+        }
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Error parsing response JSON:', jsonError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+
       setProject(data.project);
       setIsEditing(false);
       toast.success('Proyecto actualizado exitosamente');
@@ -319,7 +376,7 @@ export default function ProjectDetailPage() {
       last_name: '',
       phone: '',
       hospital_id: '', 
-      required_periods: project?.default_required_periods || 2 
+      required_periods: project?.required_periods || 2 
     });
     setSelectedCoordinator(null);
     setIsNewCoordinator(false);
@@ -353,11 +410,28 @@ export default function ProjectDetailPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear hospital');
+        let errorMessage = 'Error al crear hospital';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing error response:', jsonError);
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        const responseText = await response.text();
+        if (!responseText) {
+          throw new Error('Respuesta vacía del servidor');
+        }
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('Error parsing response JSON:', jsonError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
       
       // Recargar la lista de hospitales primero
       await loadHospitals();
@@ -484,8 +558,36 @@ export default function ProjectDetailPage() {
                          (ph.hospital.province && ph.hospital.province.toLowerCase().includes(hospitalSearchTerm.toLowerCase()));
     
     const matchesStatus = hospitalStatusFilter === 'all' || ph.status === hospitalStatusFilter;
+
+    // Documentation filter: combine ethics + hospital form status
+    const prog: any = (ph as any).hospital_progress;
+    const p = Array.isArray(prog) ? prog[0] : prog;
+    const pct = typeof p?.progress_percentage === 'number' ? p.progress_percentage : null;
+    let matchesDocumentation = true;
+    switch (documentationFilter) {
+      case 'ethics_pending':
+        matchesDocumentation = !(p?.ethics_submitted || p?.ethics_approved);
+        break;
+      case 'ethics_submitted':
+        matchesDocumentation = !!p?.ethics_submitted && !p?.ethics_approved;
+        break;
+      case 'ethics_approved':
+        matchesDocumentation = !!p?.ethics_approved;
+        break;
+      case 'form_pending':
+        matchesDocumentation = pct === null || pct === 0;
+        break;
+      case 'form_partial':
+        matchesDocumentation = typeof pct === 'number' && pct > 0 && pct < 100;
+        break;
+      case 'form_complete':
+        matchesDocumentation = typeof pct === 'number' && pct >= 100;
+        break;
+      default:
+        matchesDocumentation = true;
+    }
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDocumentation;
   });
 
   const filteredCoordinators = (project?.project_coordinators || []).filter(pc => {
@@ -519,6 +621,56 @@ export default function ProjectDetailPage() {
     coordinatorCurrentPage * itemsPerPage
   );
 
+  // Export CSV for Overview summary
+  const exportOverviewCsv = () => {
+    if (!project?.summary) return;
+    const s: any = project.summary;
+    const rows: string[][] = [];
+    rows.push(['Métrica','Valor']);
+    rows.push(['Hospitales', String(s.hospitalsTotal || 0)]);
+    rows.push(['Coordinadores', String(s.coordinatorsTotal || 0)]);
+    rows.push(['Invitación Pendiente', String(s.invitation?.pending || 0)]);
+    rows.push(['Invitación Aceptada', String(s.invitation?.accepted || 0)]);
+    rows.push(['Ética Pendiente', String(s.ethics?.pending || 0)]);
+    rows.push(['Ética Presentado', String(s.ethics?.submitted || 0)]);
+    rows.push(['Ética Aprobado', String(s.ethics?.approved || 0)]);
+    rows.push(['Formulario Pendiente', String(s.form?.pending || 0)]);
+    rows.push(['Formulario Parcial', String(s.form?.partial || 0)]);
+    rows.push(['Formulario Completo', String(s.form?.complete || 0)]);
+    rows.push([]);
+    rows.push(['Provincia','Hospitales','Ética Aprobado','Formulario Completo']);
+    (s.byProvince || []).forEach((p: any) => {
+      rows.push([p.province, String(p.hospitals), String(p.ethicsApproved), String(p.formComplete)]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `resumen_${project?.name || 'proyecto'}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export CSV for upcoming periods (60d)
+  const exportUpcomingCsv = () => {
+    if (!project?.summary) return;
+    const upcoming: any[] = project.summary.upcomingPeriods || [];
+    const rows: string[][] = [['Hospital','Período','Inicio','Fin']];
+    upcoming.forEach((u: any) => {
+      rows.push([
+        u.hospitalName || '',
+        String(u.periodNumber || ''),
+        u.startDate ? new Date(u.startDate).toLocaleDateString() : '',
+        u.endDate ? new Date(u.endDate).toLocaleDateString() : ''
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `periodos_proximos_${project?.name || 'proyecto'}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Resetear paginación cuando cambien los filtros
   const handleHospitalSearchChange = (value: string) => {
     setHospitalSearchTerm(value);
@@ -528,6 +680,61 @@ export default function ProjectDetailPage() {
   const handleHospitalStatusChange = (value: string) => {
     setHospitalStatusFilter(value);
     setHospitalCurrentPage(1);
+  };
+
+  // Exportar CSV (hospitales) respetando filtros actuales
+  const exportHospitalsCsv = () => {
+    const rows = [
+      [
+        'Hospital',
+        'Provincia',
+        'Ciudad',
+        'Períodos definidos',
+        'Próximo período',
+        'Ética',
+        'Formulario',
+        'Porcentaje Formulario',
+        'Estado'
+      ]
+    ];
+
+    (filteredHospitals || []).forEach((ph: any) => {
+      const hospital = ph.hospital || {};
+      const periods = Array.isArray(ph.recruitment_periods) ? ph.recruitment_periods : [];
+      const upcoming = periods
+        .filter((p: any) => p.start_date && new Date(p.end_date || p.start_date) >= new Date())
+        .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0];
+
+      const prog = Array.isArray(ph.hospital_progress) ? ph.hospital_progress[0] : ph.hospital_progress;
+      const ethics = prog?.ethics_approved
+        ? 'Aprobado'
+        : prog?.ethics_submitted
+          ? 'Presentado'
+          : 'Pendiente';
+      const pct = typeof prog?.progress_percentage === 'number' ? prog.progress_percentage : null;
+      const form = pct === null || pct === 0 ? 'Pendiente' : pct >= 100 ? 'Completo' : 'Parcial';
+
+      rows.push([
+        hospital.name || '',
+        hospital.province || '',
+        hospital.city || '',
+        String(periods.length || 0),
+        upcoming ? new Date(upcoming.start_date).toLocaleDateString() : '',
+        ethics,
+        form,
+        pct !== null ? `${pct}` : '',
+        ph.status || ''
+      ]);
+    });
+
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hospitales_${project?.name || 'proyecto'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleCoordinatorSearchChange = (value: string) => {
@@ -700,19 +907,7 @@ export default function ProjectDetailPage() {
               <p className="text-gray-600 text-sm leading-relaxed">{project.description}</p>
             )}
           </div>
-          <div className="w-80 ml-6">
-            <GlobalSearch 
-              placeholder="Buscar en todos los proyectos..."
-              onResultClick={(result) => {
-                if (result.type === 'project') {
-                  router.push(result.url);
-                } else {
-                  // Para otros tipos, mostrar en modal o nueva pestaña
-                  window.open(result.url, '_blank');
-                }
-              }}
-            />
-          </div>
+          {/* Buscador global removido en detalle de proyecto */}
           <div className="flex items-center gap-2 ml-4 flex-shrink-0">
             <Button
               variant="outline"
@@ -798,7 +993,7 @@ export default function ProjectDetailPage() {
         </div>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
-          {/* Project Details */}
+          {/* Project Details - Moved to top */}
           <Card className="shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold">Detalles del Proyecto</CardTitle>
@@ -877,22 +1072,21 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
 
-
                 <div>
-                  <Label htmlFor="default_required_periods">Períodos Requeridos por Defecto</Label>
+                  <Label htmlFor="required_periods">Períodos Requeridos por Defecto</Label>
                   {isEditing ? (
                     <Input
-                      id="default_required_periods"
+                      id="required_periods"
                       type="number"
                       min="1"
                       max="10"
-                      value={formData.default_required_periods}
-                      onChange={(e) => setFormData({ ...formData, default_required_periods: parseInt(e.target.value) || 2 })}
+                      value={formData.required_periods}
+                      onChange={(e) => setFormData({ ...formData, required_periods: parseInt(e.target.value) || 2 })}
                       className="mt-1"
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
-                      {project.default_required_periods || 2}
+                      {project.required_periods || 2}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-gray-500">
@@ -940,6 +1134,178 @@ export default function ProjectDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Overview KPIs - Made smaller */}
+          {project?.summary && (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 px-4">
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Hospitales</div>
+                <div className="text-xl font-bold">{project.summary.hospitalsTotal}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Coordinadores</div>
+                <div className="text-xl font-bold">{project.summary.coordinatorsTotal}</div>
+                <div className="text-xs text-gray-600">Pendiente: {project.summary.invitation?.pending} · Aceptado: {project.summary.invitation?.accepted}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Ética</div>
+                <div className="text-sm space-y-0.5">
+                  <div className="text-xs">Pendiente: {project.summary.ethics?.pending} · Presentado: {project.summary.ethics?.submitted} · Aprobado: {project.summary.ethics?.approved}</div>
+                </div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Formulario</div>
+                <div className="text-sm space-y-0.5">
+                  <div className="text-xs">Pendiente: {project.summary.form?.pending} · Parcial: {project.summary.form?.partial} · Completo: {project.summary.form?.complete}</div>
+                </div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Próximos 60 días</div>
+                <div className="text-xl font-bold">{project.summary.upcomingPeriods?.length || 0}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-gray-500 mb-1">Exportar</div>
+                <div className="space-y-1">
+                  <Button size="sm" variant="outline" onClick={exportOverviewCsv} className="w-full text-xs py-1">Resumen CSV</Button>
+                  <Button size="sm" variant="outline" onClick={exportUpcomingCsv} className="w-full text-xs py-1">Próximos CSV</Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Visualizations */}
+          <div className="space-y-6 px-4">
+              {/* Documentación por hospital (barra apilada simple) */}
+              {project?.project_hospitals && project.project_hospitals.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Documentación por hospital</Label>
+                    <div className="flex items-center gap-2">
+                      <Select value={docSort} onValueChange={(v) => setDocSort(v as any)}>
+                        <SelectTrigger className="h-8 w-48">
+                          <SelectValue placeholder="Orden" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="form_desc">Por Formulario (desc)</SelectItem>
+                          <SelectItem value="name">Alfabético</SelectItem>
+                          <SelectItem value="ethics_pending_first">Ética pendiente primero</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center gap-2 text-sm">
+                        <input id="onlyPending" type="checkbox" checked={docOnlyPending} onChange={(e)=>setDocOnlyPending(e.target.checked)} />
+                        <label htmlFor="onlyPending">Solo pendientes</label>
+                      </div>
+                    </div>
+                  </div>
+                  <DocumentationStackedBar
+                    items={([...project.project_hospitals] as any[])
+                      .filter((ph: any)=>{
+                        if (!docOnlyPending) return true;
+                        const prog = Array.isArray(ph.hospital_progress) ? ph.hospital_progress[0] : ph.hospital_progress;
+                        const pct = typeof prog?.progress_percentage === 'number' ? prog.progress_percentage : null;
+                        const ethicsPending = !(prog?.ethics_submitted || prog?.ethics_approved);
+                        const formPending = pct === null || pct === 0;
+                        return ethicsPending || formPending;
+                      })
+                      .sort((a:any,b:any)=>{
+                        if (docSort==='name') return (a.hospital?.name||'').localeCompare(b.hospital?.name||'');
+                        const ap = Array.isArray(a.hospital_progress) ? a.hospital_progress[0] : a.hospital_progress;
+                        const bp = Array.isArray(b.hospital_progress) ? b.hospital_progress[0] : b.hospital_progress;
+                        if (docSort==='ethics_pending_first') {
+                          const ae = !(ap?.ethics_submitted || ap?.ethics_approved) ? 0 : 1;
+                          const be = !(bp?.ethics_submitted || bp?.ethics_approved) ? 0 : 1;
+                          if (ae!==be) return ae-be;
+                        }
+                        const av = typeof ap?.progress_percentage==='number'?ap.progress_percentage:0;
+                        const bv = typeof bp?.progress_percentage==='number'?bp.progress_percentage:0;
+                        return bv-av;
+                      })
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Coordinadores - tablero compacto */}
+              {project?.project_coordinators && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Coordinadores</Label>
+                    <div className="text-xs text-gray-500">Pendientes: {project.summary?.invitation?.pending} · Aceptados: {project.summary?.invitation?.accepted}</div>
+                  </div>
+                  <div className="overflow-auto border rounded">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Hospital</TableHead>
+                          <TableHead>Invitación</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {project.project_coordinators.slice(0,6).map((pc:any)=> (
+                          <TableRow key={pc.id}>
+                            <TableCell>{pc.user?.name || '-'}</TableCell>
+                            <TableCell>{pc.user?.email || '-'}</TableCell>
+                            <TableCell>{pc.hospital?.name || '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={pc.accepted_at? 'default':'secondary'}>
+                                {pc.accepted_at? 'Aceptada':'Pendiente'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+              {/* Provincias / Distribución rápida */}
+              {project?.summary?.byProvince && (
+                <ProvinceChoropleth
+                  data={project.summary.byProvince}
+                  title="Distribución por provincia"
+                />
+              )}
+
+              {/* Próximos períodos (60 días) */}
+              {project?.summary?.upcomingPeriods && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm">Próximos períodos (60 días)</Label>
+                    <Button size="sm" variant="outline" onClick={exportUpcomingCsv}>Exportar CSV</Button>
+                  </div>
+                  <div className="overflow-auto border rounded">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Hospital</TableHead>
+                          <TableHead>Período</TableHead>
+                          <TableHead>Inicio</TableHead>
+                          <TableHead>Fin</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {project.summary.upcomingPeriods.length > 0 ? (
+                          project.summary.upcomingPeriods.map((u: any) => (
+                            <TableRow key={u.id}>
+                              <TableCell>{u.hospitalName}</TableCell>
+                              <TableCell>{u.periodNumber}</TableCell>
+                              <TableCell>{u.startDate ? new Date(u.startDate).toLocaleDateString() : ''}</TableCell>
+                              <TableCell>{u.endDate ? new Date(u.endDate).toLocaleDateString() : ''}</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-gray-500 py-6">Sin períodos en los próximos 60 días</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+          </div>
         </TabsContent>
 
         <TabsContent value="hospitals" className="space-y-6">
@@ -955,6 +1321,40 @@ export default function ProjectDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Resumen rápido de Documentación */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                {(() => {
+                  const counts = (project?.project_hospitals || []).reduce((acc: any, ph: any) => {
+                    const prog = Array.isArray(ph.hospital_progress) ? ph.hospital_progress[0] : ph.hospital_progress;
+                    const pct = typeof prog?.progress_percentage === 'number' ? prog.progress_percentage : null;
+                    // Ética
+                    if (prog?.ethics_approved) acc.ethicsApproved++;
+                    else if (prog?.ethics_submitted) acc.ethicsSubmitted++;
+                    else acc.ethicsPending++;
+                    // Formulario
+                    if (pct === null || pct === 0) acc.formPending++;
+                    else if (pct > 0 && pct < 100) acc.formPartial++;
+                    else if (pct >= 100) acc.formComplete++;
+                    return acc;
+                  }, { ethicsPending:0, ethicsSubmitted:0, ethicsApproved:0, formPending:0, formPartial:0, formComplete:0 });
+                  return (
+                    <>
+                      <div className="bg-gray-50 rounded border p-3">
+                        <div className="text-xs text-gray-500">Ética</div>
+                        <div className="mt-1 text-sm">Pendiente: {counts.ethicsPending} · Presentado: {counts.ethicsSubmitted} · Aprobado: {counts.ethicsApproved}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded border p-3">
+                        <div className="text-xs text-gray-500">Formulario del Hospital</div>
+                        <div className="mt-1 text-sm">Pendiente: {counts.formPending} · Parcial: {counts.formPartial} · Completo: {counts.formComplete}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded border p-3">
+                        <div className="text-xs text-gray-500">Totales</div>
+                        <div className="mt-1 text-sm">Hospitales: {(project?.project_hospitals || []).length}</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
               {/* Controles de búsqueda y filtros para hospitales */}
               <div className="mb-4 space-y-4">
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -978,6 +1378,25 @@ export default function ProjectDetailPage() {
                         <SelectItem value="pending">Pendiente</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="w-full sm:w-64">
+                    <Select value={documentationFilter} onValueChange={setDocumentationFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filtrar por documentación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toda la documentación</SelectItem>
+                        <SelectItem value="ethics_pending">Ética: Pendiente</SelectItem>
+                        <SelectItem value="ethics_submitted">Ética: Presentado</SelectItem>
+                        <SelectItem value="ethics_approved">Ética: Aprobado</SelectItem>
+                        <SelectItem value="form_pending">Formulario: Pendiente</SelectItem>
+                        <SelectItem value="form_partial">Formulario: Parcial</SelectItem>
+                        <SelectItem value="form_complete">Formulario: Completo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Button onClick={exportHospitalsCsv} variant="outline">Exportar CSV</Button>
                   </div>
                 </div>
               <div className="text-sm text-gray-500">
@@ -1007,11 +1426,11 @@ export default function ProjectDetailPage() {
                         onCheckedChange={handleSelectAllHospitals}
                       />
                     </TableHead>
-                    <TableHead>Hospital</TableHead>
-                    <TableHead>Ubicación</TableHead>
-                    <TableHead>Períodos Requeridos</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha de Ingreso</TableHead>
+                    <TableHead>Nombre del hospital</TableHead>
+                    <TableHead>Provincia</TableHead>
+                    <TableHead>Ciudad</TableHead>
+                    <TableHead>Períodos definidos</TableHead>
+                    <TableHead>Documentación</TableHead>
                     <TableHead className="w-[50px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1026,18 +1445,54 @@ export default function ProjectDetailPage() {
                           />
                         </TableCell>
                         <TableCell className="font-medium">{ph.hospital?.name || 'Hospital no encontrado'}</TableCell>
+                        <TableCell>{ph.hospital?.province || 'No especificada'}</TableCell>
+                        <TableCell>{ph.hospital?.city || 'No especificada'}</TableCell>
                         <TableCell>
-                          {ph.hospital?.province && ph.hospital?.city 
-                            ? `${ph.hospital.city}, ${ph.hospital.province}`
-                            : 'No especificada'
-                          }
+                          {Array.isArray(ph.recruitment_periods) && ph.recruitment_periods.length > 0 ? (
+                            <div className="space-y-1">
+                              <div>
+                                {ph.recruitment_periods.length} {ph.recruitment_periods.length === 1 ? 'período' : 'períodos'}
+                              </div>
+                              {/* Próximo período */}
+                              {(() => {
+                                const upcoming = [...ph.recruitment_periods]
+                                  .filter((p: any) => p.start_date && new Date(p.end_date || p.start_date) >= new Date())
+                                  .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0];
+                                return upcoming ? (
+                                  <div className="text-xs text-gray-600">
+                                    Próximo: {new Date(upcoming.start_date).toLocaleDateString()}
+                                  </div>
+                                ) : null;
+                              })()}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 italic">Pendiente de definición</span>
+                          )}
                         </TableCell>
-                        <TableCell>{ph.required_periods}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{ph.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(ph.joined_at).toLocaleDateString()}
+                          {(() => {
+                            const prog = (ph as any).hospital_progress as any[] | undefined;
+                            const p = Array.isArray(prog) ? prog[0] : prog;
+                            const ethicsLabel = p?.ethics_approved
+                              ? 'Ética: Aprobado'
+                              : p?.ethics_submitted
+                                ? 'Ética: Presentado'
+                                : 'Ética: Pendiente';
+                            const pct = typeof p?.progress_percentage === 'number' ? p.progress_percentage : null;
+                            const formLabel = pct === null
+                              ? 'Formulario: Sin datos'
+                              : pct >= 100
+                                ? 'Formulario: Completo'
+                                : pct > 0
+                                  ? 'Formulario: Parcial'
+                                  : 'Formulario: Pendiente';
+                            return (
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-700">{ethicsLabel}</div>
+                                <div className="text-xs text-gray-700">{formLabel}{pct !== null ? ` (${pct}%)` : ''}</div>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -1268,7 +1723,7 @@ export default function ProjectDetailPage() {
                           onChange={(e) => setInviteData({ ...inviteData, required_periods: parseInt(e.target.value) })}
                         />
                         <p className="text-sm text-gray-500">
-                          Períodos por defecto del proyecto: {project?.default_required_periods || 2}
+                          Períodos por defecto del proyecto: {project?.required_periods || 2}
                         </p>
                       </div>
                     </div>
@@ -1347,7 +1802,7 @@ export default function ProjectDetailPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Hospital</TableHead>
                     <TableHead>Rol</TableHead>
-                    <TableHead>Estado</TableHead>
+                    <TableHead>Invitación</TableHead>
                     <TableHead>Fecha de Invitación</TableHead>
                     <TableHead className="w-[50px]">Acciones</TableHead>
                   </TableRow>
