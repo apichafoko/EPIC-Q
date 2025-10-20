@@ -185,7 +185,8 @@ export async function getHospitalById(id: string) {
                 name: true,
                 status: true,
                 start_date: true,
-                end_date: true
+                end_date: true,
+                required_periods: true
               }
             },
             hospital_progress: true,
@@ -252,11 +253,16 @@ export async function getHospitalById(id: string) {
           status: ph.projects.status,
           start_date: ph.projects.start_date,
           end_date: ph.projects.end_date,
-          required_periods: ph.required_periods,
+          required_periods: ph.required_periods || ph.projects.required_periods,
+          project_required_periods: ph.projects.required_periods,
           redcap_id: ph.redcap_id,
           project_hospital_status: ph.status,
           joined_at: ph.created_at,
           progress: ph.hospital_progress,
+          // IDs necesarios para la relación hospital-proyecto
+          project_hospital_id: ph.id,
+          project_id: ph.project_id,
+          hospital_id: ph.hospital_id,
           coordinators: projectCoords.map(pc => ({
             id: pc.users.id,
             name: pc.users.name,

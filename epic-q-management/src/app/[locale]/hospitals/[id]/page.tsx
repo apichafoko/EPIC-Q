@@ -11,10 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Hospital, statusConfig } from '@/types';
 import { getHospitalById } from '@/lib/services/hospital-service';
 import { toast } from 'sonner';
-import { useConfirmation } from '@/hooks/useConfirmation';
-import { ConfirmationToast } from '@/components/ui/confirmation-toast';
 import { useLoadingState } from '@/hooks/useLoadingState';
 import { EditProjectHospitalModal } from '@/components/hospitals/edit-project-hospital-modal';
+import { getProjectHospitalStatusLabel, getProjectStatusLabel } from '@/lib/utils';
 
 export default function HospitalDetailPage() {
   const params = useParams();
@@ -23,7 +22,6 @@ export default function HospitalDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
-  const { confirm, isConfirming, confirmationData, handleConfirm, handleCancel } = useConfirmation();
   const { isLoading: isDeactivating, executeWithLoading: executeWithDeactivating } = useLoadingState();
   const { isLoading: isDeleting, executeWithLoading: executeWithDeleting } = useLoadingState();
 
@@ -36,7 +34,7 @@ export default function HospitalDetailPage() {
           setHospital(hospitalData);
         } else {
           toast.error('Hospital no encontrado');
-          router.push('/hospitals');
+          router.push(`/${params.locale}/hospitals`);
         }
       } catch (error) {
         console.error('Error loading hospital:', error);
@@ -52,12 +50,22 @@ export default function HospitalDetailPage() {
   }, [params.id, router]);
 
   const handleEditRelation = (project: any) => {
-    setSelectedProject(project);
+    // Crear objeto projectHospital con la estructura correcta
+    const projectHospital = {
+      id: project.project_hospital_id,
+      project_id: project.project_id,
+      hospital_id: project.hospital_id,
+      required_periods: project.required_periods,
+      redcap_id: project.redcap_id,
+      status: project.project_hospital_status
+    };
+    
+    setSelectedProject(projectHospital);
     setEditModalOpen(true);
   };
 
   const handleManageProject = (projectId: string) => {
-    router.push(`/admin/projects/${projectId}`);
+    router.push(`/${params.locale}/admin/projects/${projectId}`);
   };
 
   const handleModalSuccess = () => {
@@ -129,7 +137,7 @@ export default function HospitalDetailPage() {
               toast.success('Hospital desactivado exitosamente', {
                 description: `El hospital "${hospital.name}" ha sido desactivado`
               });
-              router.push('/hospitals');
+              router.push(`/${params.locale}/hospitals`);
             } else {
               toast.error('Error al desactivar hospital', {
                 description: data.error || 'Inténtalo de nuevo más tarde'
@@ -171,7 +179,7 @@ export default function HospitalDetailPage() {
               toast.success('Hospital eliminado exitosamente', {
                 description: `El hospital "${hospital.name}" ha sido eliminado permanentemente`
               });
-              router.push('/hospitals');
+              router.push(`/${params.locale}/hospitals`);
             } else {
               toast.error('Error al eliminar hospital', {
                 description: data.error || 'Inténtalo de nuevo más tarde'
@@ -213,7 +221,7 @@ export default function HospitalDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Hospital no encontrado</h1>
           <p className="text-gray-600 mb-6">El hospital que buscas no existe o ha sido eliminado.</p>
           <Button asChild>
-          <Link href="/hospitals">
+          <Link href={`/${params.locale}/hospitals`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver a Hospitales
             </Link>
@@ -229,7 +237,7 @@ export default function HospitalDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm" asChild>
-          <Link href="/hospitals">
+          <Link href={`/${params.locale}/hospitals`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Link>
@@ -242,10 +250,6 @@ export default function HospitalDetailPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Mail className="h-4 w-4 mr-2" />
-            Enviar Email
-              </Button>
           <Button asChild>
           <Link href={`/hospitals/${hospital.id}/edit`}>
               <Edit className="h-4 w-4 mr-2" />
@@ -395,10 +399,10 @@ export default function HospitalDetailPage() {
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="font-medium">{project.name}</h3>
                             <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                              {project.status}
+                              Proyecto: {getProjectStatusLabel(project.status)}
                             </Badge>
                             <Badge variant="outline">
-                              {project.project_hospital_status}
+                              Estado: {getProjectHospitalStatusLabel(project.project_hospital_status)}
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-500 mb-2">
@@ -498,7 +502,7 @@ export default function HospitalDetailPage() {
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-medium">{project.name}</h3>
                         <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
-                          {project.status}
+                          {getProjectStatusLabel(project.status)}
                         </Badge>
                       </div>
                       
@@ -612,20 +616,13 @@ export default function HospitalDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Toast de confirmación */}
-      <ConfirmationToast
-        isOpen={isConfirming}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-        options={confirmationData}
-      />
 
       {/* Modal para editar relación hospital-proyecto */}
       <EditProjectHospitalModal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         projectHospital={selectedProject}
-        project={selectedProject}
+        project={hospital?.projects?.find(p => p.id === selectedProject?.project_id)}
         onSuccess={handleModalSuccess}
       />
     </div>

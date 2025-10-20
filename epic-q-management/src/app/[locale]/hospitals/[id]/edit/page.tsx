@@ -39,13 +39,13 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactivo' }
 ];
 
-export default function EditHospitalPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditHospitalPage({ params }: { params: Promise<{ id: string; locale: string }> }) {
   const { t } = useTranslations();
   const router = useRouter();
   const { isLoading, executeWithLoading } = useLoadingState();
   
   // Desenvolver los parámetros usando React.use()
-  const { id } = use(params);
+  const { id, locale } = use(params);
   
   const [hospital, setHospital] = useState<Hospital | null>(null);
   const [formData, setFormData] = useState({
@@ -78,7 +78,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
         toast.error('Error al cargar el hospital', {
           description: errorMessage
         });
-        router.push('/hospitals');
+        router.push(`/${params.locale}/hospitals`);
         return;
       }
 
@@ -94,7 +94,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
         toast.error('Error al cargar el hospital', {
           description: 'Error al procesar la respuesta del servidor'
         });
-        router.push('/hospitals');
+        router.push(`/${params.locale}/hospitals`);
         return;
       }
 
@@ -112,7 +112,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
       toast.error('Error al cargar el hospital', {
         description: 'Ocurrió un error inesperado'
       });
-      router.push('/hospitals');
+      router.push(`/${params.locale}/hospitals`);
     }
   };
 
@@ -157,7 +157,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
           toast.success('Hospital actualizado exitosamente', {
             description: `El hospital "${formData.name}" ha sido actualizado`
           });
-          router.push('/hospitals');
+          router.push(`/${params.locale}/hospitals`);
         } else {
           toast.error('Error al actualizar el hospital', {
             description: data.error || 'Inténtalo de nuevo más tarde'
@@ -200,7 +200,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/hospitals')}
+            onClick={() => router.push(`/${locale}/hospitals`)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
@@ -333,7 +333,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
           <div className="flex justify-end space-x-4 pt-4">
             <Button
               variant="outline"
-              onClick={() => router.push('/hospitals')}
+              onClick={() => router.push(`/${locale}/hospitals`)}
               disabled={isLoading}
             >
               Cancelar

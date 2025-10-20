@@ -37,16 +37,25 @@ model activity_logs {
 }
 
 model alerts {
-  id          String    @id
-  hospital_id String
-  type        String
-  title       String
-  message     String
-  is_resolved Boolean   @default(false)
-  resolved_at DateTime?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @default(now())
-  hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  id            String    @id
+  hospital_id   String
+  project_id    String?   // NUEVO
+  type          String
+  title         String
+  message       String
+  severity      String    @default("medium") // NUEVO: critical|high|medium|low
+  metadata      Json?     // NUEVO: contexto específico
+  is_resolved   Boolean   @default(false)
+  resolved_at   DateTime?
+  resolved_by   String?   // NUEVO: user_id que resolvió
+  auto_resolved Boolean   @default(false) // NUEVO
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now())
+  
+  hospitals     hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects      projects? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  resolver      users?    @relation("AlertResolver", fields: [resolved_by], references: [id])
+  communications communications[]
 }
 
 model case_metrics {
@@ -79,19 +88,27 @@ model communication_templates {
 }
 
 model communications {
-  id          String     @id
-  hospital_id String?
-  project_id  String?
-  user_id     String?
-  type        String
-  subject     String
-  body        String
-  sent_at     DateTime   @default(now())
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @default(now())
-  hospitals   hospitals? @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  projects    projects?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  users       users?     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            String     @id
+  hospital_id   String?
+  project_id    String?
+  user_id       String     // Destinatario (coordinador)
+  sender_id     String?    // NUEVO: admin que envió (manuales)
+  alert_id      String?    // NUEVO: si viene de alerta
+  type          String     // manual | auto_alert | system
+  subject       String
+  body          String
+  channels      Json       // NUEVO: ['email', 'in_app', 'push']
+  email_status  String?    // NUEVO: sent | failed | delivered
+  read_at       DateTime?  // NUEVO
+  sent_at       DateTime   @default(now())
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @default(now())
+  
+  hospitals     hospitals? @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects      projects?  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  recipient     users      @relation("CommunicationRecipient", fields: [user_id], references: [id], onDelete: Cascade)
+  sender        users?     @relation("CommunicationSender", fields: [sender_id], references: [id])
+  alert         alerts?    @relation(fields: [alert_id], references: [id])
 }
 
 model hospital_contacts {
@@ -243,6 +260,7 @@ model projects {
   communications       communications[]
   project_coordinators project_coordinators[]
   project_hospitals    project_hospitals[]
+  alerts               alerts[]
 }
 
 model recruitment_periods {
@@ -300,12 +318,17 @@ model users {
   updated_at           DateTime               @default(now())
   accounts             accounts[]
   activity_logs        activity_logs[]
-  communications       communications[]
   notifications        notifications[]
   project_coordinators project_coordinators[]
   sessions             sessions[]
   user_settings        user_settings?
   hospitals            hospitals?             @relation(fields: [hospitalId], references: [id])
+  
+  // Relaciones para sistema de alertas y comunicaciones
+  sent_communications      communications[] @relation("CommunicationSender")
+  received_communications  communications[] @relation("CommunicationRecipient")
+  resolved_alerts          alerts[]         @relation("AlertResolver")
+  notification_preferences notification_preferences[]
 }
 
 model case_load_statistics {
@@ -326,4 +349,32 @@ model case_load_statistics {
   projects             projects            @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
   @@unique([project_id, hospital_id, period_id])
+}
+
+model alert_configurations {
+  id                String   @id @default(cuid())
+  alert_type        String   @unique // ethics_approval_pending, etc.
+  enabled           Boolean  @default(true)
+  notify_admin      Boolean  @default(true)
+  notify_coordinator Boolean @default(true)
+  auto_send_email   Boolean  @default(false)
+  threshold_value   Int?     // Para alertas con umbral (días, porcentaje, etc.)
+  email_template_id String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now())
+}
+
+model notification_preferences {
+  id             String   @id @default(cuid())
+  user_id        String
+  alert_type     String
+  email_enabled  Boolean  @default(true)
+  push_enabled   Boolean  @default(true)
+  in_app_enabled Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+  
+  users          users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@unique([user_id, alert_type])
 }

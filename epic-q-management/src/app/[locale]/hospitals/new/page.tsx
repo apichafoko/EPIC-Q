@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NewHospitalWizard } from '@/components/hospitals/new-hospital-wizard';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 export default function NewHospitalPage() {
   const router = useRouter();
+  const params = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = async (data: NewHospitalForm) => {
@@ -23,7 +24,7 @@ export default function NewHospitalPage() {
       console.log('Nuevo hospital:', data);
       
       toast.success('Hospital creado exitosamente');
-      router.push('/hospitals');
+      router.push(`/${params.locale}/hospitals`);
     } catch (error) {
       toast.error('Error al crear el hospital');
       console.error('Error:', error);

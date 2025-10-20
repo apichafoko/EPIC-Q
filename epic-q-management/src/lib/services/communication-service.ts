@@ -21,11 +21,11 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
 
   // Note: hospital_id filter not available in CommunicationFilters interface
 
-  const total = await prisma.communication.count({ where });
-  const communications = await prisma.communication.findMany({
+  const total = await prisma.communications.count({ where });
+  const communications = await prisma.communications.findMany({
     where,
     include: {
-      hospital: {
+      hospitals: {
         select: { name: true, city: true, province: true }
       }
     },
@@ -37,7 +37,7 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
   const formattedCommunications: Communication[] = communications.map((c) => ({
     id: c.id,
     hospital_id: c.hospital_id,
-    hospital_name: c.hospital?.name || 'Hospital no encontrado',
+    hospital_name: c.hospitals?.name || 'Hospital no encontrado',
     type: c.type || undefined,
     subject: c.subject || undefined,
     content: c.body || undefined, // Usar 'body' en lugar de 'content'
@@ -59,7 +59,7 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
 }
 
 export async function getCommunicationById(id: string) {
-  const communication = await prisma.communication.findUnique({
+  const communication = await prisma.communications.findUnique({
     where: { id },
     include: {
       hospital: true
@@ -88,7 +88,7 @@ export async function getCommunicationById(id: string) {
 }
 
 export async function getCommunicationTypes() {
-  const types = await prisma.communication.findMany({
+  const types = await prisma.communications.findMany({
     select: { type: true },
     distinct: ['type'],
     orderBy: { type: 'asc' }
@@ -104,10 +104,10 @@ export async function getCommunicationStats() {
     calls,
     notes
   ] = await Promise.all([
-    prisma.communication.count(),
-    prisma.communication.count({ where: { type: 'email' } }),
-    prisma.communication.count({ where: { type: 'call' } }),
-    prisma.communication.count({ where: { type: 'note' } })
+    prisma.communications.count(),
+    prisma.communications.count({ where: { type: 'email' } }),
+    prisma.communications.count({ where: { type: 'call' } }),
+    prisma.communications.count({ where: { type: 'note' } })
   ]);
 
   return {

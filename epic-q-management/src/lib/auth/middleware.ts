@@ -15,13 +15,13 @@ export interface AuthContext {
 }
 
 export function withAuth(
-  handler: (request: NextRequest, context: AuthContext) => Promise<NextResponse> | NextResponse,
+  handler: (request: NextRequest, context: AuthContext, params?: { params: Promise<{ id: string }> }) => Promise<NextResponse> | NextResponse,
   options?: {
     roles?: UserRole[];
     requireHospital?: boolean;
   }
 ) {
-  return async (request: NextRequest) => {
+  return async (request: NextRequest, params?: { params: Promise<{ id: string }> }) => {
     try {
       console.log('🔐 withAuth: Iniciando autenticación');
       const token = request.cookies.get('auth-token')?.value;
@@ -72,7 +72,7 @@ export function withAuth(
         },
       };
 
-      return await handler(request, context);
+      return await handler(request, context, params);
     } catch (error) {
       console.error('Auth middleware error:', error);
       console.error('Auth error details:', {
@@ -91,7 +91,7 @@ export function withAuth(
 }
 
 export function withAdminAuth(
-  handler: (request: NextRequest, context: AuthContext) => Promise<NextResponse> | NextResponse
+  handler: (request: NextRequest, context: AuthContext, params?: { params: Promise<{ id: string }> }) => Promise<NextResponse> | NextResponse
 ) {
   return withAuth(handler, { roles: ['admin'] });
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Download, Mail } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HospitalFiltersComponent } from '@/components/hospitals/hospital-filters';
 import { HospitalTable } from '@/components/hospitals/hospital-table';
@@ -133,10 +133,6 @@ export default function HospitalsPage() {
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Exportar
-          </Button>
-          <Button variant="outline" size="sm">
-            <Mail className="h-4 w-4 mr-2" />
-            Email Masivo
           </Button>
           <Button asChild>
             <Link href="/es/hospitals/new">

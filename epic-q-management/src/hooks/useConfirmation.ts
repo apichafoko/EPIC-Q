@@ -24,9 +24,11 @@ export function useConfirmation() {
     onConfirm: () => void | Promise<void>,
     onCancel?: () => void
   ) => {
+    console.log('🔧 useConfirmation: confirm called with options:', options);
     setConfirmationData({ options, onConfirm, onCancel });
     // Al abrir el modal, NO debe estar en estado de "procesando"
     setIsConfirming(false);
+    console.log('🔧 useConfirmation: confirmationData set, isConfirming:', false);
   }, []);
 
   const handleConfirm = useCallback(async () => {

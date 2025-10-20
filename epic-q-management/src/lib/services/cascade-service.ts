@@ -21,18 +21,18 @@ export class CascadeService {
 
     try {
       // 1. Obtener información del hospital y sus coordinadores
-      const hospital = await prisma.hospital.findUnique({
+      const hospital = await prisma.hospitals.findUnique({
         where: { id: hospitalId },
         include: {
           project_coordinators: {
             include: {
-              user: true,
-              project: true
+              users: true,
+              projects: true
             }
           },
           project_hospitals: {
             include: {
-              project: true
+              projects: true
             }
           }
         }
@@ -60,15 +60,15 @@ export class CascadeService {
       
       for (const coordinator of coordinators) {
         // Verificar si el coordinador está asignado a otros hospitales
-        const otherHospitals = await prisma.projectCoordinator.findMany({
+        const otherHospitals = await prisma.project_coordinators.findMany({
           where: {
             user_id: coordinator.user_id,
             hospital_id: { not: hospitalId },
             is_active: true
           },
           include: {
-            hospital: true,
-            project: true
+            hospitals: true,
+            projects: true
           }
         });
 
@@ -76,23 +76,23 @@ export class CascadeService {
           // El coordinador solo está asignado a este hospital
           actions.push({
             type: 'delete',
-            description: `Eliminar coordinador ${coordinator.user.name} (${coordinator.user.email}) - solo asignado a este hospital`,
+            description: `Eliminar coordinador ${coordinator.users.name} (${coordinator.users.email}) - solo asignado a este hospital`,
             data: {
               userId: coordinator.user_id,
-              userName: coordinator.user.name,
-              userEmail: coordinator.user.email
+              userName: coordinator.users.name,
+              userEmail: coordinator.users.email
             }
           });
         } else {
           // El coordinador está asignado a otros hospitales
           actions.push({
             type: 'unassign',
-            description: `Desasignar coordinador ${coordinator.user.name} de este hospital`,
+            description: `Desasignar coordinador ${coordinator.users.name} de este hospital`,
             data: {
               userId: coordinator.user_id,
-              userName: coordinator.user.name,
-              userEmail: coordinator.user.email,
-              otherHospitals: otherHospitals.map(oh => oh.hospital.name)
+              userName: coordinator.users.name,
+              userEmail: coordinator.users.email,
+              otherHospitals: otherHospitals.map(oh => oh.hospitals.name)
             }
           });
         }
@@ -132,12 +132,12 @@ export class CascadeService {
    */
   static async executeHospitalDeletion(hospitalId: string, deleteCoordinators: boolean = false): Promise<CascadeResult> {
     try {
-      const hospital = await prisma.hospital.findUnique({
+      const hospital = await prisma.hospitals.findUnique({
         where: { id: hospitalId },
         include: {
           project_coordinators: {
             include: {
-              user: true
+              users: true
             }
           }
         }
@@ -155,7 +155,7 @@ export class CascadeService {
       // Ejecutar eliminación en transacción
       await prisma.$transaction(async (tx) => {
         // 1. Eliminar relaciones de proyecto-hospital
-        await tx.projectHospital.deleteMany({
+        await tx.project_hospitals.deleteMany({
           where: { hospital_id: hospitalId }
         });
 
@@ -164,7 +164,7 @@ export class CascadeService {
         
         for (const coordinator of coordinators) {
           // Verificar si el coordinador está asignado a otros hospitales
-          const otherHospitals = await tx.projectCoordinator.findMany({
+          const otherHospitals = await tx.project_coordinators.findMany({
             where: {
               user_id: coordinator.user_id,
               hospital_id: { not: hospitalId },
@@ -176,16 +176,16 @@ export class CascadeService {
             // Solo está asignado a este hospital
             if (deleteCoordinators) {
               // Eliminar el usuario coordinador
-              await tx.user.delete({
+              await tx.users.delete({
                 where: { id: coordinator.user_id }
               });
               actions.push({
                 type: 'delete',
-                description: `Coordinador ${coordinator.user.name} eliminado`
+                description: `Coordinador ${coordinator.users.name} eliminado`
               });
             } else {
               // Solo desasignar del hospital
-              await tx.projectCoordinator.updateMany({
+              await tx.project_coordinators.updateMany({
                 where: {
                   user_id: coordinator.user_id,
                   hospital_id: hospitalId
@@ -194,12 +194,12 @@ export class CascadeService {
               });
               actions.push({
                 type: 'unassign',
-                description: `Coordinador ${coordinator.user.name} desasignado del hospital`
+                description: `Coordinador ${coordinator.users.name} desasignado del hospital`
               });
             }
           } else {
             // Está asignado a otros hospitales, solo desasignar
-            await tx.projectCoordinator.updateMany({
+            await tx.project_coordinators.updateMany({
               where: {
                 user_id: coordinator.user_id,
                 hospital_id: hospitalId
@@ -208,7 +208,7 @@ export class CascadeService {
             });
             actions.push({
               type: 'unassign',
-              description: `Coordinador ${coordinator.user.name} desasignado del hospital`
+              description: `Coordinador ${coordinator.users.name} desasignado del hospital`
             });
           }
         }
@@ -224,9 +224,7 @@ export class CascadeService {
 
         await tx.hospital_progress.deleteMany({
           where: { 
-            project_hospitals: {
-              hospital_id: hospitalId
-            }
+            hospital_id: hospitalId
           }
         });
 
@@ -276,13 +274,13 @@ export class CascadeService {
    */
   static async deleteCoordinatorWithCascade(userId: string): Promise<CascadeResult> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         include: {
           project_coordinators: {
             include: {
-              hospital: true,
-              project: true
+              hospitals: true,
+              projects: true
             }
           }
         }
@@ -316,12 +314,12 @@ export class CascadeService {
         if (coordinator.is_active) {
           actions.push({
             type: 'unassign',
-            description: `Desasignar de hospital ${coordinator.hospital.name} en proyecto ${coordinator.project.name}`,
+            description: `Desasignar de hospital ${coordinator.hospitals.name} en proyecto ${coordinator.projects.name}`,
             data: {
               hospitalId: coordinator.hospital_id,
-              hospitalName: coordinator.hospital.name,
+              hospitalName: coordinator.hospitals.name,
               projectId: coordinator.project_id,
-              projectName: coordinator.project.name
+              projectName: coordinator.projects.name
             }
           });
         }
@@ -348,13 +346,13 @@ export class CascadeService {
    */
   static async executeCoordinatorDeletion(userId: string): Promise<CascadeResult> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
         include: {
           project_coordinators: {
             include: {
-              hospital: true,
-              project: true
+              hospitals: true,
+              projects: true
             }
           }
         }
@@ -372,7 +370,7 @@ export class CascadeService {
       // Ejecutar eliminación en transacción
       await prisma.$transaction(async (tx) => {
         // 1. Desasignar de todos los hospitales
-        await tx.projectCoordinator.updateMany({
+        await tx.project_coordinators.updateMany({
           where: {
             user_id: userId,
             is_active: true
@@ -421,7 +419,7 @@ export class CascadeService {
         project_coordinators: {
           where: { is_active: true },
           include: {
-            hospital: true
+            hospitals: true
           }
         }
       }
@@ -432,7 +430,7 @@ export class CascadeService {
     const hospitalsWithoutCoordinators: string[] = [];
 
     for (const coordinator of hospital.project_coordinators) {
-        const otherCoordinators = await prisma.projectCoordinator.findMany({
+        const otherCoordinators = await prisma.project_coordinators.findMany({
         where: {
           hospital_id: coordinator.hospital_id,
           user_id: { not: coordinator.user_id },
@@ -441,7 +439,7 @@ export class CascadeService {
       });
 
       if (otherCoordinators.length === 0) {
-        hospitalsWithoutCoordinators.push(coordinator.hospital.name);
+        hospitalsWithoutCoordinators.push(coordinator.hospitals.name);
       }
     }
 
@@ -452,13 +450,13 @@ export class CascadeService {
    * Verifica qué hospitales quedarán sin coordinador después de eliminar un usuario
    */
   private static async checkHospitalsWithoutCoordinatorsAfterUserDeletion(userId: string): Promise<string[]> {
-    const user = await prisma.users.findUnique({
+    const user = await prisma.userss.findUnique({
       where: { id: userId },
       include: {
         project_coordinators: {
           where: { is_active: true },
           include: {
-            hospital: true
+            hospitals: true
           }
         }
       }
@@ -469,7 +467,7 @@ export class CascadeService {
     const hospitalsWithoutCoordinators: string[] = [];
 
     for (const coordinator of user.project_coordinators) {
-        const otherCoordinators = await prisma.projectCoordinator.findMany({
+        const otherCoordinators = await prisma.project_coordinators.findMany({
         where: {
           hospital_id: coordinator.hospital_id,
           user_id: { not: userId },
@@ -478,7 +476,7 @@ export class CascadeService {
       });
 
       if (otherCoordinators.length === 0) {
-        hospitalsWithoutCoordinators.push(coordinator.hospital.name);
+        hospitalsWithoutCoordinators.push(coordinator.hospitals.name);
       }
     }
 

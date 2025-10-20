@@ -217,6 +217,7 @@ export function HospitalTable({
 
   // Funciones para acciones individuales
   const handleDeactivateHospital = (hospital: Hospital) => {
+    console.log('🔧 handleDeactivateHospital called for:', hospital.name);
     confirm(
       {
         title: 'Desactivar Hospital',
@@ -226,49 +227,94 @@ export function HospitalTable({
         variant: 'destructive'
       },
       async () => {
-        await executeWithDeactivating(async () => {
-          const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
-            method: 'POST',
-            credentials: 'include'
-          });
+        console.log('🔧 Confirmation confirmed, starting deactivation for:', hospital.name);
+        try {
+          await executeWithDeactivating(async () => {
+            console.log('🔧 executeWithDeactivating started for:', hospital.name);
+            const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
+              method: 'POST',
+              credentials: 'include'
+            });
 
-          // Verificar si la respuesta tiene contenido JSON
-          const contentType = response.headers.get('content-type');
-          let data = null;
-          
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const text = await response.text();
-              if (text.trim()) {
-                data = JSON.parse(text);
+            console.log('🔧 Response received:', response.status, response.statusText);
+            console.log('🔧 Response ok:', response.ok);
+
+            // Verificar si la respuesta tiene contenido JSON
+            const contentType = response.headers.get('content-type');
+            console.log('🔧 Content-Type:', contentType);
+            let data = null;
+            
+            if (contentType && contentType.includes('application/json')) {
+              try {
+                const text = await response.text();
+                console.log('🔧 Response text:', text);
+                if (text.trim()) {
+                  data = JSON.parse(text);
+                  console.log('🔧 Response data:', data);
+                }
+              } catch (error) {
+                console.error('Error parsing JSON response:', error);
+                toast.error('Error al procesar la respuesta del servidor');
+                return;
               }
-            } catch (error) {
-              console.error('Error parsing JSON response:', error);
-              toast.error('Error al procesar la respuesta del servidor');
-              return;
+            } else {
+              console.log('🔧 No JSON content type, trying to parse anyway');
+              try {
+                const text = await response.text();
+                console.log('🔧 Response text (non-JSON):', text);
+                if (text.trim()) {
+                  data = JSON.parse(text);
+                  console.log('🔧 Response data (parsed):', data);
+                }
+              } catch (error) {
+                console.log('🔧 Could not parse as JSON:', error);
+              }
             }
-          }
 
-          if (response.ok) {
-            toast.success('Hospital desactivado exitosamente', {
-              description: `El hospital "${hospital.name}" ha sido desactivado`
-            });
-            onRefresh?.();
-          } else {
-            const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
-            toast.error('Error al desactivar hospital', {
-              description: errorMessage || 'Inténtalo de nuevo más tarde'
-            });
-          }
-        });
+            if (response.ok) {
+              console.log('🔧 Hospital deactivated successfully');
+              toast.success('Hospital desactivado exitosamente', {
+                description: `El hospital "${hospital.name}" ha sido desactivado`
+              });
+              onRefresh?.();
+            } else {
+              const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
+              console.log('🔧 Error deactivating hospital:', errorMessage);
+              console.log('🔧 About to show toast with message:', errorMessage);
+              
+              // Agregar un pequeño delay para asegurar que el toast se muestre
+              setTimeout(() => {
+                toast.error('Error al desactivar hospital', {
+                  description: errorMessage || 'Inténtalo de nuevo más tarde'
+                });
+                console.log('🔧 Toast error called with delay');
+              }, 100);
+            }
+          });
+        } catch (error) {
+          console.error('🔧 Error in deactivation process:', error);
+          toast.error('Error al desactivar hospital', {
+            description: 'Ocurrió un error inesperado'
+          });
+        }
       }
     );
   };
 
-  const handleDeleteHospital = async (hospital: Hospital) => {
+  const handleDeleteHospital = (hospital: Hospital) => {
     console.log('handleDeleteHospital called for:', hospital.name);
     
-    await executeWithDeleting(async () => {
+    confirm(
+      {
+        title: 'Eliminar Hospital Permanentemente',
+        description: `¿Estás seguro de que quieres eliminar permanentemente el hospital "${hospital.name}"? Esta acción no se puede deshacer.`,
+        confirmText: 'Eliminar',
+        cancelText: 'Cancelar',
+        variant: 'destructive',
+        confirmationWord: 'ELIMINAR'
+      },
+      async () => {
+        await executeWithDeleting(async () => {
       const response = await fetch(`/api/hospitals/${hospital.id}`, {
         method: 'DELETE',
         credentials: 'include'
@@ -314,6 +360,8 @@ export function HospitalTable({
         });
       }
     });
+      }
+    );
   };
 
   const handleConfirmCascadeDeletion = async (deleteCoordinators: boolean) => {
@@ -581,11 +629,6 @@ export function HospitalTable({
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Enviar email
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => handleDeactivateHospital(hospital)}
                           disabled={isDeactivating}
@@ -712,7 +755,7 @@ export function HospitalTable({
 
       {/* Toast de confirmación */}
       <ConfirmationToast
-        isOpen={isConfirming}
+        isOpen={!!confirmationData}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
         options={confirmationData?.options}

@@ -4,12 +4,12 @@ import { CascadeService } from '@/lib/services/cascade-service';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAdminAuth(req, async (user) => {
+  return withAdminAuth(async (request, context) => {
     try {
-      const hospitalId = params.id;
-      const body = await req.json();
+      const { id: hospitalId } = await params;
+      const body = await request.json();
       const { deleteCoordinators = false } = body;
 
       // Ejecutar la eliminación con las opciones confirmadas
@@ -38,5 +38,5 @@ export async function POST(
         { status: 500 }
       );
     }
-  });
+  })(req, { params });
 }
