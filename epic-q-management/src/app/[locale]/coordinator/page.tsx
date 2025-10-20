@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CoordinatorStats } from '@/lib/services/coordinator-service';
+import { PWAInstallModal } from '@/components/pwa/pwa-install-modal';
 
 export default function CoordinatorDashboard() {
   const { t } = useTranslations();
@@ -784,6 +785,15 @@ export default function CoordinatorDashboard() {
         </CardContent>
         </Card>
       </div>
+
+      {/* PWA Install Modal */}
+      {user && (
+        <PWAInstallModal 
+          userRole="coordinator" 
+          userId={user.id}
+          autoShow={true}
+        />
+      )}
     </AuthGuard>
   );
 }

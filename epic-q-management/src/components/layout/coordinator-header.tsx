@@ -15,6 +15,7 @@ import { SimpleLanguageSelector } from '@/components/simple-language-selector';
 import { ProjectSelector } from '@/components/layout/project-selector';
 import { useTranslations } from '@/hooks/useTranslations';
 import { Logo } from '@/components/ui/logo';
+import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
 
 export function CoordinatorHeader() {
   const { user, logout, isLoading } = useAuth();
@@ -57,6 +58,8 @@ export function CoordinatorHeader() {
           {/* Project Selector */}
           <ProjectSelector />
 
+          {/* PWA Install Button */}
+          <PWAInstallButton userRole="coordinator" />
 
           {/* Notifications */}
           <DropdownMenu>

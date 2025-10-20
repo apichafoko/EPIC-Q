@@ -17,13 +17,16 @@ import {
   Settings,
   Bell,
   UserPlus,
-  CheckCircle
+  CheckCircle,
+  Download
 } from 'lucide-react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export function CoordinatorSidebar() {
   const { t, locale } = useTranslations();
   const pathname = usePathname();
   const { currentProject } = useProject();
+  const { canInstall, isInstalled, promptInstall } = usePWAInstall();
   const [progressStatus, setProgressStatus] = useState({
     ethicsSubmitted: false,
     ethicsApproved: false,
@@ -110,6 +113,15 @@ export function CoordinatorSidebar() {
       icon: BarChart3,
       isComplete: false // Dashboard no tiene estado de completitud
     },
+    // PWA Install item - solo mostrar si se puede instalar y no está instalada
+    ...(canInstall && !isInstalled ? [{
+      name: t('sidebar.installApp'),
+      href: '#',
+      icon: Download,
+      isComplete: false,
+      onClick: promptInstall,
+      isPWAInstall: true
+    }] : []),
     { 
       name: 'Invitaciones', 
       href: `/${locale}/coordinator/pending-invitations`, 
@@ -171,6 +183,29 @@ export function CoordinatorSidebar() {
       <nav className="flex flex-1 flex-col px-3 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
+          const isPWAInstall = (item as any).isPWAInstall;
+          
+          if (isPWAInstall) {
+            return (
+              <button
+                key={item.name}
+                onClick={item.onClick}
+                className={cn(
+                  'group flex items-center rounded-md px-3 py-2 text-sm font-medium w-full text-left',
+                  'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                )}
+              >
+                <div className="flex items-center flex-1">
+                  <item.icon
+                    className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1">{item.name}</span>
+                </div>
+              </button>
+            );
+          }
+          
           return (
             <Link
               key={item.name}

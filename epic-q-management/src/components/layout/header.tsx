@@ -17,6 +17,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 import { Logo } from '@/components/ui/logo';
 import { useAuth } from '@/contexts/auth-context';
 import { mockAlerts } from '@/lib/mock-data';
+import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
 
 interface HeaderProps {
   userId?: string;
@@ -43,6 +44,9 @@ export function Header({ userId }: HeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
+          {/* PWA Install Button (Admin - only mobile) */}
+          <PWAInstallButton userRole="admin" />
+
           {/* Notifications */}
           {userId ? (
             <NotificationBell userId={userId} />

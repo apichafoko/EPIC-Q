@@ -147,6 +147,19 @@
     "lastUpdated": "Last updated",
     "dataAsOf": "Data as of",
     "refreshData": "Refresh data",
+    "installApp": "Install App"
+  },
+  "pwa": {
+    "install": "Install App",
+    "installTitle": "Install EPIC-Q",
+    "installDesc": "Quick access and notifications",
+    "installNow": "Install Now",
+    "remindLater": "Remind in 30 days",
+    "notNow": "Not now"
+  },
+  "sidebar": {
+    "installApp": "Install App"
+  },
     "exportData": "Export data",
     "viewDetails": "View details",
     "viewAll": "View all",
@@ -1230,6 +1243,16 @@
     "viewAllNotifications": "View all notifications",
     "newCommunication": "New Communication",
     "newCommunicationDesc": "You have a new communication from the research committee",
+    "dashboard": {
+      "welcome": "Welcome",
+      "subtitle": "Coordinator dashboard",
+      "formCompletion": "Form Completion",
+      "upcomingPeriods": "Upcoming Periods",
+      "upcomingPeriodsDesc": "Upcoming recruitment periods",
+      "notifications": "Notifications",
+      "notificationsDesc": "Recent notifications",
+      "recentNotifications": "Recent Notifications"
+    },
     "ethicsReminder": "Ethics Reminder",
     "ethicsReminderDesc": "Remember to upload the ethics committee approval",
     "recruitmentPeriod": "Recruitment Period",
