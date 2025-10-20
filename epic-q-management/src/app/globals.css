@@ -132,3 +132,31 @@
   -webkit-backdrop-filter: blur(8px);
   background-color: rgba(255, 255, 255, 0.95);
 }
+
+/* Touch targets mínimos */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Padding seguro para notch */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Scroll suave en móvil */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevenir zoom en inputs */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

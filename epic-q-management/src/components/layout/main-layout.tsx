@@ -8,6 +8,8 @@ import { Header } from './header';
 import { CoordinatorSidebar } from './coordinator-sidebar';
 import { CoordinatorHeader } from './coordinator-header';
 import { Loader2 } from 'lucide-react';
+import { useMobileDetection } from '@/hooks/useMobileDetection';
+import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -19,6 +21,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
   const [userId, setUserId] = useState<string | undefined>();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const { isMobile, sidebarOpen, setSidebarOpen } = useMobileDetection();
 
   useEffect(() => {
     if (user?.id) {
@@ -73,13 +76,32 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar dinámico según el rol */}
-      <SidebarComponent />
+      {/* Sidebar con control móvil */}
+      {isCoordinator ? (
+        <CoordinatorSidebar 
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          isMobile={isMobile}
+        />
+      ) : (
+        <SidebarComponent />
+      )}
       
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <HeaderComponent userId={userId} />
-        <main className="flex-1 overflow-y-auto">
+      {/* Main content con margin responsive */}
+      <div className={cn(
+        "flex-1 flex flex-col overflow-hidden",
+        // Desktop: margin para sidebar fijo
+        !isMobile && "lg:ml-64"
+      )}>
+        {isCoordinator ? (
+          <CoordinatorHeader 
+            isMobile={isMobile}
+            onMenuClick={() => setSidebarOpen(true)}
+          />
+        ) : (
+          <HeaderComponent userId={userId} />
+        )}
+        <main className="flex-1 overflow-y-auto mobile-scroll">
           {children}
         </main>
       </div>

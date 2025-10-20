@@ -819,11 +819,11 @@ export default function HospitalFormPage() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('coordinator.hospitalForm')}</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('coordinator.hospitalForm')}</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1">
           Completa la información detallada de tu hospital para el estudio EPIC-Q
         </p>
       </div>
@@ -868,32 +868,39 @@ export default function HospitalFormPage() {
       </Card>
 
       {/* Actions */}
-      <div className="flex justify-between">
+      <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-0">
         <Button
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStep === 1}
+          className="w-full md:w-auto touch-target"
         >
           Anterior
         </Button>
 
-        <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-2">
           <LoadingButton
             variant="outline"
             onClick={handleSave}
             loading={isSaving}
             loadingText="Guardando..."
+            className="w-full md:w-auto touch-target"
           >
             <Save className="mr-2 h-4 w-4" />
             Guardar Borrador
           </LoadingButton>
 
           {currentStep < totalSteps ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="w-full md:w-auto touch-target">
               Siguiente
             </Button>
           ) : (
-            <LoadingButton onClick={handleFinish} loading={isSaving} loadingText="Finalizando...">
+            <LoadingButton 
+              onClick={handleFinish} 
+              loading={isSaving} 
+              loadingText="Finalizando..."
+              className="w-full md:w-auto touch-target"
+            >
               <CheckCircle className="mr-2 h-4 w-4" />
               Finalizar
             </LoadingButton>

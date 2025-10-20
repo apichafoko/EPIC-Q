@@ -207,18 +207,18 @@ export default function CoordinatorDashboard() {
 
   return (
     <AuthGuard allowedRoles={['coordinator']}>
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             {t('coordinator.dashboard.welcome')}, {user.name}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-sm md:text-base text-gray-600 mt-1">
             {t('coordinator.dashboard.subtitle')}
           </p>
           {user.hospital && (
             <div className="mt-2">
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-xs md:text-sm">
                 <Building2 className="h-3 w-3 mr-1" />
                 {user.hospital.name}
               </Badge>
@@ -493,16 +493,16 @@ export default function CoordinatorDashboard() {
         )}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className={`${
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <Card className={`p-4 md:p-6 ${
             stats?.hospitalFormStatus?.isUrgent 
               ? 'border-red-200 bg-red-50' 
               : stats?.hospitalFormStatus?.isComplete 
                 ? 'border-green-200 bg-green-50' 
                 : 'border-yellow-200 bg-yellow-50'
           }`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className={`text-base md:text-lg ${
                 stats?.hospitalFormStatus?.isUrgent 
                   ? 'text-red-800' 
                   : stats?.hospitalFormStatus?.isComplete 
@@ -511,25 +511,18 @@ export default function CoordinatorDashboard() {
               }`}>
                 {t('coordinator.dashboard.formCompletion')}
               </CardTitle>
-              {stats?.hospitalFormStatus?.isUrgent ? (
-                <AlertTriangle className="h-4 w-4 text-red-500 animate-pulse" />
-              ) : stats?.hospitalFormStatus?.isComplete ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-yellow-500" />
-              )}
             </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${
+            <CardContent className="p-0">
+              <div className="text-3xl md:text-4xl font-bold ${
                 stats?.hospitalFormStatus?.isUrgent 
                   ? 'text-red-600' 
                   : stats?.hospitalFormStatus?.isComplete 
                     ? 'text-green-600' 
                     : 'text-yellow-600'
-              }`}>
+              }">
                 {stats?.formCompletion || 0}%
               </div>
-              <p className={`text-xs ${
+              <p className={`text-xs md:text-sm ${
                 stats?.hospitalFormStatus?.isUrgent 
                   ? 'text-red-600' 
                   : stats?.hospitalFormStatus?.isComplete 
@@ -546,7 +539,7 @@ export default function CoordinatorDashboard() {
           </Card>
 
           {/* Ética y Períodos Card */}
-          <Card className={`${
+          <Card className={`p-4 md:p-6 ${
             getProgressStatus().color === 'red' 
               ? 'border-red-200 bg-red-50' 
               : getProgressStatus().color === 'green' 
@@ -555,8 +548,8 @@ export default function CoordinatorDashboard() {
                   ? 'border-blue-200 bg-blue-50'
                   : 'border-yellow-200 bg-yellow-50'
           }`}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className={`text-base md:text-lg ${
                 getProgressStatus().color === 'red' 
                   ? 'text-red-800' 
                   : getProgressStatus().color === 'green' 
@@ -567,16 +560,9 @@ export default function CoordinatorDashboard() {
               }`}>
                 Ética y Períodos
               </CardTitle>
-              {getProgressStatus().status === 'complete' ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : getProgressStatus().status === 'in-progress' ? (
-                <Clock className="h-4 w-4 text-blue-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-yellow-500" />
-              )}
             </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${
+            <CardContent className="p-0">
+              <div className="text-3xl md:text-4xl font-bold ${
                 getProgressStatus().color === 'red' 
                   ? 'text-red-600' 
                   : getProgressStatus().color === 'green' 
@@ -584,10 +570,10 @@ export default function CoordinatorDashboard() {
                     : getProgressStatus().color === 'blue'
                       ? 'text-blue-600'
                       : 'text-yellow-600'
-              }`}>
+              }">
                 {getProgressPercentage()}%
               </div>
-              <p className={`text-xs ${
+              <p className={`text-xs md:text-sm ${
                 getProgressStatus().color === 'red' 
                   ? 'text-red-600' 
                   : getProgressStatus().color === 'green' 
@@ -601,16 +587,15 @@ export default function CoordinatorDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+          <Card className="p-4 md:p-6">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base md:text-lg">
                 {t('coordinator.dashboard.upcomingPeriods')}
               </CardTitle>
-              <Calendar className="h-4 w-4 text-gray-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.upcomingPeriods || 0}</div>
-              <p className="text-xs text-gray-500 mb-3">
+            <CardContent className="p-0">
+              <div className="text-3xl md:text-4xl font-bold">{stats?.upcomingPeriods || 0}</div>
+              <p className="text-xs md:text-sm text-gray-500 mb-3">
                 {t('coordinator.dashboard.upcomingPeriodsDesc')}
               </p>
               
@@ -655,16 +640,15 @@ export default function CoordinatorDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+          <Card className="p-4 md:p-6">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-base md:text-lg">
                 {t('coordinator.dashboard.notifications')}
               </CardTitle>
-              <Bell className="h-4 w-4 text-gray-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.notifications || 0}</div>
-              <p className="text-xs text-gray-500">
+            <CardContent className="p-0">
+              <div className="text-3xl md:text-4xl font-bold">{stats?.notifications || 0}</div>
+              <p className="text-xs md:text-sm text-gray-500">
                 {t('coordinator.dashboard.notificationsDesc')}
               </p>
             </CardContent>

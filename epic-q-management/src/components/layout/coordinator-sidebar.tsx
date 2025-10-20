@@ -18,11 +18,18 @@ import {
   Bell,
   UserPlus,
   CheckCircle,
-  Download
+  Download,
+  X
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 
-export function CoordinatorSidebar() {
+interface CoordinatorSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }: CoordinatorSidebarProps) {
   const { t, locale } = useTranslations();
   const pathname = usePathname();
   const { currentProject } = useProject();
@@ -166,21 +173,56 @@ export function CoordinatorSidebar() {
     // },
   ];
 
-  return (
-    <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
-      {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <Logo size="md" showText={false} />
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">EPIC-Q</h1>
-            <p className="text-xs text-gray-500">Coordinador</p>
-          </div>
-        </div>
-      </div>
+  // Cerrar sidebar automáticamente al navegar en móvil
+  const handleNavigation = () => {
+    if (isMobile && onClose) {
+      onClose();
+    }
+  };
 
-      {/* Navigation */}
-      <nav className="flex flex-1 flex-col px-3 py-4 space-y-1">
+  return (
+    <>
+      {/* Overlay para móvil */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "bg-white border-r border-gray-200 flex flex-col",
+        // Desktop: Fixed sidebar
+        "lg:w-64 lg:fixed lg:inset-y-0",
+        // Mobile: Full-screen drawer
+        isMobile && "fixed inset-0 z-50 w-full transition-transform duration-300",
+        isMobile && !isOpen && "-translate-x-full",
+        isMobile && isOpen && "translate-x-0"
+      )}>
+        {/* Logo */}
+        <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <Logo size="md" showText={false} />
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">EPIC-Q</h1>
+              <p className="text-xs text-gray-500">Coordinador</p>
+            </div>
+          </div>
+          
+          {/* Botón de cierre en móvil */}
+          {isMobile && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 touch-target"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex flex-1 flex-col px-3 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           const isPWAInstall = (item as any).isPWAInstall;
@@ -189,9 +231,12 @@ export function CoordinatorSidebar() {
             return (
               <button
                 key={item.name}
-                onClick={item.onClick}
+                onClick={() => {
+                  item.onClick?.();
+                  handleNavigation();
+                }}
                 className={cn(
-                  'group flex items-center rounded-md px-3 py-2 text-sm font-medium w-full text-left',
+                  'group flex items-center rounded-md px-3 py-2 text-sm font-medium w-full text-left touch-target',
                   'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 )}
               >
@@ -210,8 +255,9 @@ export function CoordinatorSidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={handleNavigation}
               className={cn(
-                'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                'group flex items-center rounded-md px-3 py-2 text-sm font-medium touch-target',
                 isActive
                   ? 'bg-blue-500 text-white'
                   : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -239,7 +285,8 @@ export function CoordinatorSidebar() {
             </Link>
           );
         })}
-      </nav>
-    </div>
+        </nav>
+      </aside>
+    </>
   );
 }

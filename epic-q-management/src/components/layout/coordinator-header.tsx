@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/auth-context';
-import { Bell, User, LogOut } from 'lucide-react';
+import { Bell, User, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,8 +16,14 @@ import { ProjectSelector } from '@/components/layout/project-selector';
 import { useTranslations } from '@/hooks/useTranslations';
 import { Logo } from '@/components/ui/logo';
 import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
+import { cn } from '@/lib/utils';
 
-export function CoordinatorHeader() {
+interface CoordinatorHeaderProps {
+  isMobile?: boolean;
+  onMenuClick?: () => void;
+}
+
+export function CoordinatorHeader({ isMobile = false, onMenuClick }: CoordinatorHeaderProps) {
   const { user, logout, isLoading } = useAuth();
   const { t, locale } = useTranslations();
 
@@ -28,14 +34,17 @@ export function CoordinatorHeader() {
   // Mostrar loading si aún se está verificando la autenticación
   if (isLoading) {
     return (
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+          {/* Mobile: Hamburger + Logo */}
+          <div className="flex items-center space-x-3">
+            {isMobile && (
+              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+            )}
             <Logo size="sm" showText={false} />
-            <span>/</span>
-            <span className="text-gray-900">{t('common.dashboard')}</span>
+            <span className="hidden md:inline text-sm text-gray-500">/ {t('common.dashboard')}</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
           </div>
         </div>
@@ -44,27 +53,36 @@ export function CoordinatorHeader() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
-        {/* Breadcrumb */}
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
+        {/* Mobile: Hamburger + Logo */}
+        <div className="flex items-center space-x-3">
+          {isMobile && (
+            <button
+              onClick={onMenuClick}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg touch-target"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          )}
           <Logo size="sm" showText={false} />
-          <span>/</span>
-          <span className="text-gray-900">{t('common.dashboard')}</span>
+          <span className="hidden md:inline text-sm text-gray-500">/ {t('common.dashboard')}</span>
         </div>
 
-        {/* Search and Actions */}
-        <div className="flex items-center space-x-4">
-          {/* Project Selector */}
-          <ProjectSelector />
-
-          {/* PWA Install Button */}
+        {/* Actions - Compactas en móvil */}
+        <div className="flex items-center space-x-2">
+          {/* Ocultar ProjectSelector en móvil muy pequeño */}
+          <div className="hidden sm:block">
+            <ProjectSelector />
+          </div>
+          
+          {/* PWA Button - solo ícono en móvil */}
           <PWAInstallButton userRole="coordinator" />
-
-          {/* Notifications */}
+          
+          {/* Notificaciones - solo ícono */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative">
+              <Button variant="ghost" size="sm" className="relative touch-target">
                 <Bell className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -76,14 +94,16 @@ export function CoordinatorHeader() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Language Selector */}
-          <SimpleLanguageSelector />
-
-          {/* User Menu */}
+          
+          {/* Language selector - oculto en móvil pequeño */}
+          <div className="hidden md:block">
+            <SimpleLanguageSelector />
+          </div>
+          
+          {/* User menu - siempre visible */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" className="flex items-center space-x-2 touch-target">
                 <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-gray-600" />
                 </div>

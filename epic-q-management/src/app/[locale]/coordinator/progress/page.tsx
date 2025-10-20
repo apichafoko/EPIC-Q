@@ -552,11 +552,11 @@ export default function CoordinatorProgressPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('coordinator.progress')}</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('coordinator.progress')}</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1">
           Gestiona el progreso del estudio en tu hospital
         </p>
       </div>
@@ -719,7 +719,7 @@ export default function CoordinatorProgressPage() {
                 <Label htmlFor="ethicsSubmittedDate">Fecha de Presentación</Label>
                 <Popover open={showCalendar === 'ethicsSubmitted'} onOpenChange={() => setShowCalendar(showCalendar === 'ethicsSubmitted' ? null : 'ethicsSubmitted')}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.ethicsSubmittedDate ? 
                         format(progressData.ethicsSubmittedDate, 'PPP', { locale: es }) : 
@@ -765,7 +765,7 @@ export default function CoordinatorProgressPage() {
                   <Label htmlFor="ethicsApprovedDate">Fecha de Aprobación</Label>
                   <Popover open={showCalendar === 'ethicsApproved'} onOpenChange={() => setShowCalendar(showCalendar === 'ethicsApproved' ? null : 'ethicsApproved')}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {progressData.ethicsApprovedDate ? 
                           format(progressData.ethicsApprovedDate, 'PPP', { locale: es }) : 
@@ -865,7 +865,7 @@ export default function CoordinatorProgressPage() {
                 <Label>Fecha de Inicio</Label>
                 <Popover open={showCalendar === 'recruitmentStart'} onOpenChange={() => setShowCalendar(showCalendar === 'recruitmentStart' ? null : 'recruitmentStart')}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.recruitmentStartDate ? 
                         format(progressData.recruitmentStartDate, 'PPP', { locale: es }) : 
@@ -932,6 +932,7 @@ export default function CoordinatorProgressPage() {
                 isSavingPeriod ||
                 progressData.recruitmentPeriods.length >= hospitalInfo.requiredPeriods
               }
+              className="w-full md:w-auto touch-target"
             >
               {isSavingPeriod ? (
                 <>
@@ -1028,7 +1029,7 @@ export default function CoordinatorProgressPage() {
                   <Label>Fecha de Inicio</Label>
                   <Popover open={showCalendar === 'editStart'} onOpenChange={() => setShowCalendar(showCalendar === 'editStart' ? null : 'editStart')}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editingPeriod.startDate ? 
                           format(editingPeriod.startDate, 'PPP', { locale: es }) : 
@@ -1052,7 +1053,7 @@ export default function CoordinatorProgressPage() {
                   <Label>Fecha de Fin</Label>
                   <Popover open={showCalendar === 'editEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'editEnd' ? null : 'editEnd')}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editingPeriod.endDate ? 
                           format(editingPeriod.endDate, 'PPP', { locale: es }) : 
@@ -1097,6 +1098,7 @@ export default function CoordinatorProgressPage() {
                   variant="outline" 
                   onClick={() => setShowEditModal(false)}
                   disabled={isLoading}
+                  className="w-full md:w-auto touch-target"
                 >
                   Cancelar
                 </Button>
@@ -1104,6 +1106,7 @@ export default function CoordinatorProgressPage() {
                   onClick={handleUpdatePeriod}
                   loading={isSavingPeriod}
                   loadingText="Guardando..."
+                  className="w-full md:w-auto touch-target"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Guardar
