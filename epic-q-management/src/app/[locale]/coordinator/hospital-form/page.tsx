@@ -65,18 +65,26 @@ export default function HospitalFormPage() {
   const totalSteps = 3;
   const progress = (currentStep / totalSteps) * 100;
 
+  // Debug: Log formData changes
+  console.log('🔄 Render - formData.name:', formData.name);
+  console.log('🔄 Render - currentProject:', currentProject?.coordinatorInfo?.hospital?.name);
+
   // Load hospital data from current project
   useEffect(() => {
     console.log('🔄 useEffect ejecutándose, currentProject:', currentProject);
+    console.log('🔄 currentProject?.coordinatorInfo:', currentProject?.coordinatorInfo);
+    console.log('🔄 currentProject?.coordinatorInfo?.hospital:', currentProject?.coordinatorInfo?.hospital);
     
     if (!currentProject?.coordinatorInfo?.hospital) {
       console.log('❌ No hay hospital en currentProject');
       return;
     }
     
+    console.log('✅ Hospital encontrado:', currentProject.coordinatorInfo.hospital);
+    console.log('✅ Hospital name:', currentProject.coordinatorInfo.hospital.name);
+    
     if (!currentProject.coordinatorInfo.hospital.hospital_details) {
-      console.log('❌ No hay hospital_details en currentProject');
-      return;
+      console.log('⚠️ No hay hospital_details, pero continuando con datos básicos');
     }
     
     const hospital = currentProject.coordinatorInfo.hospital;
@@ -90,6 +98,8 @@ export default function HospitalFormPage() {
     const coordinatorContact = hospital.hospital_contacts?.[0]; // Primer contacto coordinador principal
     
     console.log('🔄 Precargando datos del formulario:', {
+      hospital: hospital,
+      hospitalName: hospital.name,
       hospitalDetails: hospitalDetails,
       coordinatorContact: coordinatorContact,
       financingType: hospitalDetails?.financing_type,
@@ -135,6 +145,9 @@ export default function HospitalFormPage() {
         };
         
         console.log('✅ FormData actualizado:', {
+          name: newFormData.name,
+          province: newFormData.province,
+          city: newFormData.city,
           financingType: newFormData.financingType,
           hasPreopClinic: newFormData.hasPreopClinic
         });

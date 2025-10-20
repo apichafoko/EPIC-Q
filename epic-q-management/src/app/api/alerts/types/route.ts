@@ -1,61 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { withAuth } from '@/lib/auth/middleware';
+import { getAlertTypes } from '@/lib/services/alert-service';
 
-// Inicializar Prisma directamente
-const prisma = new PrismaClient();
-
-export async function GET(request: NextRequest) {
+// GET - Obtener tipos de alertas
+export const GET = withAuth(async (request: NextRequest, context: any) => {
   try {
-    // Verificar autenticación manualmente
-    const token = request.cookies.get('auth-token')?.value;
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
+    const types = await getAlertTypes();
 
-    // Verificar el token
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as any;
-    
-    if (!decoded || !decoded.userId) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      );
-    }
-
-    // Verificar que el usuario existe y es admin
-    const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
-      include: { hospitals: true }
+    return NextResponse.json({
+      success: true,
+      types
     });
-
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      );
-    }
-
-    // Obtener tipos de alertas
-    const types = await prisma.alerts.findMany({
-      select: { type: true },
-      distinct: ['type'],
-      orderBy: { type: 'asc' }
-    });
-
-    const typeList = types.map(t => t.type).filter(Boolean);
-
-    return NextResponse.json(typeList);
 
   } catch (error) {
-    console.error('Error fetching alert types:', error);
+    console.error('Error obteniendo tipos de alertas:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        success: false, 
+        error: 'Error interno del servidor',
+        message: error instanceof Error ? error.message : 'Error desconocido'
+      }, 
       { status: 500 }
     );
   }
-}
+});

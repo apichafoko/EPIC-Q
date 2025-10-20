@@ -13,11 +13,14 @@ import {
   Filter,
   Eye,
   Check,
-  AlertCircle
+  AlertCircle,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertFilters } from '@/types';
-// import { getAlerts, getAlertStats, getAlertTypes } from '@/lib/services/alert-service';
+import { toast } from 'sonner';
+import { useLoadingState } from '@/hooks/useLoadingState';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AlertsPage() {
@@ -36,6 +39,9 @@ export default function AlertsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [typeFilter, setTypeFilter] = useState('all');
   const [alertTypes, setAlertTypes] = useState<string[]>([]);
+  const [resolvingAlert, setResolvingAlert] = useState<string | null>(null);
+
+  const { isLoading, executeWithLoading } = useLoadingState();
 
   // Funciones para llamar a los endpoints API
   const fetchAlerts = async (filters: AlertFilters, page: number, limit: number) => {
@@ -68,7 +74,8 @@ export default function AlertsPage() {
       throw new Error('Error al cargar estadísticas');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data;
   };
 
   const fetchAlertTypes = async () => {
@@ -80,7 +87,8 @@ export default function AlertsPage() {
       throw new Error('Error al cargar tipos de alertas');
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.types || [];
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -155,7 +163,7 @@ export default function AlertsPage() {
           status: activeTab === 'all' ? 'all' : activeTab
         };
         
-        const [alertsData, severitiesData, statsData] = await Promise.all([
+        const [alertsData, typesData, statsData] = await Promise.all([
           fetchAlerts(currentFilters, currentPage, 25),
           fetchAlertTypes(),
           fetchAlertStats()
@@ -163,11 +171,13 @@ export default function AlertsPage() {
 
         setAlerts(alertsData.alerts);
         setTotalPages(alertsData.totalPages);
-        setSeverities(severitiesData);
         setStats(statsData);
         
-        // Tipos de alerta hardcodeados por ahora
-        setAlertTypes([
+        // Severidades hardcodeadas
+        setSeverities(['critical', 'high', 'medium', 'low']);
+        
+        // Usar tipos de alerta de la API con fallback
+        setAlertTypes(Array.isArray(typesData) ? typesData : [
           'no_activity_30_days',
           'low_completion_rate',
           'upcoming_recruitment_period',
@@ -184,9 +194,66 @@ export default function AlertsPage() {
     loadData();
   }, [filters, activeTab, currentPage]);
 
-  const resolveAlert = (alertId: string) => {
-    console.log('Resolviendo alerta:', alertId);
-    // Aquí se implementaría la lógica para resolver la alerta
+  const resolveAlert = async (alertId: string) => {
+    setResolvingAlert(alertId);
+    
+    try {
+      const response = await fetch(`/api/alerts/${alertId}/resolve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Alerta resuelta exitosamente');
+        // Recargar datos
+        const currentFilters = {
+          ...filters,
+          status: activeTab === 'all' ? 'all' : activeTab
+        };
+        const alertsData = await fetchAlerts(currentFilters, currentPage, 25);
+        setAlerts(alertsData.alerts);
+        
+        // Actualizar stats
+        const statsData = await fetchAlertStats();
+        setStats(statsData);
+      } else {
+        toast.error(data.error || 'Error resolviendo alerta');
+      }
+    } catch (error) {
+      console.error('Error resolviendo alerta:', error);
+      toast.error('Error resolviendo alerta');
+    } finally {
+      setResolvingAlert(null);
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      setLoading(true);
+      const currentFilters = {
+        ...filters,
+        status: activeTab === 'all' ? 'all' : activeTab
+      };
+      
+      const [alertsData, statsData] = await Promise.all([
+        fetchAlerts(currentFilters, currentPage, 25),
+        fetchAlertStats()
+      ]);
+
+      setAlerts(alertsData.alerts);
+      setTotalPages(alertsData.totalPages);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Error actualizando datos');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -199,10 +266,18 @@ export default function AlertsPage() {
             Monitorea y gestiona las alertas del sistema EPIC-Q
           </p>
         </div>
-        <Button>
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          Nueva Alerta
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={refreshData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+          <Link href="/admin/alert-configurations">
+            <Button variant="outline">
+              <Settings className="h-4 w-4 mr-2" />
+              Configuración
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
@@ -364,9 +439,10 @@ export default function AlertsPage() {
                         <Button 
                           size="sm" 
                           onClick={() => resolveAlert(alert.id)}
+                          disabled={resolvingAlert === alert.id}
                         >
                           <Check className="h-4 w-4 mr-1" />
-                          Resolver
+                          {resolvingAlert === alert.id ? 'Resolviendo...' : 'Resolver'}
                         </Button>
                       )}
                     </div>

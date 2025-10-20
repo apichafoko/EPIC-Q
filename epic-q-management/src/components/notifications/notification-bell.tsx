@@ -17,6 +17,8 @@ interface Notification {
   type: string;
   read: boolean;
   created_at: string;
+  source?: string;
+  data?: any;
 }
 
 interface NotificationBellProps {
@@ -53,12 +55,15 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notificationId: string, notificationType: string) => {
     try {
       const response = await fetch('/api/notifications', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'markAsRead', notificationId }),
+        body: JSON.stringify({ 
+          notificationId,
+          type: notificationType
+        }),
       });
       
       if (response.ok) {
@@ -89,24 +94,46 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     }
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: string, source?: string) => {
+    if (source === 'alert') {
+      switch (type) {
+        case 'critical': return 'text-red-600';
+        case 'high': return 'text-orange-600';
+        case 'medium': return 'text-yellow-600';
+        case 'low': return 'text-blue-600';
+        default: return 'text-gray-600';
+      }
+    }
+    
     switch (type) {
+      case 'communication': return 'text-blue-600';
+      case 'alert': return 'text-orange-600';
+      case 'notification': return 'text-purple-600';
       case 'success': return 'text-green-600';
       case 'warning': return 'text-yellow-600';
       case 'error': return 'text-red-600';
-      case 'email': return 'text-blue-600';
-      case 'push': return 'text-purple-600';
       default: return 'text-gray-600';
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string, source?: string) => {
+    if (source === 'alert') {
+      switch (type) {
+        case 'critical': return '🚨';
+        case 'high': return '⚠️';
+        case 'medium': return '⏰';
+        case 'low': return 'ℹ️';
+        default: return '🔔';
+      }
+    }
+    
     switch (type) {
+      case 'communication': return '📧';
+      case 'alert': return '⚠️';
+      case 'notification': return '🔔';
       case 'success': return '✅';
       case 'warning': return '⚠️';
       case 'error': return '❌';
-      case 'email': return '📧';
-      case 'push': return '🔔';
       default: return 'ℹ️';
     }
   };
@@ -169,14 +196,14 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                         className={`p-3 hover:bg-gray-50 cursor-pointer border-l-4 ${
                           notification.read ? 'border-l-transparent' : 'border-l-blue-500'
                         }`}
-                        onClick={() => !notification.read && markAsRead(notification.id)}
+                        onClick={() => !notification.read && markAsRead(notification.id, notification.type)}
                       >
                         <div className="flex items-start space-x-2">
                           <span className="text-lg">
-                            {getTypeIcon(notification.type)}
+                            {getTypeIcon(notification.type, notification.source)}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${getTypeColor(notification.type)}`}>
+                            <p className={`text-sm font-medium ${getTypeColor(notification.type, notification.source)}`}>
                               {notification.title}
                             </p>
                             <p className="text-sm text-gray-600 mt-1">
@@ -192,7 +219,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsRead(notification.id);
+                                markAsRead(notification.id, notification.type);
                               }}
                               className="h-6 w-6 p-0"
                             >

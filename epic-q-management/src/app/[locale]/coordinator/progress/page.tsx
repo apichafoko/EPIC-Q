@@ -32,6 +32,7 @@ import { es } from 'date-fns/locale';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useLoadingState } from '@/hooks/useLoadingState';
 import { toast } from 'sonner';
+import { validatePeriodOverlap } from '@/lib/services/coordinator-service';
 
 export default function CoordinatorProgressPage() {
   const { t } = useTranslations();
@@ -263,6 +264,24 @@ export default function CoordinatorProgressPage() {
       return;
     }
 
+    // Validar superposición con períodos existentes
+    const existingPeriods = progressData.recruitmentPeriods.map(period => ({
+      startDate: period.startDate,
+      endDate: period.endDate,
+      id: period.id
+    }));
+
+    const validation = validatePeriodOverlap(
+      progressData.recruitmentStartDate,
+      progressData.recruitmentEndDate,
+      existingPeriods
+    );
+
+    if (!validation.isValid) {
+      showError(validation.message || 'Error de validación');
+      return;
+    }
+
     await executeWithSavingPeriod(async () => {
       if (!currentProject?.id) {
         showError('No hay proyecto seleccionado');
@@ -322,6 +341,27 @@ export default function CoordinatorProgressPage() {
 
     if (editingPeriod.endDate <= editingPeriod.startDate) {
       showError('La fecha de fin debe ser posterior a la fecha de inicio');
+      return;
+    }
+
+    // Validar superposición con períodos existentes (excluyendo el período que se está editando)
+    const existingPeriods = progressData.recruitmentPeriods
+      .filter(period => period.id !== editingPeriod.id)
+      .map(period => ({
+        startDate: period.startDate,
+        endDate: period.endDate,
+        id: period.id
+      }));
+
+    const validation = validatePeriodOverlap(
+      editingPeriod.startDate,
+      editingPeriod.endDate,
+      existingPeriods,
+      editingPeriod.id
+    );
+
+    if (!validation.isValid) {
+      showError(validation.message || 'Error de validación');
       return;
     }
 

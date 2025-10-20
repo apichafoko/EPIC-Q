@@ -609,9 +609,48 @@ export default function CoordinatorDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats?.upcomingPeriods || 0}</div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mb-3">
                 {t('coordinator.dashboard.upcomingPeriodsDesc')}
               </p>
+              
+              {/* Mostrar detalles de períodos próximos */}
+              {stats?.recruitmentPeriods && stats.recruitmentPeriods.length > 0 && (
+                <div className="space-y-2">
+                  {stats.recruitmentPeriods.map((period, index) => {
+                    const startDate = new Date(period.startDate);
+                    const endDate = new Date(period.endDate);
+                    const today = new Date();
+                    const daysUntilStart = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    const isActive = today >= startDate && today <= endDate;
+                    const isUpcoming = today < startDate;
+                    
+                    return (
+                      <div key={period.id} className="p-2 bg-gray-50 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={isActive ? "default" : isUpcoming ? "secondary" : "outline"}>
+                              Período {period.periodNumber}
+                            </Badge>
+                            {isActive && <Clock className="h-3 w-3 text-green-600" />}
+                            {isUpcoming && <Calendar className="h-3 w-3 text-blue-600" />}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {isActive ? "Activo" : isUpcoming ? `${daysUntilStart} días` : "Finalizado"}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {startDate.toLocaleDateString('es-ES')} - {endDate.toLocaleDateString('es-ES')}
+                        </div>
+                        {period.targetCases && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Meta: {period.targetCases} casos
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 

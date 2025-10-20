@@ -29,6 +29,9 @@ import {
 import { Communication, CommunicationFilters } from '@/types';
 import { getCommunications, getCommunicationTypes, getCommunicationStats } from '@/lib/services/communication-service';
 import { Skeleton } from '@/components/ui/skeleton';
+import CommunicationComposer from '@/components/communications/communication-composer';
+import { toast } from 'sonner';
+import { useLoadingState } from '@/hooks/useLoadingState';
 
 export default function CommunicationsPage() {
   const [activeTab, setActiveTab] = useState('all');
@@ -43,6 +46,9 @@ export default function CommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showComposer, setShowComposer] = useState(false);
+
+  const { isLoading, executeWithLoading } = useLoadingState();
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -73,6 +79,12 @@ export default function CommunicationsPage() {
         return 'Nota';
       case 'whatsapp':
         return 'WhatsApp';
+      case 'manual':
+        return 'Manual';
+      case 'auto_alert':
+        return 'Alerta Automática';
+      case 'system':
+        return 'Sistema';
       default:
         return type;
     }
@@ -86,6 +98,10 @@ export default function CommunicationsPage() {
         return 'bg-green-100 text-green-800';
       case 'opened':
         return 'bg-purple-100 text-purple-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -99,8 +115,31 @@ export default function CommunicationsPage() {
         return 'Entregado';
       case 'opened':
         return 'Abierto';
+      case 'failed':
+        return 'Fallido';
+      case 'pending':
+        return 'Pendiente';
       default:
         return status;
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      setLoading(true);
+      const [commsData, statsData] = await Promise.all([
+        getCommunications(filters, currentPage, 25),
+        getCommunicationStats()
+      ]);
+
+      setCommunications(commsData.communications);
+      setTotalPages(commsData.totalPages);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Error actualizando datos');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,14 +185,14 @@ export default function CommunicationsPage() {
             Gestión de comunicaciones con hospitales participantes
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowComposer(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nueva Comunicación
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
@@ -164,12 +203,6 @@ export default function CommunicationsPage() {
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-600">{stats.emails}</div>
             <div className="text-sm text-gray-600">Emails Enviados</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{stats.calls}</div>
-            <div className="text-sm text-gray-600">Llamadas Realizadas</div>
           </CardContent>
         </Card>
         <Card>
@@ -185,7 +218,6 @@ export default function CommunicationsPage() {
         {[
           { id: 'all', label: 'Todas', count: stats.total },
           { id: 'email', label: 'Emails', count: stats.emails },
-          { id: 'call', label: 'Llamadas', count: stats.calls },
           { id: 'note', label: 'Notas', count: stats.notes }
         ].map((tab) => (
           <button
@@ -334,6 +366,17 @@ export default function CommunicationsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Composer Modal */}
+      {showComposer && (
+        <CommunicationComposer
+          onClose={() => setShowComposer(false)}
+          onSuccess={() => {
+            setShowComposer(false);
+            refreshData();
+          }}
+        />
+      )}
     </div>
   );
 }

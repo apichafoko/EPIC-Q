@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 import { User, LoginCredentials, LoginResponse } from './types';
-import { prisma } from '@/lib/database';
+import { prisma } from '@/lib/db-connection';
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret-key';
 
@@ -35,6 +35,12 @@ export class SimpleAuthService {
         };
       }
 
+      // Actualizar último login
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      });
+
       // Crear token JWT
       const token = jwt.sign(
         { 
@@ -51,7 +57,7 @@ export class SimpleAuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: user.role as 'admin' | 'coordinator',
         hospitalId: user.hospitalId,
         hospital: user.hospitals ? {
           id: user.hospitals.id,
@@ -60,7 +66,7 @@ export class SimpleAuthService {
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
         isTemporaryPassword: user.isTemporaryPassword,
-        lastLogin: user.lastLogin
+        lastLogin: new Date().toISOString()
       };
 
       return {
@@ -96,7 +102,7 @@ export class SimpleAuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
+        role: user.role as 'admin' | 'coordinator',
         hospitalId: user.hospitalId,
         hospital: user.hospitals ? {
           id: user.hospitals.id,
@@ -105,7 +111,7 @@ export class SimpleAuthService {
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
         isTemporaryPassword: user.isTemporaryPassword,
-        lastLogin: user.lastLogin
+        lastLogin: user.lastLogin?.toISOString() || null
       };
     } catch (error) {
       console.error('Token verification error:', error);

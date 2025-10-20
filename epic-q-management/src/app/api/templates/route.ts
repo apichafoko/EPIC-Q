@@ -43,7 +43,19 @@ export async function GET(request: NextRequest) {
       include: { hospitals: true }
     });
 
+    console.log('User found:', {
+      exists: !!user,
+      isActive: user?.isActive,
+      role: user?.role,
+      userId: decoded.userId
+    });
+
     if (!user || !user.isActive || user.role !== 'admin') {
+      console.log('Access denied:', {
+        noUser: !user,
+        notActive: user && !user.isActive,
+        notAdmin: user && user.role !== 'admin'
+      });
       return NextResponse.json(
         { error: 'Permisos insuficientes' },
         { status: 403 }

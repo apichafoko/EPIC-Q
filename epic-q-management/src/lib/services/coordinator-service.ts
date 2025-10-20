@@ -1,4 +1,47 @@
-import { prisma } from '@/lib/database';
+import { prisma } from '@/lib/db-connection';
+
+// Función para validar que los períodos no se superpongan
+export function validatePeriodOverlap(
+  newStartDate: Date, 
+  newEndDate: Date, 
+  existingPeriods: Array<{ startDate: Date; endDate: Date; id?: string }>,
+  excludeId?: string
+): { isValid: boolean; message?: string } {
+  // Verificar que la fecha de inicio sea anterior a la fecha de fin
+  if (newStartDate >= newEndDate) {
+    return {
+      isValid: false,
+      message: 'La fecha de inicio debe ser anterior a la fecha de fin'
+    };
+  }
+
+  // Verificar superposición con períodos existentes
+  for (const period of existingPeriods) {
+    // Excluir el período que se está editando
+    if (excludeId && period.id === excludeId) {
+      continue;
+    }
+
+    const existingStart = new Date(period.startDate);
+    const existingEnd = new Date(period.endDate);
+
+    // Verificar si hay superposición
+    const hasOverlap = (
+      (newStartDate >= existingStart && newStartDate <= existingEnd) ||
+      (newEndDate >= existingStart && newEndDate <= existingEnd) ||
+      (newStartDate <= existingStart && newEndDate >= existingEnd)
+    );
+
+    if (hasOverlap) {
+      return {
+        isValid: false,
+        message: `El período se superpone con el Período ${existingPeriods.indexOf(period) + 1} (${existingStart.toLocaleDateString('es-ES')} - ${existingEnd.toLocaleDateString('es-ES')})`
+      };
+    }
+  }
+
+  return { isValid: true };
+}
 
 export interface CoordinatorStats {
   formCompletion: number;
@@ -20,10 +63,17 @@ export interface CoordinatorStats {
     createdAt: Date;
   }>;
   hospital?: any; // Hospital con progress incluido
+  recruitmentPeriods: Array<{
+    id: string;
+    periodNumber: number;
+    startDate: string;
+    endDate: string;
+    targetCases?: number;
+  }>;
 }
 
 export class CoordinatorService {
-  static async getCoordinatorStats(userId: string, projectId: string): Promise<CoordinatorStats> {
+  static async getCoordinatorStats(userId: string, projectId?: string): Promise<CoordinatorStats> {
     try {
       // Obtener el usuario y verificar que esté en el proyecto
       const user = await prisma.users.findUnique({
@@ -34,21 +84,57 @@ export class CoordinatorService {
         throw new Error('Usuario no encontrado');
       }
 
-      // Obtener la relación ProjectCoordinator para el proyecto actual
-      const projectCoordinator = await prisma.project_coordinators.findFirst({
-        where: {
-          user_id: userId,
-          project_id: projectId,
-          is_active: true
-        },
-        include: {
-          hospitals: true,
-          projects: true
-        }
-      });
+      // Si no se proporciona projectId, obtener el primer proyecto activo del coordinador
+      let projectCoordinator;
+      
+      if (projectId) {
+        projectCoordinator = await prisma.project_coordinators.findFirst({
+          where: {
+            user_id: userId,
+            project_id: projectId,
+            is_active: true
+          },
+          include: {
+            hospitals: true,
+            projects: true
+          }
+        });
+      } else {
+        // Obtener el primer proyecto activo del coordinador
+        projectCoordinator = await prisma.project_coordinators.findFirst({
+          where: {
+            user_id: userId,
+            is_active: true
+          },
+          include: {
+            hospitals: true,
+            projects: true
+          }
+        });
+      }
 
-      if (!projectCoordinator || !projectCoordinator.hospitals) {
-        throw new Error('Usuario no está asignado a este proyecto o hospital no encontrado');
+      if (!projectCoordinator) {
+        // Si no hay relación, devolver estadísticas vacías
+        return {
+          formCompletion: 0,
+          upcomingPeriods: 0,
+          notifications: 0,
+          hospitalFormStatus: {
+            isComplete: false,
+            isUrgent: false,
+            missingFields: ['Usuario no asignado a ningún proyecto'],
+            completedSteps: 0,
+            totalSteps: 1,
+            lastUpdated: undefined
+          },
+          recentNotifications: [],
+          hospital: null,
+          recruitmentPeriods: []
+        };
+      }
+
+      if (!projectCoordinator.hospitals) {
+        throw new Error('Hospital no encontrado para este coordinador');
       }
 
       const hospitalId = projectCoordinator.hospitals.id;
