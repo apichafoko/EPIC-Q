@@ -93,7 +93,9 @@ export function withAuth(
 export function withAdminAuth(
   handler: (request: NextRequest, context: AuthContext, params?: { params: Promise<{ id: string }> }) => Promise<NextResponse> | NextResponse
 ) {
-  return withAuth(handler, { roles: ['admin'] });
+  return async (request: NextRequest, params?: { params: Promise<{ id: string }> }) => {
+    return withAuth(handler, { roles: ['admin'] })(request, params);
+  };
 }
 
 export function withCoordinatorAuth(

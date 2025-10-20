@@ -33,11 +33,13 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import { GlobalSearch } from '@/components/ui/global-search';
 import { AdvancedFilters } from '@/components/ui/advanced-filters';
 import { ConfirmationToast } from '@/components/ui/confirmation-toast';
+import { ProjectResourcesManager } from '@/components/admin/project-resources-manager';
 
 interface Project {
   id: string;
   name: string;
   description?: string;
+  brief_description?: string;
   start_date?: string;
   end_date?: string;
   status: 'active' | 'completed' | 'archived';
@@ -112,6 +114,7 @@ export default function ProjectDetailPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    brief_description: '',
     start_date: '',
     end_date: '',
     status: 'active' as 'active' | 'completed' | 'archived',
@@ -213,6 +216,7 @@ export default function ProjectDetailPage() {
       setFormData({
         name: data.project.name,
         description: data.project.description || '',
+        brief_description: data.project.brief_description || '',
         start_date: data.project.start_date ? data.project.start_date.split('T')[0] : '',
         end_date: data.project.end_date ? data.project.end_date.split('T')[0] : '',
         status: data.project.status,
@@ -989,6 +993,12 @@ export default function ProjectDetailPage() {
             >
               Coordinadores ({project._count.project_coordinators})
             </TabsTrigger>
+            <TabsTrigger 
+              value="resources" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none border-b-2 border-transparent px-4 py-3"
+            >
+              Recursos
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -1110,6 +1120,27 @@ export default function ProjectDetailPage() {
                     {project.description || 'Sin descripción'}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <Label htmlFor="brief_description">Descripción Breve</Label>
+                {isEditing ? (
+                  <Textarea
+                    id="brief_description"
+                    value={formData.brief_description}
+                    onChange={(e) => setFormData({ ...formData, brief_description: e.target.value })}
+                    className="mt-1"
+                    rows={2}
+                    placeholder="Descripción corta del proyecto para coordinadores"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm text-gray-900">
+                    {project.brief_description || 'Sin descripción breve'}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Esta descripción será visible para los coordinadores en la sección de información del proyecto
+                </p>
               </div>
 
               {isEditing && (
@@ -1894,6 +1925,11 @@ export default function ProjectDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Recursos y Documentación */}
+        <TabsContent value="resources">
+          <ProjectResourcesManager projectId={projectId} />
         </TabsContent>
       </Tabs>
 

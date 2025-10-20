@@ -1243,6 +1243,12 @@
     "viewAllNotifications": "View all notifications",
     "newCommunication": "New Communication",
     "newCommunicationDesc": "You have a new communication from the research committee",
+    "projectInfo": "Project Information",
+    "projectResources": "Available Resources",
+    "aboutProject": "About the Project",
+    "noResources": "No resources available",
+    "downloadResource": "Download",
+    "openResource": "Open",
     "dashboard": {
       "welcome": "Welcome",
       "subtitle": "Coordinator dashboard",

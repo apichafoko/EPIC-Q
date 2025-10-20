@@ -1243,6 +1243,12 @@
     "viewAllNotifications": "Ver todas as notificações",
     "newCommunication": "Nova Comunicação",
     "newCommunicationDesc": "Você tem uma nova comunicação do comitê investigador",
+    "projectInfo": "Informações do Projeto",
+    "projectResources": "Recursos Disponíveis",
+    "aboutProject": "Sobre o Projeto",
+    "noResources": "Nenhum recurso disponível",
+    "downloadResource": "Baixar",
+    "openResource": "Abrir",
     "dashboard": {
       "welcome": "Bem-vindo",
       "subtitle": "Painel do coordenador",

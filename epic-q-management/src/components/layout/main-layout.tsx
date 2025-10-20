@@ -90,8 +90,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Main content con margin responsive */}
       <div className={cn(
         "flex-1 flex flex-col overflow-hidden",
-        // Desktop: margin para sidebar fijo
-        !isMobile && "lg:ml-64"
+        // Desktop: margin para sidebar fijo solo para coordinadores
+        isCoordinator && !isMobile && "lg:ml-64"
       )}>
         {isCoordinator ? (
           <CoordinatorHeader 

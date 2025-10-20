@@ -19,7 +19,8 @@ import {
   UserPlus,
   CheckCircle,
   Download,
-  X
+  X,
+  Info
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 
@@ -129,6 +130,12 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
       onClick: promptInstall,
       isPWAInstall: true
     }] : []),
+    { 
+      name: 'Información del Proyecto', 
+      href: `/${locale}/coordinator/project-info`, 
+      icon: Info,
+      isComplete: false
+    },
     { 
       name: 'Invitaciones', 
       href: `/${locale}/coordinator/pending-invitations`, 

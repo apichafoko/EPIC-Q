@@ -250,6 +250,7 @@ model projects {
   id                   String                 @id
   name                 String
   description          String?
+  brief_description    String?                @db.Text
   status               String                 @default("active")
   start_date           DateTime?
   end_date             DateTime?
@@ -261,6 +262,7 @@ model projects {
   project_coordinators project_coordinators[]
   project_hospitals    project_hospitals[]
   alerts               alerts[]
+  resources            project_resources[]
 }
 
 model recruitment_periods {
@@ -329,6 +331,7 @@ model users {
   received_communications  communications[] @relation("CommunicationRecipient")
   resolved_alerts          alerts[]         @relation("AlertResolver")
   notification_preferences notification_preferences[]
+  created_resources        project_resources[]
 }
 
 model case_load_statistics {
@@ -377,4 +380,27 @@ model notification_preferences {
   users          users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
   
   @@unique([user_id, alert_type])
+}
+
+model project_resources {
+  id          String   @id @default(cuid())
+  project_id  String
+  title       String
+  description String?  @db.Text
+  type        String   // 'pdf', 'video_youtube', 'video_file', 'link', 'document'
+  url         String   @db.Text // URL de S3 o link externo
+  s3_key      String?  // Key de S3 para archivos subidos
+  file_size   Int?     // Tamaño en bytes
+  mime_type   String?  // Tipo de archivo
+  order       Int      @default(0) // Orden de visualización
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  created_by  String
+  
+  project     projects @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  creator     users    @relation(fields: [created_by], references: [id])
+  
+  @@index([project_id])
+  @@map("project_resources")
 }

@@ -6,6 +6,7 @@ import { z } from 'zod';
 const updateProjectSchema = z.object({
   name: z.string().min(1, 'El nombre del proyecto es requerido').max(255).optional(),
   description: z.string().optional(),
+  brief_description: z.string().optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   status: z.enum(['active', 'completed', 'archived']).optional(),
@@ -210,6 +211,7 @@ export async function PUT(
     
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
+    if (validatedData.brief_description !== undefined) updateData.brief_description = validatedData.brief_description;
     if (validatedData.status !== undefined) updateData.status = validatedData.status;
     if (validatedData.required_periods !== undefined) updateData.required_periods = validatedData.required_periods;
 
@@ -344,6 +346,7 @@ export async function PUT(
         id: updatedProject.id,
         name: updatedProject.name,
         description: updatedProject.description,
+        brief_description: updatedProject.brief_description,
         status: updatedProject.status,
         start_date: updatedProject.start_date,
         end_date: updatedProject.end_date,
