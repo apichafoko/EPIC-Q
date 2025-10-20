@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MoreHorizontal, Eye, Edit, Mail, Phone, Settings, Trash2, Shield, CheckSquare, Square } from 'lucide-react';
@@ -41,6 +41,7 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import { ConfirmationToast } from '@/components/ui/confirmation-toast';
 import { CascadeConfirmationModal } from '@/components/ui/cascade-confirmation-modal';
 import { toast } from 'sonner';
+import { safeFetch, formatApiError } from '@/lib/api-utils';
 
 interface HospitalTableProps {
   hospitals: Hospital[];
@@ -84,6 +85,7 @@ export function HospitalTable({
   
   // Hook de confirmación
   const { confirm, isConfirming, confirmationData, handleConfirm, handleCancel } = useConfirmation();
+
 
   const handleSort = (field: keyof Hospital) => {
     if (sortField === field) {
@@ -135,7 +137,22 @@ export function HospitalTable({
         body: JSON.stringify({ hospitalIds: selectedHospitals }),
       });
 
-      const data = await response.json();
+      // Verificar si la respuesta tiene contenido JSON
+      const contentType = response.headers.get('content-type');
+      let data = null;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const text = await response.text();
+          if (text.trim()) {
+            data = JSON.parse(text);
+          }
+        } catch (error) {
+          console.error('Error parsing JSON response:', error);
+          toast.error('Error al procesar la respuesta del servidor');
+          return;
+        }
+      }
       
       if (response.ok) {
         toast.success(`${selectedHospitals.length} hospitales desactivados exitosamente`, {
@@ -145,8 +162,9 @@ export function HospitalTable({
         setSelectedHospitals([]);
         setShowBulkDeactivateModal(false);
       } else {
+        const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
         toast.error('Error al desactivar hospitales', {
-          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+          description: errorMessage || 'Inténtalo de nuevo más tarde'
         });
       }
     });
@@ -164,15 +182,21 @@ export function HospitalTable({
         body: JSON.stringify({ hospitalIds: selectedHospitals }),
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (error) {
-        console.error('Error parsing JSON response:', error);
-        toast.error('Error al eliminar hospitales', {
-          description: 'Error interno del servidor. Inténtalo de nuevo más tarde.'
-        });
-        return;
+      // Verificar si la respuesta tiene contenido JSON
+      const contentType = response.headers.get('content-type');
+      let data = null;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const text = await response.text();
+          if (text.trim()) {
+            data = JSON.parse(text);
+          }
+        } catch (error) {
+          console.error('Error parsing JSON response:', error);
+          toast.error('Error al procesar la respuesta del servidor');
+          return;
+        }
       }
       
       if (response.ok) {
@@ -183,8 +207,9 @@ export function HospitalTable({
         setSelectedHospitals([]);
         setShowBulkDeleteModal(false);
       } else {
+        const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
         toast.error('Error al eliminar hospitales', {
-          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+          description: errorMessage || 'Inténtalo de nuevo más tarde'
         });
       }
     });
@@ -192,7 +217,6 @@ export function HospitalTable({
 
   // Funciones para acciones individuales
   const handleDeactivateHospital = (hospital: Hospital) => {
-    console.log('handleDeactivateHospital called for:', hospital.name);
     confirm(
       {
         title: 'Desactivar Hospital',
@@ -202,14 +226,28 @@ export function HospitalTable({
         variant: 'destructive'
       },
       async () => {
-        console.log('Confirmation callback executed for deactivate');
         await executeWithDeactivating(async () => {
           const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
             method: 'POST',
             credentials: 'include'
           });
 
-          const data = await response.json();
+          // Verificar si la respuesta tiene contenido JSON
+          const contentType = response.headers.get('content-type');
+          let data = null;
+          
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const text = await response.text();
+              if (text.trim()) {
+                data = JSON.parse(text);
+              }
+            } catch (error) {
+              console.error('Error parsing JSON response:', error);
+              toast.error('Error al procesar la respuesta del servidor');
+              return;
+            }
+          }
 
           if (response.ok) {
             toast.success('Hospital desactivado exitosamente', {
@@ -217,8 +255,9 @@ export function HospitalTable({
             });
             onRefresh?.();
           } else {
+            const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
             toast.error('Error al desactivar hospital', {
-              description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+              description: errorMessage || 'Inténtalo de nuevo más tarde'
             });
           }
         });
@@ -235,10 +274,25 @@ export function HospitalTable({
         credentials: 'include'
       });
 
-      const data = await response.json();
+      // Verificar si la respuesta tiene contenido JSON
+      const contentType = response.headers.get('content-type');
+      let data = null;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const text = await response.text();
+          if (text.trim()) {
+            data = JSON.parse(text);
+          }
+        } catch (error) {
+          console.error('Error parsing JSON response:', error);
+          toast.error('Error al procesar la respuesta del servidor');
+          return;
+        }
+      }
 
       if (response.ok) {
-        if (data.requiresConfirmation) {
+        if (data && data.requiresConfirmation) {
           // Mostrar modal de confirmación de cascada
           setCascadeData({
             hospitalId: hospital.id,
@@ -254,8 +308,9 @@ export function HospitalTable({
           onRefresh?.();
         }
       } else {
+        const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
         toast.error('Error al eliminar hospital', {
-          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+          description: errorMessage || 'Inténtalo de nuevo más tarde'
         });
       }
     });
@@ -274,7 +329,22 @@ export function HospitalTable({
         credentials: 'include'
       });
 
-      const data = await response.json();
+      // Verificar si la respuesta tiene contenido JSON
+      const contentType = response.headers.get('content-type');
+      let data = null;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const text = await response.text();
+          if (text.trim()) {
+            data = JSON.parse(text);
+          }
+        } catch (error) {
+          console.error('Error parsing JSON response:', error);
+          toast.error('Error al procesar la respuesta del servidor');
+          return;
+        }
+      }
 
       if (response.ok) {
         toast.success('Hospital eliminado exitosamente', {
@@ -284,8 +354,9 @@ export function HospitalTable({
         setShowCascadeModal(false);
         setCascadeData(null);
       } else {
+        const errorMessage = data?.details || data?.error || data?.message || `Error ${response.status}: ${response.statusText}`;
         toast.error('Error al eliminar hospital', {
-          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+          description: errorMessage || 'Inténtalo de nuevo más tarde'
         });
       }
     });

@@ -47,8 +47,8 @@ export default function CoordinatorNotifications() {
         const response = await fetch('/api/notifications?limit=50');
         const result = await response.json();
         
-        if (result.success) {
-          setNotifications(result.data || []);
+        if (result.notifications) {
+          setNotifications(result.notifications || []);
         } else {
           setError(result.error || 'Error al cargar notificaciones');
         }
@@ -65,8 +65,15 @@ export default function CoordinatorNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     await executeWithLoading(async () => {
-      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+      const response = await fetch('/api/notifications', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'markAsRead',
+          notificationId: notificationId
+        }),
       });
       
       if (response.ok) {

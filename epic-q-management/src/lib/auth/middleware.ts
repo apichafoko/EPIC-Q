@@ -23,7 +23,9 @@ export function withAuth(
 ) {
   return async (request: NextRequest) => {
     try {
+      console.log('🔐 withAuth: Iniciando autenticación');
       const token = request.cookies.get('auth-token')?.value;
+      console.log('🔐 withAuth: Token encontrado:', !!token);
       
       if (!token) {
         return NextResponse.json(
@@ -33,8 +35,10 @@ export function withAuth(
       }
 
       const user = await SimpleAuthService.verifyToken(token);
+      console.log('🔐 withAuth: Usuario verificado:', user ? { id: user.id, email: user.email, role: user.role } : 'No encontrado');
       
       if (!user) {
+        console.log('🔐 withAuth: Usuario no autorizado');
         return NextResponse.json(
           { error: 'No autorizado' },
           { status: 401 }
@@ -43,6 +47,7 @@ export function withAuth(
 
       // Check role requirements
       if (options?.roles && !options.roles.includes(user.role as UserRole)) {
+        console.log('🔐 withAuth: Permisos insuficientes. Rol requerido:', options.roles, 'Rol actual:', user.role);
         return NextResponse.json(
           { error: 'Permisos insuficientes' },
           { status: 403 }

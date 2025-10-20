@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, X } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -89,7 +90,7 @@ export function InstallPrompt() {
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
-            <Download className="h-5 w-5 text-blue-600" />
+            <Logo size="sm" showText={false} />
             <h3 className="text-sm font-semibold text-gray-900">
               Instalar EPIC-Q
             </h3>

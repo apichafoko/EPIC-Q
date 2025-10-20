@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/hooks/useTranslations';
+import { Logo } from '@/components/ui/logo';
+import { useProject } from '@/contexts/project-context';
 import {
   BarChart3,
   Building2,
@@ -13,48 +16,135 @@ import {
   Users,
   Settings,
   Bell,
-  UserPlus
+  UserPlus,
+  CheckCircle
 } from 'lucide-react';
 
 export function CoordinatorSidebar() {
   const { t, locale } = useTranslations();
   const pathname = usePathname();
+  const { currentProject } = useProject();
+  const [progressStatus, setProgressStatus] = useState({
+    ethicsSubmitted: false,
+    ethicsApproved: false,
+    recruitmentPeriods: 0,
+    requiredPeriods: 2
+  });
+
+  // Cargar estado de progreso
+  useEffect(() => {
+    const loadProgressStatus = async () => {
+      if (!currentProject?.id) return;
+
+      try {
+        const response = await fetch(`/api/coordinator/stats?projectId=${currentProject.id}`, {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data && data.data.hospital && data.data.hospital.progress) {
+            const progress = data.data.hospital.progress;
+            setProgressStatus({
+              ethicsSubmitted: progress.ethics_submitted || false,
+              ethicsApproved: progress.ethics_approved || false,
+              recruitmentPeriods: data.data.recruitmentPeriods?.length || 0,
+              requiredPeriods: data.data.hospital.required_periods || 2
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading progress status:', error);
+      }
+    };
+
+    loadProgressStatus();
+  }, [currentProject?.id]);
+
+  // Determinar el estado de completitud de cada sección
+  const getCompletionStatus = () => {
+    if (!currentProject?.coordinatorInfo?.hospital) {
+      return {
+        hospitalForm: false,
+        progress: false
+      };
+    }
+
+    const hospital = currentProject.coordinatorInfo.hospital;
+    const hospitalDetails = hospital.hospital_details;
+    
+    // Verificar si el formulario del hospital está completo
+    const hospitalFormComplete = !!(
+      hospitalDetails?.num_beds &&
+      hospitalDetails?.num_operating_rooms &&
+      hospitalDetails?.num_icu_beds &&
+      hospitalDetails?.avg_weekly_surgeries &&
+      hospitalDetails?.financing_type &&
+      hospitalDetails?.has_preop_clinic &&
+      hospital.lasos_participation !== null &&
+      hospital.hospital_contacts?.[0]?.name &&
+      hospital.hospital_contacts?.[0]?.email &&
+      hospital.hospital_contacts?.[0]?.phone &&
+      hospital.hospital_contacts?.[0]?.specialty
+    );
+
+    // Verificar si la ética y períodos están completos
+    const progressComplete = !!(
+      progressStatus.ethicsSubmitted &&
+      progressStatus.ethicsApproved &&
+      progressStatus.recruitmentPeriods >= progressStatus.requiredPeriods
+    );
+
+    return {
+      hospitalForm: hospitalFormComplete,
+      progress: progressComplete
+    };
+  };
+
+  const completionStatus = getCompletionStatus();
 
   const navigation = [
     { 
       name: t('common.dashboard'), 
       href: `/${locale}/coordinator`, 
-      icon: BarChart3 
+      icon: BarChart3,
+      isComplete: false // Dashboard no tiene estado de completitud
     },
     { 
       name: 'Invitaciones', 
       href: `/${locale}/coordinator/pending-invitations`, 
-      icon: UserPlus 
+      icon: UserPlus,
+      isComplete: false // Invitaciones no tienen estado de completitud
     },
     { 
       name: t('common.hospitalForm'), 
       href: `/${locale}/coordinator/hospital-form`, 
-      icon: Building2 
+      icon: Building2,
+      isComplete: completionStatus.hospitalForm
     },
     { 
-      name: t('common.progress'), 
+      name: 'Ética y Períodos', 
       href: `/${locale}/coordinator/progress`, 
-      icon: Calendar 
+      icon: Calendar,
+      isComplete: completionStatus.progress
     },
     { 
       name: t('common.communications'), 
       href: `/${locale}/coordinator/communications`, 
-      icon: Mail 
+      icon: Mail,
+      isComplete: false // Communications no tiene estado de completitud
     },
     { 
       name: t('common.notifications'), 
       href: `/${locale}/coordinator/notifications`, 
-      icon: Bell 
+      icon: Bell,
+      isComplete: false // Notifications no tiene estado de completitud
     },
     { 
       name: t('common.redcapUsers'), 
       href: `/${locale}/coordinator/redcap-users`, 
-      icon: Users 
+      icon: Users,
+      isComplete: false // RedCap users no tiene estado de completitud
     },
     // Settings oculto para coordinadores (incluye privacidad de datos)
     // { 
@@ -68,10 +158,8 @@ export function CoordinatorSidebar() {
     <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">EQ</span>
-          </div>
+        <div className="flex items-center space-x-3">
+          <Logo size="md" showText={false} />
           <div>
             <h1 className="text-lg font-semibold text-gray-900">EPIC-Q</h1>
             <p className="text-xs text-gray-500">Coordinador</p>
@@ -94,14 +182,25 @@ export function CoordinatorSidebar() {
                   : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               )}
             >
-              <item.icon
-                className={cn(
-                  'mr-3 h-5 w-5 flex-shrink-0',
-                  isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'
+              <div className="flex items-center flex-1">
+                <item.icon
+                  className={cn(
+                    'mr-3 h-5 w-5 flex-shrink-0',
+                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="flex-1">{item.name}</span>
+                {item.isComplete && (
+                  <CheckCircle 
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0',
+                      isActive ? 'text-green-200' : 'text-green-500'
+                    )}
+                    aria-hidden="true"
+                  />
                 )}
-                aria-hidden="true"
-              />
-              {item.name}
+              </div>
             </Link>
           );
         })}

@@ -126,23 +126,32 @@ model hospital_details {
   avg_weekly_surgeries      Int?
   financing_type            String?
   has_preop_clinic          String?
+  has_residency_program     Boolean?
+  has_ethics_committee      Boolean?
+  has_rapid_response_team   Boolean?
+  university_affiliated     Boolean?
+  notes                     String?
   created_at                DateTime  @default(now())
   updated_at                DateTime  @default(now())
   hospitals                 hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
 }
 
 model hospital_progress {
-  id                  String             @id
-  hospital_id         String
-  project_id          String
-  status              String             @default("pending")
-  progress_percentage Int                @default(0)
-  notes               String?
-  created_at          DateTime           @default(now())
-  updated_at          DateTime           @default(now())
-  project_hospital_id String?            @unique
-  hospitals           hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  project_hospitals   project_hospitals? @relation(fields: [project_hospital_id], references: [id])
+  id                     String             @id
+  hospital_id            String
+  project_id             String
+  status                 String             @default("pending")
+  progress_percentage    Int                @default(0)
+  notes                  String?
+  ethics_submitted       Boolean?
+  ethics_approved        Boolean?
+  ethics_submitted_date  DateTime?
+  ethics_approved_date   DateTime?
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @default(now())
+  project_hospital_id    String?            @unique
+  hospitals              hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  project_hospitals      project_hospitals? @relation(fields: [project_hospital_id], references: [id])
 }
 
 model hospitals {
@@ -155,7 +164,7 @@ model hospitals {
   email                String?
   website              String?
   bed_count            Int?
-  lasos_participation  Boolean                @default(false)
+  lasos_participation  Boolean?
   status               String                 @default("active")
   created_at           DateTime               @default(now())
   updated_at           DateTime               @default(now())

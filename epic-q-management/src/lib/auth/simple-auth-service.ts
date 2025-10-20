@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { NextRequest } from 'next/server';
 import { User, LoginCredentials, LoginResponse } from './types';
 import { prisma } from '@/lib/database';
 
@@ -108,15 +109,11 @@ export class SimpleAuthService {
       };
     } catch (error) {
       console.error('Token verification error:', error);
-      console.error('Token verification error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
       return null;
     }
   }
 
-  static async verifyTokenFromRequest(request: Request): Promise<{ success: boolean; user?: User; error?: string }> {
+  static async verifyTokenFromRequest(request: Request | NextRequest): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
       const token = request.headers.get('auth-token') || 
                    request.headers.get('cookie')?.split(';')

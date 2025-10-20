@@ -31,64 +31,8 @@ export default function CoordinatorCommunicationsPage() {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Mock data for communications
-  const communications = [
-    {
-      id: '1',
-      type: 'email',
-      title: 'Nueva comunicación del comité investigador',
-      message: 'Se ha enviado una actualización importante sobre el protocolo del estudio. Por favor, revisa los cambios en la sección de documentos.',
-      sender: 'Comité Investigador EPIC-Q',
-      date: '2024-01-15T10:30:00Z',
-      read: false,
-      priority: 'high',
-      category: 'protocol'
-    },
-    {
-      id: '2',
-      type: 'call',
-      title: 'Llamada de seguimiento programada',
-      message: 'Se ha programado una llamada de seguimiento para el próximo martes a las 14:00 hs. Por favor, confirma tu disponibilidad.',
-      sender: 'Dr. María González',
-      date: '2024-01-14T16:45:00Z',
-      read: true,
-      priority: 'medium',
-      category: 'follow-up'
-    },
-    {
-      id: '3',
-      type: 'note',
-      title: 'Recordatorio: Subir documento de ética',
-      message: 'Recuerda subir el documento de aprobación del comité de ética antes del 20 de enero.',
-      sender: 'Sistema EPIC-Q',
-      date: '2024-01-13T09:15:00Z',
-      read: true,
-      priority: 'high',
-      category: 'reminder'
-    },
-    {
-      id: '4',
-      type: 'email',
-      title: 'Invitación a webinar de capacitación',
-      message: 'Te invitamos a participar del webinar de capacitación sobre el uso de RedCap el próximo viernes a las 11:00 hs.',
-      sender: 'Equipo de Capacitación',
-      date: '2024-01-12T14:20:00Z',
-      read: false,
-      priority: 'low',
-      category: 'training'
-    },
-    {
-      id: '5',
-      type: 'note',
-      title: 'Confirmación de período de reclutamiento',
-      message: 'Se ha confirmado el período de reclutamiento del 1 al 15 de febrero. Puedes comenzar a registrar casos en RedCap.',
-      sender: 'Sistema EPIC-Q',
-      date: '2024-01-11T11:00:00Z',
-      read: true,
-      priority: 'medium',
-      category: 'confirmation'
-    }
-  ];
+  // Empty communications array - no hardcoded data
+  const communications: any[] = [];
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -202,7 +146,7 @@ export default function CoordinatorCommunicationsPage() {
               <Clock className="h-5 w-5 text-yellow-500" />
               <div>
                 <p className="text-sm font-medium">Esta Semana</p>
-                <p className="text-2xl font-bold">3</p>
+                <p className="text-2xl font-bold">0</p>
               </div>
             </div>
           </CardContent>
@@ -267,7 +211,8 @@ export default function CoordinatorCommunicationsPage() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {filteredCommunications.map((comm) => (
+          {filteredCommunications.length > 0 ? (
+            filteredCommunications.map((comm) => (
             <Card key={comm.id} className={`${!comm.read ? 'border-blue-200 bg-blue-50' : ''}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -321,11 +266,24 @@ export default function CoordinatorCommunicationsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))) : (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Mail className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay comunicaciones
+                </h3>
+                <p className="text-gray-500">
+                  No tienes comunicaciones pendientes en este momento.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="unread" className="space-y-4">
-          {filteredCommunications.filter(comm => !comm.read).map((comm) => (
+          {filteredCommunications.filter(comm => !comm.read).length > 0 ? (
+            filteredCommunications.filter(comm => !comm.read).map((comm) => (
             <Card key={comm.id} className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -377,11 +335,24 @@ export default function CoordinatorCommunicationsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))) : (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Mail className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay comunicaciones no leídas
+                </h3>
+                <p className="text-gray-500">
+                  No tienes comunicaciones pendientes de lectura.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="read" className="space-y-4">
-          {filteredCommunications.filter(comm => comm.read).map((comm) => (
+          {filteredCommunications.filter(comm => comm.read).length > 0 ? (
+            filteredCommunications.filter(comm => comm.read).map((comm) => (
             <Card key={comm.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -432,7 +403,19 @@ export default function CoordinatorCommunicationsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))) : (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Mail className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No hay comunicaciones leídas
+                </h3>
+                <p className="text-gray-500">
+                  No tienes comunicaciones leídas en este momento.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

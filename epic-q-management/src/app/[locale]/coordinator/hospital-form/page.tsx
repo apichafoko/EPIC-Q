@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 
 export default function HospitalFormPage() {
   const { user } = useAuth();
-  const { currentProject } = useProject();
+  const { currentProject, loadProjects } = useProject();
   const { t } = useTranslations();
   const router = useRouter();
   const [isSaved, setIsSaved] = useState(false);
@@ -67,7 +67,17 @@ export default function HospitalFormPage() {
 
   // Load hospital data from current project
   useEffect(() => {
-    if (!currentProject?.coordinatorInfo?.hospital) return;
+    console.log('🔄 useEffect ejecutándose, currentProject:', currentProject);
+    
+    if (!currentProject?.coordinatorInfo?.hospital) {
+      console.log('❌ No hay hospital en currentProject');
+      return;
+    }
+    
+    if (!currentProject.coordinatorInfo.hospital.hospital_details) {
+      console.log('❌ No hay hospital_details en currentProject');
+      return;
+    }
     
     const hospital = currentProject.coordinatorInfo.hospital;
     setHospitalData(hospital);
@@ -75,16 +85,64 @@ export default function HospitalFormPage() {
     // Determinar si los campos de provincia y ciudad deben ser editables
     const hasLocationData = hospital.province && hospital.city;
     
-    setFormData(prev => ({
-      ...prev,
-      name: hospital.name || "",
-      province: hospital.province || "",
-      city: hospital.city || "",
-      participatedLasos: hospital.participated_lasos || false,
-      // Marcar si los campos de ubicación son editables
-      isLocationEditable: !hasLocationData
-    }));
-  }, [currentProject]);
+    // Obtener datos estructurales del hospital
+    const hospitalDetails = hospital.hospital_details;
+    const coordinatorContact = hospital.hospital_contacts?.[0]; // Primer contacto coordinador principal
+    
+    console.log('🔄 Precargando datos del formulario:', {
+      hospitalDetails: hospitalDetails,
+      coordinatorContact: coordinatorContact,
+      financingType: hospitalDetails?.financing_type,
+      hasPreopClinic: hospitalDetails?.has_preop_clinic
+    });
+    
+    // Usar un setTimeout para asegurar que el estado se actualice correctamente
+    setTimeout(() => {
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          // Datos básicos
+          name: hospital.name || "",
+          province: hospital.province || "",
+          city: hospital.city || "",
+          participatedLasos: hospital.lasos_participation || false,
+          // Marcar si los campos de ubicación son editables
+          isLocationEditable: !hasLocationData,
+          
+          // Datos estructurales
+          numBeds: hospitalDetails?.num_beds?.toString() || "",
+          numOperatingRooms: hospitalDetails?.num_operating_rooms?.toString() || "",
+          numIcuBeds: hospitalDetails?.num_icu_beds?.toString() || "",
+          avgWeeklySurgeries: hospitalDetails?.avg_weekly_surgeries?.toString() || "",
+          financingType: hospitalDetails?.financing_type || "",
+          hasPreopClinic: hospitalDetails?.has_preop_clinic || "",
+          
+          // Características del hospital (checkboxes)
+          hasResidencyProgram: hospitalDetails?.has_residency_program || false,
+          hasEthicsCommittee: hospitalDetails?.has_ethics_committee || false,
+          hasRapidResponseTeam: hospitalDetails?.has_rapid_response_team || false,
+          universityAffiliated: hospitalDetails?.university_affiliated || false,
+          
+          // Notas adicionales
+          notes: hospitalDetails?.notes || "",
+          
+          // Datos del coordinador
+          coordinatorFirstName: coordinatorContact?.name?.split(' ')[0] || "",
+          coordinatorLastName: coordinatorContact?.name?.split(' ').slice(1).join(' ') || "",
+          coordinatorEmail: coordinatorContact?.email || "",
+          coordinatorPhone: coordinatorContact?.phone || "",
+          coordinatorPosition: coordinatorContact?.specialty || ""
+        };
+        
+        console.log('✅ FormData actualizado:', {
+          financingType: newFormData.financingType,
+          hasPreopClinic: newFormData.hasPreopClinic
+        });
+        
+        return newFormData;
+      });
+    }, 100);
+  }, [currentProject, loadProjects]);
 
   // Precargar información del coordinador desde el usuario actual
   useEffect(() => {
@@ -185,7 +243,7 @@ export default function HospitalFormPage() {
     if (!formData.coordinatorFirstName.trim()) pending.push('coordinatorFirstName');
     if (!formData.coordinatorLastName.trim()) pending.push('coordinatorLastName');
     if (!formData.coordinatorEmail.trim()) pending.push('coordinatorEmail');
-    // Teléfono es opcional, no se valida como requerido
+    if (!formData.coordinatorPhone.trim()) pending.push('coordinatorPhone'); // Ahora es obligatorio
     if (!formData.coordinatorPosition.trim()) pending.push('coordinatorPosition');
 
     return {
@@ -221,6 +279,10 @@ export default function HospitalFormPage() {
         setIsSaved(true);
         setShowSuccessToast(true);
         toast.success('Formulario guardado exitosamente');
+        
+        // Recargar datos del proyecto para actualizar la información del hospital
+        await loadProjects();
+        
         setTimeout(() => {
           setIsSaved(false);
           setShowSuccessToast(false);
@@ -323,6 +385,10 @@ export default function HospitalFormPage() {
       if (response.ok && data.success) {
         setShowSuccessToast(true);
         toast.success('Formulario completado exitosamente');
+        
+        // Recargar datos del proyecto para actualizar la información del hospital
+        await loadProjects();
+        
         // Redirigir después de mostrar el toast de éxito
         setTimeout(() => {
           router.push('/es/coordinator');
@@ -564,9 +630,9 @@ export default function HospitalFormPage() {
               <SelectValue placeholder="Seleccionar tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="public">Público</SelectItem>
-              <SelectItem value="private">Privado</SelectItem>
-              <SelectItem value="mixed">Mixto</SelectItem>
+              <SelectItem value="Público">Público</SelectItem>
+              <SelectItem value="Privado">Privado</SelectItem>
+              <SelectItem value="Mixto">Mixto</SelectItem>
             </SelectContent>
           </Select>
           {isFieldPending('financingType') && (
@@ -583,9 +649,9 @@ export default function HospitalFormPage() {
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="yes">Sí</SelectItem>
-              <SelectItem value="no">No</SelectItem>
-              <SelectItem value="partial">Parcial</SelectItem>
+              <SelectItem value="Sí">Sí</SelectItem>
+              <SelectItem value="No">No</SelectItem>
+              <SelectItem value="Parcial">Parcial</SelectItem>
             </SelectContent>
           </Select>
           {isFieldPending('hasPreopClinic') && (
@@ -709,7 +775,7 @@ export default function HospitalFormPage() {
 
         <div className="space-y-3">
           <Label htmlFor="coordinatorPhone" className={isFieldPending('coordinatorPhone') ? 'text-red-600 font-medium' : ''}>
-            Teléfono
+            Teléfono <span className="text-red-500">*</span>
           </Label>
           <Input
             id="coordinatorPhone"
@@ -718,7 +784,6 @@ export default function HospitalFormPage() {
             placeholder="+54 11 1234-5678"
             className={getFieldClasses('coordinatorPhone')}
           />
-          <p className="text-sm text-gray-500">Opcional</p>
         </div>
 
         <div className="space-y-3">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/hooks/useTranslations';
+import { Logo } from '@/components/ui/logo';
 import {
   BarChart3,
   Building2,
@@ -38,10 +39,8 @@ export function Sidebar() {
     <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
       {/* Logo */}
       <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
-          <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">EQ</span>
-          </div>
+        <div className="flex items-center space-x-3">
+          <Logo size="md" showText={false} />
           <div>
             <h1 className="text-lg font-semibold text-gray-900">EPIC-Q</h1>
             <p className="text-xs text-gray-500">Sistema de Gestión</p>

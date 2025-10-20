@@ -86,9 +86,8 @@ export class CoordinatorService {
       const hasContacts = hospital.hospital_contacts && hospital.hospital_contacts.length > 0;
       const primaryContact = hasContacts ? hospital.hospital_contacts.find(c => c.is_primary) : null;
 
-      // Verificar si existen períodos asignados
-      const hasPeriod1 = recruitmentPeriods.some(period => period.period_number === 1);
-      const hasPeriod2 = recruitmentPeriods.some(period => period.period_number === 2);
+      // NOTA: Los períodos de reclutamiento se manejan en la etapa de "Progreso", 
+      // no en el formulario del hospital
 
       // Función auxiliar para obtener valores de details de forma segura
       const getDetailValue = (fieldName: string) => {
@@ -118,19 +117,20 @@ export class CoordinatorService {
         { key: 'coordinator_name', label: 'Nombre del Coordinador', value: primaryContact?.name, required: true },
         { key: 'coordinator_email', label: 'Email del Coordinador', value: primaryContact?.email, required: true },
         { key: 'coordinator_phone', label: 'Teléfono del Coordinador', value: primaryContact?.phone, required: true },
-        { key: 'coordinator_position', label: 'Cargo del Coordinador', value: primaryContact?.role, required: true },
+        { key: 'coordinator_position', label: 'Cargo del Coordinador', value: primaryContact?.specialty, required: true }
         
-        // Períodos de reclutamiento
-        { key: 'dates_assigned_period1', label: 'Fechas Asignadas Período 1', value: hasPeriod1, required: true },
-        { key: 'dates_assigned_period2', label: 'Fechas Asignadas Período 2', value: hasPeriod2, required: true }
+        // NOTA: Los períodos de reclutamiento (dates_assigned_period1, dates_assigned_period2) 
+        // pertenecen a la etapa de "Progreso", no al formulario del hospital
       ];
+
 
       // Calcular campos completados
       const requiredFields = criticalFields.filter(field => field.required);
       const completedFields = requiredFields.filter(field => {
         if (typeof field.value === 'boolean') {
-          // Para campos booleanos, solo true se considera completado
-          return field.value === true;
+          // Para campos booleanos, solo se considera completado si tiene un valor explícito (true o false)
+          // null o undefined se consideran pendientes
+          return field.value !== null && field.value !== undefined;
         }
         // Para otros campos, verificar que no estén vacíos
         return field.value !== null && field.value !== undefined && field.value !== '';
@@ -139,8 +139,8 @@ export class CoordinatorService {
       const missingFields = requiredFields
         .filter(field => {
           if (typeof field.value === 'boolean') {
-            // Para campos booleanos, false, null o undefined se consideran faltantes
-            return field.value !== true;
+            // Para campos booleanos, null o undefined se consideran faltantes
+            return field.value === null || field.value === undefined;
           }
           return field.value === null || field.value === undefined || field.value === '';
         })
@@ -152,17 +152,10 @@ export class CoordinatorService {
       const isUrgent = !isComplete && (hospital?.created_at && 
         (new Date().getTime() - hospital.created_at.getTime()) > 7 * 24 * 60 * 60 * 1000);
 
-      // Obtener períodos de reclutamiento próximos
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
+      // Obtener períodos de reclutamiento totales
       const upcomingPeriods = await prisma.recruitment_periods.count({
         where: {
-          project_hospital_id: projectHospital.id,
-          start_date: {
-            gte: new Date(),
-            lte: thirtyDaysFromNow
-          }
+          project_hospital_id: projectHospital.id
         }
       });
 
@@ -216,7 +209,14 @@ export class CoordinatorService {
           progress: progress,
           projectHospital: projectHospital,
           requiredPeriods: projectHospital.required_periods
-        }
+        },
+        recruitmentPeriods: recruitmentPeriods.map(period => ({
+          id: period.id,
+          periodNumber: period.period_number,
+          startDate: period.start_date,
+          endDate: period.end_date,
+          targetCases: period.target_cases
+        }))
       };
     } catch (error) {
       console.error('Error fetching coordinator stats:', error);

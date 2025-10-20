@@ -15,6 +15,7 @@ import {
 import { SimpleLanguageSelector } from '@/components/simple-language-selector';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useTranslations } from '@/hooks/useTranslations';
+import { Logo } from '@/components/ui/logo';
 import { useAuth } from '@/contexts/auth-context';
 import { mockAlerts } from '@/lib/mock-data';
 
@@ -36,7 +37,7 @@ export function Header({ userId }: HeaderProps) {
       <div className="flex items-center justify-between">
             {/* Breadcrumb */}
             <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span>EPIC-Q</span>
+              <Logo size="sm" showText={false} />
               <span>/</span>
               <span className="text-gray-900">{t('common.dashboard')}</span>
             </div>

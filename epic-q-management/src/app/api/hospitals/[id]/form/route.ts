@@ -29,6 +29,11 @@ export async function PUT(
     });
     
     const {
+      // Datos básicos del hospital
+      name,
+      province,
+      city,
+      participatedLasos,
       // Datos estructurales
       numBeds,
       numOperatingRooms,
@@ -72,6 +77,25 @@ export async function PUT(
       }
     }
 
+        // Actualizar datos básicos del hospital (sin duplicar bed_count)
+        console.log('Updating hospital basic info:', {
+          hospitalId,
+          province,
+          city,
+          lasos_participation: participatedLasos
+        });
+
+        await prisma.hospitals.update({
+          where: { id: hospitalId },
+          data: {
+            province: province || '',
+            city: city || '',
+            lasos_participation: participatedLasos || false
+          }
+        });
+
+        console.log('Hospital basic info updated successfully');
+
     // Actualizar o crear hospital_details
     console.log('Saving hospital details:', {
       hospitalId,
@@ -88,36 +112,37 @@ export async function PUT(
       notes: notes || ''
     });
 
-    const detailsResult = await prisma.hospital_details.upsert({
-      where: { hospital_id: hospitalId },
-      update: {
-        num_beds: parseInt(numBeds) || 0,
-        num_operating_rooms: parseInt(numOperatingRooms) || 0,
-        num_icu_beds: parseInt(numIcuBeds) || 0,
-        avg_weekly_surgeries: parseInt(avgWeeklySurgeries) || 0,
-        has_residency_program: hasResidencyProgram || false,
-        has_preop_clinic: hasPreopClinic || '',
-        has_rapid_response_team: hasRapidResponseTeam || false,
-        financing_type: financingType || '',
-        has_ethics_committee: hasEthicsCommittee || false,
-        university_affiliated: universityAffiliated || false,
-        notes: notes || ''
-      },
-      create: {
-        hospital_id: hospitalId,
-        num_beds: parseInt(numBeds) || 0,
-        num_operating_rooms: parseInt(numOperatingRooms) || 0,
-        num_icu_beds: parseInt(numIcuBeds) || 0,
-        avg_weekly_surgeries: parseInt(avgWeeklySurgeries) || 0,
-        has_residency_program: hasResidencyProgram || false,
-        has_preop_clinic: hasPreopClinic || '',
-        has_rapid_response_team: hasRapidResponseTeam || false,
-        financing_type: financingType || '',
-        has_ethics_committee: hasEthicsCommittee || false,
-        university_affiliated: universityAffiliated || false,
-        notes: notes || ''
-      }
-    });
+        const detailsResult = await prisma.hospital_details.upsert({
+          where: { hospital_id: hospitalId },
+          update: {
+            num_beds: parseInt(numBeds) || 0,
+            num_operating_rooms: parseInt(numOperatingRooms) || 0,
+            num_icu_beds: parseInt(numIcuBeds) || 0,
+            avg_weekly_surgeries: parseInt(avgWeeklySurgeries) || 0,
+            has_preop_clinic: hasPreopClinic || '',
+            financing_type: financingType || '',
+            has_residency_program: hasResidencyProgram || false,
+            has_ethics_committee: hasEthicsCommittee || false,
+            has_rapid_response_team: hasRapidResponseTeam || false,
+            university_affiliated: universityAffiliated || false,
+            notes: notes || ''
+          },
+          create: {
+            id: `details-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            hospital_id: hospitalId,
+            num_beds: parseInt(numBeds) || 0,
+            num_operating_rooms: parseInt(numOperatingRooms) || 0,
+            num_icu_beds: parseInt(numIcuBeds) || 0,
+            avg_weekly_surgeries: parseInt(avgWeeklySurgeries) || 0,
+            has_preop_clinic: hasPreopClinic || '',
+            financing_type: financingType || '',
+            has_residency_program: hasResidencyProgram || false,
+            has_ethics_committee: hasEthicsCommittee || false,
+            has_rapid_response_team: hasRapidResponseTeam || false,
+            university_affiliated: universityAffiliated || false,
+            notes: notes || ''
+          }
+        });
 
     console.log('Hospital details saved:', detailsResult);
 
@@ -126,45 +151,70 @@ export async function PUT(
       // Combinar nombre y apellido
       const fullName = [coordinatorFirstName, coordinatorLastName].filter(Boolean).join(' ');
       
-      await prisma.contact.upsert({
-        where: { 
-          hospital_id_role: {
-            hospital_id: hospitalId,
-            role: 'coordinator'
-          }
-        },
-        update: {
-          name: fullName || '',
-          email: coordinatorEmail || '',
-          phone: coordinatorPhone || '',
-          specialty: coordinatorPosition || '',
-          is_primary: true
-        },
-        create: {
+      // Buscar si ya existe un contacto coordinador principal
+      const existingContact = await prisma.hospital_contacts.findFirst({
+        where: {
           hospital_id: hospitalId,
           role: 'coordinator',
-          name: fullName || '',
-          email: coordinatorEmail || '',
-          phone: coordinatorPhone || '',
-          specialty: coordinatorPosition || '',
           is_primary: true
         }
       });
+
+      if (existingContact) {
+        // Actualizar contacto existente
+        await prisma.hospital_contacts.update({
+          where: { id: existingContact.id },
+          data: {
+            name: fullName || '',
+            email: coordinatorEmail || '',
+            phone: coordinatorPhone || '',
+            specialty: coordinatorPosition || '',
+            is_primary: true
+          }
+        });
+      } else {
+        // Crear nuevo contacto
+        await prisma.hospital_contacts.create({
+          data: {
+            id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            hospital_id: hospitalId,
+            role: 'coordinator',
+            name: fullName || '',
+            email: coordinatorEmail || '',
+            phone: coordinatorPhone || '',
+            specialty: coordinatorPosition || '',
+            is_primary: true
+          }
+        });
+      }
     }
 
     // Actualizar el progreso del hospital
-    await prisma.hospital_progress.upsert({
+    // Buscar el project_hospital_id para este hospital
+    const projectHospital = await prisma.project_hospitals.findFirst({
       where: { hospital_id: hospitalId },
-      update: {
-        descriptive_form_status: 'completed',
-        updated_at: new Date()
-      },
-      create: {
-        hospital_id: hospitalId,
-        descriptive_form_status: 'completed',
-        updated_at: new Date()
-      }
+      select: { id: true, project_id: true }
     });
+
+    if (projectHospital) {
+      await prisma.hospital_progress.upsert({
+        where: { project_hospital_id: projectHospital.id },
+        update: {
+          status: 'completed',
+          progress_percentage: 100,
+          updated_at: new Date()
+        },
+        create: {
+          id: `progress-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          hospital_id: hospitalId,
+          project_id: projectHospital.project_id,
+          project_hospital_id: projectHospital.id,
+          status: 'completed',
+          progress_percentage: 100,
+          updated_at: new Date()
+        }
+      });
+    }
 
     return NextResponse.json({
       success: true,

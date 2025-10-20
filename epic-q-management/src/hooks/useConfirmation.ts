@@ -25,7 +25,7 @@ export function useConfirmation() {
     onCancel?: () => void
   ) => {
     setConfirmationData({ options, onConfirm, onCancel });
-    setIsConfirming(false); // Mostrar el toast de confirmación sin estado de loading
+    setIsConfirming(true); // Mostrar el toast de confirmación
   }, []);
 
   const handleConfirm = useCallback(async () => {

@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .epic-text { fill: #ffffff; font-family: 'Arial', sans-serif; font-weight: bold; font-size: 6px; }
+      .q-text { fill: #fb923c; font-family: 'Arial', sans-serif; font-weight: bold; font-size: 7px; }
+    </style>
+  </defs>
+  
+  <!-- Fondo azul con bordes redondeados -->
+  <rect width="32" height="32" rx="3" ry="3" fill="#1e3a8a"/>
+  
+  <!-- Texto EPIC -->
+  <text x="16" y="14" text-anchor="middle" class="epic-text">EPIC</text>
+  
+  <!-- Texto Q en naranja, posicionado ligeramente más abajo -->
+  <text x="16" y="21" text-anchor="middle" class="q-text">Q</text>
+</svg>

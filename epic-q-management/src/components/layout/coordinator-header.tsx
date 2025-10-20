@@ -1,10 +1,8 @@
 'use client';
 
 import { useAuth } from '@/contexts/auth-context';
-import { Bell, Search, User, LogOut } from 'lucide-react';
+import { Bell, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +14,7 @@ import {
 import { SimpleLanguageSelector } from '@/components/simple-language-selector';
 import { ProjectSelector } from '@/components/layout/project-selector';
 import { useTranslations } from '@/hooks/useTranslations';
+import { Logo } from '@/components/ui/logo';
 
 export function CoordinatorHeader() {
   const { user, logout, isLoading } = useAuth();
@@ -31,7 +30,7 @@ export function CoordinatorHeader() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <span>EPIC-Q</span>
+            <Logo size="sm" showText={false} />
             <span>/</span>
             <span className="text-gray-900">{t('common.dashboard')}</span>
           </div>
@@ -48,7 +47,7 @@ export function CoordinatorHeader() {
       <div className="flex items-center justify-between">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <span>EPIC-Q</span>
+          <Logo size="sm" showText={false} />
           <span>/</span>
           <span className="text-gray-900">{t('common.dashboard')}</span>
         </div>
@@ -58,39 +57,19 @@ export function CoordinatorHeader() {
           {/* Project Selector */}
           <ProjectSelector />
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder={t('common.search')}
-              className="pl-10 w-80"
-            />
-          </div>
 
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                >
-                  3
-                </Badge>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel>{t('common.notifications')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-orange-500" />
-                  <span className="font-medium">Nueva comunicación</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Tienes una nueva comunicación del comité investigador
-                </p>
+              <DropdownMenuItem>
+                <span className="text-gray-500">No hay notificaciones</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

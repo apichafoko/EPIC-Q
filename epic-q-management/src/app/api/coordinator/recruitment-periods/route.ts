@@ -231,11 +231,11 @@ export async function POST(request: NextRequest) {
     // Crear nuevo período de reclutamiento
     const newPeriod = await prisma.recruitment_periods.create({
       data: {
+        id: `period-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         project_hospital_id: projectHospital.id,
         period_number: nextPeriodNumber,
         start_date: new Date(startDate),
-        end_date: new Date(endDate),
-        status: status as 'planned' | 'active' | 'completed'
+        end_date: new Date(endDate)
       }
     });
 
@@ -245,8 +245,7 @@ export async function POST(request: NextRequest) {
         id: newPeriod.id,
         periodNumber: newPeriod.period_number,
         startDate: newPeriod.start_date,
-        endDate: newPeriod.end_date,
-        status: newPeriod.status
+        endDate: newPeriod.end_date
       }
     });
 

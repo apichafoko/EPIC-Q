@@ -1,6 +1,7 @@
 import { EmailService } from './email-service';
 import { EmailTemplateService } from './email-template-service';
 import { prisma } from '@/lib/database';
+import { getLogoBase64 } from './email-logo';
 
 interface ProjectInvitationData {
   projectName: string;
@@ -112,17 +113,10 @@ class ProjectInvitationService {
             border-bottom: 2px solid #e2e8f0;
         }
         .logo {
-            background: #2563eb;
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 80px;
+            height: 80px;
             margin: 0 auto 15px;
-            font-size: 24px;
-            font-weight: bold;
+            display: block;
         }
         .title {
             color: #1e40af;
@@ -207,7 +201,7 @@ class ProjectInvitationService {
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">EQ</div>
+            <img src="${getLogoBase64()}" alt="EPIC-Q Logo" class="logo" />
             <h1 class="title">EPIC-Q</h1>
             <p class="subtitle">Sistema de Gestión de Proyectos</p>
         </div>

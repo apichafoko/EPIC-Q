@@ -28,7 +28,43 @@ export const GET = withCoordinatorAuth(async (request: NextRequest, context: Aut
             id: true,
             name: true,
             province: true,
-            city: true
+            city: true,
+            address: true,
+            phone: true,
+            email: true,
+            website: true,
+            bed_count: true,
+            lasos_participation: true,
+            status: true,
+            created_at: true,
+            updated_at: true,
+            hospital_details: {
+              select: {
+                num_beds: true,
+                num_operating_rooms: true,
+                num_icu_beds: true,
+                avg_weekly_surgeries: true,
+                financing_type: true,
+                has_preop_clinic: true,
+                has_residency_program: true,
+                has_ethics_committee: true,
+                has_rapid_response_team: true,
+                university_affiliated: true,
+                notes: true
+              }
+            },
+            hospital_contacts: {
+              where: {
+                role: 'coordinator',
+                is_primary: true
+              },
+              select: {
+                name: true,
+                email: true,
+                phone: true,
+                specialty: true
+              }
+            }
           }
         }
       },

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/database';
+import { getLogoBase64 } from './email-logo';
 
 export interface EmailTemplate {
   id: string;
@@ -176,23 +177,29 @@ export class EmailTemplateService {
     subject: string;
     body: string;
   } {
+    // Agregar logo al inicio
+    const enhancedVariables = {
+      ...variables,
+      logoUrl: getLogoBase64()
+    };
+    
     let processedSubject = template.email_subject || template.subject || 'Invitación al sistema EPIC-Q';
     let processedBody = template.email_body || template.body || '';
 
     // Reemplazar variables en el subject
-    Object.keys(variables).forEach(key => {
+    Object.keys(enhancedVariables).forEach(key => {
       const placeholder = `{{${key}}}`;
-      const value = variables[key] || '';
+      const value = enhancedVariables[key] || '';
       processedSubject = processedSubject.replace(new RegExp(placeholder, 'g'), String(value));
     });
 
     // Procesar el body con lógica condicional
-    processedBody = this.processConditionalBlocks(processedBody, variables);
+    processedBody = this.processConditionalBlocks(processedBody, enhancedVariables);
 
     // Reemplazar variables en el body
-    Object.keys(variables).forEach(key => {
+    Object.keys(enhancedVariables).forEach(key => {
       const placeholder = `{{${key}}}`;
-      const value = variables[key] || '';
+      const value = enhancedVariables[key] || '';
       processedBody = processedBody.replace(new RegExp(placeholder, 'g'), String(value));
     });
 
@@ -250,6 +257,7 @@ export class EmailTemplateService {
 <body>
     <div class="container">
         <div class="header">
+            <img src="{{logoUrl}}" alt="EPIC-Q Logo" style="width: 120px; height: 120px; margin: 0 auto 20px; display: block;" />
             <h1>¡Bienvenido a {{systemName}}!</h1>
         </div>
         <div class="content">
@@ -305,7 +313,8 @@ export class EmailTemplateService {
           hospitalName: 'string',
           invitationLink: 'string',
           systemName: 'string',
-          temporaryPassword: 'string'
+          temporaryPassword: 'string',
+          logoUrl: 'string'
         },
         category: 'invitation'
       },
@@ -330,6 +339,7 @@ export class EmailTemplateService {
 <body>
     <div class="container">
         <div class="header">
+            <img src="{{logoUrl}}" alt="EPIC-Q Logo" style="width: 120px; height: 120px; margin: 0 auto 20px; display: block;" />
             <h1>Restablecer Contraseña</h1>
         </div>
         <div class="content">
@@ -359,7 +369,8 @@ export class EmailTemplateService {
           userName: 'string',
           userEmail: 'string',
           resetLink: 'string',
-          systemName: 'string'
+          systemName: 'string',
+          logoUrl: 'string'
         },
         category: 'password_reset'
       }

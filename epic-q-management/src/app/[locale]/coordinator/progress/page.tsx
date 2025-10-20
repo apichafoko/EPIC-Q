@@ -193,6 +193,18 @@ export default function CoordinatorProgressPage() {
 
   const handleDateChange = (field: string, date: Date | undefined) => {
     if (date) {
+      // Validar fechas de ética (no pueden ser futuras)
+      if (field === 'ethicsSubmittedDate' || field === 'ethicsApprovedDate') {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // Permitir hasta el final del día actual
+        
+        if (date > today) {
+          showError('Las fechas de ética no pueden ser futuras');
+          setShowCalendar(null);
+          return;
+        }
+      }
+
       if (field === 'editStart' || field === 'editEnd') {
         // Manejar fechas del modal de edición
         if (editingPeriod) {
@@ -203,10 +215,20 @@ export default function CoordinatorProgressPage() {
         }
       } else {
         // Manejar fechas del formulario principal
-        setProgressData(prev => ({
-          ...prev,
-          [field]: date
-        }));
+        setProgressData(prev => {
+          const newData = {
+            ...prev,
+            [field]: date
+          };
+
+          // Si se selecciona fecha de inicio de reclutamiento, 
+          // limpiar fecha de fin para forzar nueva selección
+          if (field === 'recruitmentStartDate') {
+            newData.recruitmentEndDate = null;
+          }
+
+          return newData;
+        });
       }
     }
     setShowCalendar(null);
@@ -241,8 +263,7 @@ export default function CoordinatorProgressPage() {
       return;
     }
 
-    setIsLoading(true);
-    try {
+    await executeWithSavingPeriod(async () => {
       if (!currentProject?.id) {
         showError('No hay proyecto seleccionado');
         return;
@@ -256,8 +277,7 @@ export default function CoordinatorProgressPage() {
         credentials: 'include',
         body: JSON.stringify({
           startDate: progressData.recruitmentStartDate.toISOString(),
-          endDate: progressData.recruitmentEndDate.toISOString(),
-          status: 'planned'
+          endDate: progressData.recruitmentEndDate.toISOString()
         }),
       });
 
@@ -280,12 +300,7 @@ export default function CoordinatorProgressPage() {
         console.error('Error creating period:', data.error);
         showError('Error al crear el período: ' + (data.error || 'Error desconocido'));
       }
-    } catch (error) {
-      console.error('Error creating period:', error);
-      showError('Error al crear el período. Por favor, inténtalo de nuevo.');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const handleEditPeriod = (period: any) => {
@@ -385,10 +400,16 @@ export default function CoordinatorProgressPage() {
 
   const saveEthicsInformation = async () => {
     await executeWithSavingEthics(async () => {
-      const response = await fetch('/api/coordinator/ethics', {
+      if (!currentProject?.id) {
+        toast.error('No hay proyecto seleccionado');
+        return;
+      }
+
+      const response = await fetch(`/api/coordinator/ethics?projectId=${currentProject.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-project-id': currentProject.id
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -399,7 +420,11 @@ export default function CoordinatorProgressPage() {
         }),
       });
 
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+      
       const data = await response.json();
+      console.log('🔍 Response data:', data);
 
       if (response.ok && data.success) {
         setShowSuccessToast(true);
@@ -408,8 +433,20 @@ export default function CoordinatorProgressPage() {
         // Recargar la información de ética para mostrar los cambios
         await loadEthicsInformation();
       } else {
-        console.error('Error saving ethics information:', data.error);
-        toast.error('Error al guardar la información de ética: ' + (data.error || 'Error desconocido'));
+        console.error('Error saving ethics information:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          fullData: data
+        });
+        
+        if (response.status === 401) {
+          toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+          // Redirigir al login
+          window.location.href = '/es/auth/login';
+        } else {
+          toast.error('Error al guardar la información de ética: ' + (data.error || 'Error desconocido'));
+        }
       }
     });
   };
@@ -427,10 +464,25 @@ export default function CoordinatorProgressPage() {
     }
   };
 
+  // Verificar si el formulario del hospital está completo
+  const isHospitalFormComplete = currentProject?.coordinatorInfo?.hospital?.hospital_details && 
+    currentProject.coordinatorInfo.hospital.hospital_details.num_beds &&
+    currentProject.coordinatorInfo.hospital.hospital_details.num_operating_rooms &&
+    currentProject.coordinatorInfo.hospital.hospital_details.num_icu_beds &&
+    currentProject.coordinatorInfo.hospital.hospital_details.avg_weekly_surgeries &&
+    currentProject.coordinatorInfo.hospital.hospital_details.financing_type &&
+    currentProject.coordinatorInfo.hospital.hospital_details.has_preop_clinic &&
+    currentProject.coordinatorInfo.hospital.lasos_participation !== null &&
+    currentProject.coordinatorInfo.hospital.hospital_contacts?.[0]?.name &&
+    currentProject.coordinatorInfo.hospital.hospital_contacts?.[0]?.email &&
+    currentProject.coordinatorInfo.hospital.hospital_contacts?.[0]?.phone &&
+    currentProject.coordinatorInfo.hospital.hospital_contacts?.[0]?.specialty;
+
   const overallProgressItems = [
+    { label: 'Formulario del Hospital', completed: isHospitalFormComplete },
     { label: 'Ética Enviada', completed: progressData.ethicsSubmitted },
     { label: 'Ética Aprobada', completed: progressData.ethicsApproved },
-    { label: 'Períodos de Reclutamiento', completed: progressData.recruitmentPeriods.length > 0 }
+    { label: 'Períodos de Reclutamiento', completed: progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2) }
   ];
 
   const completedCount = overallProgressItems.filter(item => item.completed).length;
@@ -485,7 +537,7 @@ export default function CoordinatorProgressPage() {
             </div>
             <Progress value={progressPercentage} className="h-3" />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               {overallProgressItems.map((item, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   {item.completed ? (
@@ -502,6 +554,100 @@ export default function CoordinatorProgressPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Next Steps Section - Only show when hospital form is complete */}
+      {isHospitalFormComplete && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-blue-800">
+              <CheckCircle className="h-5 w-5" />
+              <span>🎯 Próximos Pasos</span>
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              ¡Excelente! Has completado el formulario del hospital. Ahora continúa con estas tareas importantes:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-lg border-2 ${
+                  progressData.ethicsApproved 
+                    ? 'border-green-200 bg-green-50' 
+                    : progressData.ethicsSubmitted 
+                      ? 'border-blue-200 bg-blue-50' 
+                      : 'border-yellow-200 bg-yellow-50'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      progressData.ethicsApproved 
+                        ? 'bg-green-100 text-green-600' 
+                        : progressData.ethicsSubmitted 
+                          ? 'bg-blue-100 text-blue-600' 
+                          : 'bg-yellow-100 text-yellow-600'
+                    }`}>
+                      1
+                    </div>
+                    <div>
+                      <h4 className={`font-medium ${
+                        progressData.ethicsApproved 
+                          ? 'text-green-800' 
+                          : progressData.ethicsSubmitted 
+                            ? 'text-blue-800' 
+                            : 'text-yellow-800'
+                      }`}>
+                        Comité de Ética
+                      </h4>
+                      <p className={`text-sm ${
+                        progressData.ethicsApproved 
+                          ? 'text-green-600' 
+                          : progressData.ethicsSubmitted 
+                            ? 'text-blue-600' 
+                            : 'text-yellow-600'
+                      }`}>
+                        {progressData.ethicsApproved 
+                          ? '✅ Aprobado por el comité' 
+                          : progressData.ethicsSubmitted 
+                            ? '⏳ Pendiente de aprobar' 
+                            : '⚠️ Pendiente de presentar'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-lg border-2 ${
+                  progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2)
+                    ? 'border-green-200 bg-green-50' 
+                    : 'border-yellow-200 bg-yellow-50'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2)
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-yellow-100 text-yellow-600'
+                    }`}>
+                      2
+                    </div>
+                    <div>
+                      <h4 className={`font-medium ${
+                        progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2) ? 'text-green-800' : 'text-yellow-800'
+                      }`}>
+                        Períodos de Reclutamiento
+                      </h4>
+                      <p className={`text-sm ${
+                        progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2) ? 'text-green-600' : 'text-yellow-600'
+                      }`}>
+                        {progressData.recruitmentPeriods.length >= (hospitalInfo.requiredPeriods || 2)
+                          ? `✅ ${progressData.recruitmentPeriods.length}/${hospitalInfo.requiredPeriods || 2} períodos completados` 
+                          : `⚠️ ${progressData.recruitmentPeriods.length}/${hospitalInfo.requiredPeriods || 2} períodos configurados`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ethics Committee Section */}
       <Card>
@@ -546,6 +692,11 @@ export default function CoordinatorProgressPage() {
                       mode="single"
                       selected={progressData.ethicsSubmittedDate || undefined}
                       onSelect={(date) => handleDateChange('ethicsSubmittedDate', date)}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(23, 59, 59, 999);
+                        return date > today;
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -587,6 +738,11 @@ export default function CoordinatorProgressPage() {
                         mode="single"
                         selected={progressData.ethicsApprovedDate || undefined}
                         onSelect={(date) => handleDateChange('ethicsApprovedDate', date)}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(23, 59, 59, 999);
+                          return date > today;
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
@@ -691,13 +847,22 @@ export default function CoordinatorProgressPage() {
 
               <div className="space-y-3">
                 <Label>Fecha de Fin</Label>
+                {progressData.recruitmentStartDate && (
+                  <p className="text-sm text-gray-600">
+                    Debe ser posterior al {format(progressData.recruitmentStartDate, 'PPP', { locale: es })}
+                  </p>
+                )}
                 <Popover open={showCalendar === 'recruitmentEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'recruitmentEnd' ? null : 'recruitmentEnd')}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-left font-normal"
+                      disabled={!progressData.recruitmentStartDate}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.recruitmentEndDate ? 
                         format(progressData.recruitmentEndDate, 'PPP', { locale: es }) : 
-                        'Seleccionar fecha'
+                        progressData.recruitmentStartDate ? 'Seleccionar fecha' : 'Selecciona primero la fecha de inicio'
                       }
                     </Button>
                   </PopoverTrigger>
@@ -709,6 +874,7 @@ export default function CoordinatorProgressPage() {
                       disabled={(date) => {
                         const today = new Date(new Date().setHours(0, 0, 0, 0));
                         const startDate = progressData.recruitmentStartDate;
+                        // Deshabilitar fechas anteriores a hoy o anteriores/iguales a la fecha de inicio
                         return date < today || (startDate && date <= startDate);
                       }}
                       initialFocus
@@ -723,11 +889,11 @@ export default function CoordinatorProgressPage() {
               disabled={
                 !progressData.recruitmentStartDate || 
                 !progressData.recruitmentEndDate || 
-                isLoading ||
+                isSavingPeriod ||
                 progressData.recruitmentPeriods.length >= hospitalInfo.requiredPeriods
               }
             >
-              {isLoading ? (
+              {isSavingPeriod ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Guardando...

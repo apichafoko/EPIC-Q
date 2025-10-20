@@ -69,23 +69,41 @@ export async function PUT(request: NextRequest) {
     const submittedDate = ethicsSubmittedDate ? new Date(ethicsSubmittedDate) : null;
     const approvedDate = ethicsApprovedDate ? new Date(ethicsApprovedDate) : null;
 
-    // Actualizar el progreso del hospital en el proyecto
-    const updatedProgress = await prisma.project_hospitalsProgress.upsert({
-      where: { project_hospital_id: projectHospital.id },
-      update: {
-        ethics_submitted: ethicsSubmitted,
-        ethics_approved: ethicsApproved,
-        ethics_submitted_date: submittedDate,
-        ethics_approved_date: approvedDate,
-      },
-      create: {
-        project_hospital_id: projectHospital.id,
-        ethics_submitted: ethicsSubmitted,
-        ethics_approved: ethicsApproved,
-        ethics_submitted_date: submittedDate,
-        ethics_approved_date: approvedDate,
-      },
+    // Buscar si ya existe un registro de progreso
+    let existingProgress = await prisma.hospital_progress.findFirst({
+      where: {
+        hospital_id: projectCoordinator.hospital_id,
+        project_id: projectId
+      }
     });
+
+    let updatedProgress;
+    if (existingProgress) {
+      // Actualizar registro existente
+      updatedProgress = await prisma.hospital_progress.update({
+        where: { id: existingProgress.id },
+        data: {
+          ethics_submitted: ethicsSubmitted,
+          ethics_approved: ethicsApproved,
+          ethics_submitted_date: submittedDate,
+          ethics_approved_date: approvedDate,
+        }
+      });
+    } else {
+      // Crear nuevo registro
+      updatedProgress = await prisma.hospital_progress.create({
+        data: {
+          id: `progress-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          hospital_id: projectCoordinator.hospital_id,
+          project_id: projectId,
+          project_hospital_id: projectHospital.id,
+          ethics_submitted: ethicsSubmitted,
+          ethics_approved: ethicsApproved,
+          ethics_submitted_date: submittedDate,
+          ethics_approved_date: approvedDate,
+        }
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -95,6 +113,11 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Error updating ethics information:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

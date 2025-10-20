@@ -7,6 +7,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { toast } from 'sonner';
 import { AuthGuard } from '@/components/auth/auth-guard';
+import { EmailTemplateService } from '@/lib/notifications/email-template-service';
 import { ConfirmationToast } from '@/components/ui/confirmation-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,65 @@ export default function TemplatesPage() {
     category: 'general',
     is_active: true
   });
+
+  // Función para procesar variables del template
+  const processTemplateVariables = (template: Template) => {
+    // Obtener el logo en base64
+    const getLogoBase64 = () => {
+      try {
+        // Logo oficial de EPIC-Q en base64
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiByeD0iNDAiIGZpbGw9IiMxZTNhOGEiLz4KPHRleHQgeD0iNzAiIHk9IjEwMCIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSI4MCIgZmlsbD0id2hpdGUiPkVQSUM8L3RleHQ+Cjx0ZXh0IHg9IjEzMCIgeT0iMTEwIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjgwIiBmaWxsPSIjZmI5MjNjIj5RPC90ZXh0Pgo8L3N2Zz4K';
+      } catch (error) {
+        console.error('Error loading logo:', error);
+        return '';
+      }
+    };
+
+    const sampleVariables = {
+      userName: 'Dr. Juan Pérez',
+      userEmail: 'juan.perez@hospital.com',
+      hospitalName: 'Hospital de Prueba',
+      projectName: 'Proyecto EPIC-Q 2024',
+      systemName: 'EPIC-Q Management System',
+      invitationLink: 'http://localhost:3000/es/auth/login',
+      resetLink: 'http://localhost:3000/es/auth/reset-password',
+      temporaryPassword: 'TempPass123!',
+      requiredPeriods: 2,
+      projectDescription: 'Estudio Perioperatorio Integral de Cuidados Quirúrgicos',
+      meetingDate: '15 de Enero, 2024',
+      meetingTime: '10:00 AM',
+      meetingType: 'Virtual',
+      meetingDuration: '1 hora',
+      meetingLink: 'https://meet.google.com/abc-def-ghi',
+      caseId: 'CASE-001',
+      newStatus: 'En Progreso',
+      changeDate: '10 de Enero, 2024',
+      additionalInfo: 'El caso ha sido actualizado con nueva información.',
+      systemUrl: 'http://localhost:3000/es/dashboard',
+      logoUrl: getLogoBase64()
+    };
+
+    // Procesar subject
+    let processedSubject = template.email_subject || template.internal_subject || '';
+    Object.keys(sampleVariables).forEach(key => {
+      const placeholder = `{{${key}}}`;
+      const value = sampleVariables[key as keyof typeof sampleVariables] || '';
+      processedSubject = processedSubject.replace(new RegExp(placeholder, 'g'), String(value));
+    });
+
+    // Procesar body
+    let processedBody = template.email_body || template.internal_body || '';
+    Object.keys(sampleVariables).forEach(key => {
+      const placeholder = `{{${key}}}`;
+      const value = sampleVariables[key as keyof typeof sampleVariables] || '';
+      processedBody = processedBody.replace(new RegExp(placeholder, 'g'), String(value));
+    });
+
+    return {
+      subject: processedSubject,
+      body: processedBody
+    };
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -800,18 +860,25 @@ export default function TemplatesPage() {
                       Comunicación Interna
                     </h3>
                     <div className="border rounded-lg p-4 bg-blue-50">
-                      {previewTemplate.internal_subject && (
-                        <div className="mb-3">
-                          <Label className="text-sm font-medium text-gray-600">Asunto:</Label>
-                          <p className="text-sm font-medium">{previewTemplate.internal_subject}</p>
-                        </div>
-                      )}
-                      <div>
-                        <Label className="text-sm font-medium text-gray-600">Contenido:</Label>
-                        <div className="mt-1 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
-                          {previewTemplate.internal_body}
-                        </div>
-                      </div>
+                      {(() => {
+                        const processed = processTemplateVariables(previewTemplate);
+                        return (
+                          <>
+                            {processed.subject && (
+                              <div className="mb-3">
+                                <Label className="text-sm font-medium text-gray-600">Asunto:</Label>
+                                <p className="text-sm font-medium">{processed.subject}</p>
+                              </div>
+                            )}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-600">Contenido:</Label>
+                              <div className="mt-1 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                                {processed.body}
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -824,19 +891,26 @@ export default function TemplatesPage() {
                       Email
                     </h3>
                     <div className="border rounded-lg p-4 bg-green-50">
-                      {previewTemplate.email_subject && (
-                        <div className="mb-3">
-                          <Label className="text-sm font-medium text-gray-600">Asunto:</Label>
-                          <p className="text-sm font-medium">{previewTemplate.email_subject}</p>
-                        </div>
-                      )}
-                      <div>
-                        <Label className="text-sm font-medium text-gray-600">Contenido:</Label>
-                        <div 
-                          className="mt-1 p-3 bg-white rounded border text-sm"
-                          dangerouslySetInnerHTML={{ __html: previewTemplate.email_body || '' }}
-                        />
-                      </div>
+                      {(() => {
+                        const processed = processTemplateVariables(previewTemplate);
+                        return (
+                          <>
+                            {processed.subject && (
+                              <div className="mb-3">
+                                <Label className="text-sm font-medium text-gray-600">Asunto:</Label>
+                                <p className="text-sm font-medium">{processed.subject}</p>
+                              </div>
+                            )}
+                            <div>
+                              <Label className="text-sm font-medium text-gray-600">Contenido:</Label>
+                              <div 
+                                className="mt-1 p-3 bg-white rounded border text-sm"
+                                dangerouslySetInnerHTML={{ __html: processed.body }}
+                              />
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
