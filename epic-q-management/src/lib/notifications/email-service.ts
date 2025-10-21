@@ -18,24 +18,62 @@ class EmailService {
       if (process.env.EMAIL_DISABLED === 'true') {
         console.log('📧 Email service disabled for development mode');
         this.transporter = null;
-      } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        this.transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.EMAIL_PORT || '587'),
-          secure: false, // true for 465, false for other ports
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
-        console.log('📧 Email service configured and ready');
       } else {
-        console.warn('Email configuration not found. Email service will be disabled.');
+        this.transporter = this.createTransporter();
+        if (this.transporter) {
+          console.log('📧 Email service configured and ready');
+        } else {
+          console.warn('Email configuration not found. Email service will be disabled.');
+        }
       }
     } catch (error) {
       console.error('Failed to initialize email service:', error);
       this.transporter = null;
     }
+  }
+
+  private createTransporter(): nodemailer.Transporter | null {
+    const provider = process.env.EMAIL_PROVIDER || 'gmail';
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // En desarrollo, usar Gmail por defecto
+    // En producción, usar AWS SES si está configurado, sino Gmail
+    if (provider === 'aws_ses' && isProduction) {
+      // Configuración AWS SES (solo en producción)
+      if (process.env.AWS_SES_SMTP_USER && process.env.AWS_SES_SMTP_PASS) {
+        console.log('📧 Usando AWS SES para envío de emails');
+        return nodemailer.createTransport({
+          host: process.env.AWS_SES_SMTP_HOST || 'email-smtp.us-east-1.amazonaws.com',
+          port: parseInt(process.env.AWS_SES_SMTP_PORT || '587'),
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: process.env.AWS_SES_SMTP_USER,
+            pass: process.env.AWS_SES_SMTP_PASS,
+          },
+          tls: {
+            ciphers: 'SSLv3',
+          },
+        });
+      } else {
+        console.warn('⚠️ AWS SES configurado pero no hay credenciales. Usando Gmail.');
+      }
+    }
+    
+    // Gmail (desarrollo y fallback en producción)
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      console.log(`📧 Usando Gmail para envío de emails (${isProduction ? 'producción' : 'desarrollo'})`);
+      return nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT || '587'),
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+    }
+    
+    return null;
   }
 
   async sendEmail(options: EmailOptions) {

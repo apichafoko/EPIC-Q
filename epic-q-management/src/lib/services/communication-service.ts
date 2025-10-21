@@ -243,9 +243,30 @@ async function sendInAppChannel(communication: any) {
  */
 async function sendPushChannel(communication: any) {
   try {
-    // Aquí integrarías con el servicio de push notifications existente
-    // Por ahora solo logueamos
-    console.log(`📱 Push notification enviada para comunicación ${communication.id}`);
+    // Enviar push notification usando el endpoint API
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: communication.subject,
+        message: communication.body,
+        data: {
+          communicationId: communication.id,
+          type: communication.type,
+          hospitalId: communication.hospital_id,
+          projectId: communication.project_id
+        }
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`📱 Push notification enviada para comunicación ${communication.id}:`, result);
+    } else {
+      console.error(`❌ Error enviando push para comunicación ${communication.id}:`, response.statusText);
+    }
   } catch (error) {
     console.error(`❌ Error enviando push para comunicación ${communication.id}:`, error);
   }

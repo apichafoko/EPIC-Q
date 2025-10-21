@@ -382,6 +382,18 @@ model notification_preferences {
   @@unique([user_id, alert_type])
 }
 
+model push_subscriptions {
+  id          String   @id @default(cuid())
+  endpoint    String   @unique
+  p256dh_key  String
+  auth_key    String
+  user_agent  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("push_subscriptions")
+}
+
 model project_resources {
   id          String   @id @default(cuid())
   project_id  String

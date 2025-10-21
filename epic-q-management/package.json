@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:cron": "node scripts/test-cron.js",
+    "test:notifications": "node scripts/test-notification-system.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -17,7 +19,9 @@
     "db:setup": "node scripts/setup-db.js",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
-    "db:optimize": "node scripts/optimize-database.js"
+    "db:optimize": "node scripts/optimize-database.js",
+    "setup:aws-ses": "node scripts/setup-aws-ses.js",
+    "setup:vercel-cron": "node scripts/setup-vercel-cron.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.913.0",
@@ -42,6 +46,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@react-jvectormap/argentina": "^1.0.1",
     "@react-jvectormap/core": "^1.0.4",
+    "@sentry/nextjs": "^10.20.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.15.5",
