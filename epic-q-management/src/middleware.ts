@@ -11,7 +11,9 @@ export default function middleware(request: NextRequest) {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/_static/') ||
-    pathname.includes('.')
+    pathname.includes('.') ||
+    pathname === '/favicon.ico' ||
+    pathname === '/manifest.json'
   ) {
     return NextResponse.next();
   }
