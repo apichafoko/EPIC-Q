@@ -5,6 +5,13 @@ const defaultLocale = 'es';
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Log detallado para debugging
+  console.log('🔍 Middleware ejecutándose:');
+  console.log('  - URL completa:', request.url);
+  console.log('  - Pathname:', pathname);
+  console.log('  - User Agent:', request.headers.get('user-agent'));
+  console.log('  - Method:', request.method);
 
   // Skip API routes, static files, and Next.js internals
   if (
@@ -17,6 +24,7 @@ export default function middleware(request: NextRequest) {
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'
   ) {
+    console.log('  ✅ Saltando (API/static):', pathname);
     return NextResponse.next();
   }
 
@@ -25,12 +33,17 @@ export default function middleware(request: NextRequest) {
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
+  console.log('  - Tiene locale?', pathnameHasLocale);
+  console.log('  - Locales válidos:', locales);
+
   // If no locale, redirect to default locale
   if (!pathnameHasLocale) {
     const redirectUrl = new URL(`/${defaultLocale}${pathname}`, request.url);
+    console.log('  🔄 Redirigiendo a:', redirectUrl.toString());
     return NextResponse.redirect(redirectUrl);
   }
 
+  console.log('  ✅ Continuando sin redirección');
   return NextResponse.next();
 }
 

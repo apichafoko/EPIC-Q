@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
+  console.log('📊 Dashboard ejecutándose');
   const { t } = useTranslations();
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [loading, setLoading] = useState(true);

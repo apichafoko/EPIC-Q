@@ -48,22 +48,30 @@ export default async function LocaleLayout({
   // Esperar los parámetros
   const { locale } = await params;
   
+  // Log para debugging
+  console.log('🏗️ LocaleLayout ejecutándose:');
+  console.log('  - Locale recibido:', locale);
+  console.log('  - Locales válidos:', locales);
+  
   // Validar que el locale sea válido
   if (!locales.includes(locale as 'es' | 'pt' | 'en')) {
+    console.log('  ❌ Locale inválido, llamando notFound()');
     notFound();
   }
 
-          return (
-            <AuthProvider>
-              <ProjectProvider>
-                <LocaleWrapper locale={locale}>
-                  <MainLayout>
-                    {children}
-                  </MainLayout>
-                  <Toaster />
-                  <ServiceWorkerRegistration />
-                </LocaleWrapper>
-              </ProjectProvider>
-            </AuthProvider>
-          );
+  console.log('  ✅ Locale válido, renderizando layout');
+
+  return (
+    <AuthProvider>
+      <ProjectProvider>
+        <LocaleWrapper locale={locale}>
+          <MainLayout>
+            {children}
+          </MainLayout>
+          <Toaster />
+          <ServiceWorkerRegistration />
+        </LocaleWrapper>
+      </ProjectProvider>
+    </AuthProvider>
+  );
 }
