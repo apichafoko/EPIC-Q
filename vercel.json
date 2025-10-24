@@ -4,5 +4,6 @@
       "src": "epic-q-management/package.json",
       "use": "@vercel/next"
     }
-  ]
+  ],
+  "installCommand": "cd epic-q-management && npm install --legacy-peer-deps --include=dev"
 }
