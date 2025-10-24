@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "src/app/[locale]/page.tsx": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/((?!api|_next|_static|.*\\..*).*)",
