@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
+import { withAdminAuth, AuthContext } from '../../../../../../../../lib/auth/middleware';
+import { prisma } from '../../../../../../../../lib/database';
 import { randomBytes } from 'crypto';
-import { projectInvitationService } from '@/lib/notifications/project-invitation-service';
+import { projectInvitationService } from '../../../../../../../../lib/notifications/project-invitation-service';
 
 export async function POST(
   request: NextRequest,
