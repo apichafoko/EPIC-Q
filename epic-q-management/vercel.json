@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/((?!api|_next|_static|.*\\..*).*)",
+      "destination": "/es/$1"
+    }
+  ],
   "redirects": [
     {
       "source": "/",
