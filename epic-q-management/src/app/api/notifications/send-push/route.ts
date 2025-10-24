@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
+import { prisma } from '../../../../lib/database';
 import webpush from 'web-push';
 
 // Configurar VAPID keys

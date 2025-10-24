@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runAllAlertChecks } from '@/lib/services/alert-generation-service';
+import { runAllAlertChecks } from '../../../../lib/services/alert-generation-service';
 
 export async function GET(request: NextRequest) {
   try {

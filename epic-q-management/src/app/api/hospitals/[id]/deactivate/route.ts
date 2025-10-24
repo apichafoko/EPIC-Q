@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
+import { prisma } from '../../../../../lib/database';
+import { withAdminAuth, AuthContext } from '../../../../../lib/auth/middleware';
 
 async function handler(
   req: NextRequest,

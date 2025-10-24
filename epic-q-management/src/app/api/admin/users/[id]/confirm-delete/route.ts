@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { CascadeService } from '@/lib/services/cascade-service';
+import { withAdminAuth, AuthContext } from '../../../../../../lib/auth/middleware';
+import { CascadeService } from '../../../../../../lib/services/cascade-service';
 
 export const POST = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {

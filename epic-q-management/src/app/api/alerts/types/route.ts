@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/middleware';
-import { getAlertTypes } from '@/lib/services/alert-service';
+import { withAuth } from '../../../../lib/auth/middleware';
+import { getAlertTypes } from '../../../../lib/services/alert-service';
 
 // GET - Obtener tipos de alertas
 export async function GET(request: NextRequest) {

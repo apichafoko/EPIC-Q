@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
-import { SearchResult, SearchFilters } from '@/lib/global-search-service';
+import { withAdminAuth } from '../../../../lib/auth/middleware';
+import { prisma } from '../../../../lib/database';
+import { SearchResult, SearchFilters } from '../../../../lib/global-search-service';
 
 export async function POST(request: NextRequest) {
   try {

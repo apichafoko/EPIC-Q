@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withCoordinatorAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/db-connection';
+import { withCoordinatorAuth, AuthContext } from '../../../../lib/auth/middleware';
+import { prisma } from '../../../../lib/db-connection';
 
 export async function GET(request: NextRequest) {
   return withCoordinatorAuth(async (request: NextRequest, context: AuthContext) => {

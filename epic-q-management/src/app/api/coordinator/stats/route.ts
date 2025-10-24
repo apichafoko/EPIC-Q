@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withCoordinatorAuth, AuthContext } from '@/lib/auth/middleware';
-import { CoordinatorService } from '@/lib/services/coordinator-service';
+import { withCoordinatorAuth, AuthContext } from '../../../../lib/auth/middleware';
+import { CoordinatorService } from '../../../../lib/services/coordinator-service';
 
 export async function GET(request: NextRequest) {
   return withCoordinatorAuth(async (request: NextRequest, context: AuthContext) => {

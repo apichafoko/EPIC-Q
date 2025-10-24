@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/middleware';
+import { withAuth } from '../../../../lib/auth/middleware';
 import { 
   getCommunicationById, 
   markCommunicationAsRead 
-} from '@/lib/services/communication-service';
+} from '../../../../lib/services/communication-service';
 
 // GET - Obtener detalle de comunicación
 export async function GET(

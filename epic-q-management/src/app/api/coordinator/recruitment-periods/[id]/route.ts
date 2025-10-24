@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
+import { prisma } from '../../../../../lib/database';
+import { SimpleAuthService } from '../../../../../lib/auth/simple-auth-service';
 
 export async function PUT(
   request: NextRequest,

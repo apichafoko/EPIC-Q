@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/middleware';
+import { withAuth } from '../../../lib/auth/middleware';
 import { 
   getCommunications, 
   sendCommunication, 
   getCommunicationsByUser 
-} from '@/lib/services/communication-service';
+} from '../../../lib/services/communication-service';
 
 // GET - Listar comunicaciones
 export async function GET(request: NextRequest) {

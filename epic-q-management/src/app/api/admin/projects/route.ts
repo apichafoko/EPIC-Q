@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
+import { withAdminAuth, AuthContext } from '../../../../lib/auth/middleware';
+import { prisma } from '../../../../lib/database';
 
 export const GET = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {

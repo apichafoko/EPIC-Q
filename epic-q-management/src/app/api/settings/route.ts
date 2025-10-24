@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRoleAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
+import { withRoleAuth, AuthContext } from '../../../lib/auth/middleware';
+import { prisma } from '../../../lib/database';
 import { z } from 'zod';
 
 const updateSettingsSchema = z.object({

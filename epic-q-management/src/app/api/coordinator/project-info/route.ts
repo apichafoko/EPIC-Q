@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withCoordinatorAuth, AuthContext } from '@/lib/auth/middleware';
-import prisma from '@/lib/db-connection';
+import { withCoordinatorAuth, AuthContext } from '../../../../lib/auth/middleware';
+import prisma from '../../../../lib/db-connection';
 
 async function handler(req: NextRequest, context: AuthContext) {
   try {

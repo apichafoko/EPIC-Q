@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
+import { withAuth } from '../../../../lib/auth/middleware';
+import { prisma } from '../../../../lib/database';
 import webpush from 'web-push';
 
 // Configurar VAPID keys

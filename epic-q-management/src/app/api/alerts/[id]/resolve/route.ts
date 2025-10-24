@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/auth/middleware';
-import { resolveAlert } from '@/lib/services/alert-service';
+import { withAuth } from '../../../../../lib/auth/middleware';
+import { resolveAlert } from '../../../../../lib/services/alert-service';
 
 // POST - Resolver alerta manualmente
 export async function POST(

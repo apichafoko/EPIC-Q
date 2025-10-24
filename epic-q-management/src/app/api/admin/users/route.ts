@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
+import { withAdminAuth, AuthContext } from '../../../../lib/auth/middleware';
+import { prisma } from '../../../../lib/database';
 import bcrypt from 'bcryptjs';
-import { createUserSchema } from '@/lib/validations/auth';
-import { apiRateLimiter, getClientIdentifier } from '@/lib/security/rate-limit';
-import { emailService } from '@/lib/notifications/email-service';
-import { InternalNotificationService } from '@/lib/notifications/internal-notification-service';
+import { createUserSchema } from '../../../../lib/validations/auth';
+import { apiRateLimiter, getClientIdentifier } from '../../../../lib/security/rate-limit';
+import { emailService } from '../../../../lib/notifications/email-service';
+import { InternalNotificationService } from '../../../../lib/notifications/internal-notification-service';
 
 export const GET = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {

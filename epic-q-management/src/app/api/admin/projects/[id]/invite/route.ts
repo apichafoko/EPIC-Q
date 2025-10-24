@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/simple-middleware';
-import { prisma } from '@/lib/database';
+import { withAdminAuth, AuthContext } from '../../../../../../lib/auth/simple-middleware';
+import { prisma } from '../../../../../../lib/database';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcryptjs';
-import { projectInvitationService } from '@/lib/notifications/project-invitation-service';
-import { emailService } from '@/lib/notifications/email-service';
+import { projectInvitationService } from '../../../../../../lib/notifications/project-invitation-service';
+import { emailService } from '../../../../../../lib/notifications/email-service';
 
 const inviteCoordinatorSchema = z.object({
   email: z.string()

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
-import { DashboardService } from '@/lib/services/dashboard-service';
+import { SimpleAuthService } from '../../../lib/auth/simple-auth-service';
+import { DashboardService } from '../../../lib/services/dashboard-service';
 
 export async function GET(request: NextRequest) {
   try {

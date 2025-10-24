@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
-import { prisma } from '@/lib/database';
+import { prisma } from '../../../../../lib/database';
 
 // Mock de Prisma
 jest.mock('@/lib/database', () => ({

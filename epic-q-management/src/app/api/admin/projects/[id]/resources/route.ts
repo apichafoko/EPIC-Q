@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import prisma from '@/lib/db-connection';
-import { uploadFile, getSignedFileUrl } from '@/lib/services/s3-service';
+import { withAdminAuth, AuthContext } from '../../../../../../lib/auth/middleware';
+import prisma from '../../../../../../lib/db-connection';
+import { uploadFile, getSignedFileUrl } from '../../../../../../lib/services/s3-service';
 
 async function handler(
   req: NextRequest,

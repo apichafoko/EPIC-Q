@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { prisma } from '@/lib/database';
-import { emailService } from '@/lib/notifications/email-service';
-import { apiRateLimiter, getClientIdentifier } from '@/lib/security/rate-limit';
+import { withAdminAuth, AuthContext } from '../../../../../lib/auth/middleware';
+import { prisma } from '../../../../../lib/database';
+import { emailService } from '../../../../../lib/notifications/email-service';
+import { apiRateLimiter, getClientIdentifier } from '../../../../../lib/security/rate-limit';
 
 export const POST = withAdminAuth(async (request: NextRequest, context: AuthContext) => {
   try {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
+import { SimpleAuthService } from '../../../../lib/auth/simple-auth-service';
 
 export async function GET(request: NextRequest) {
   try {

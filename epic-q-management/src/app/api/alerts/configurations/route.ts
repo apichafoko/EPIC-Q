@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth } from '@/lib/auth/middleware';
+import { withAdminAuth } from '../../../../lib/auth/middleware';
 import { 
   getAllAlertConfigurations, 
   updateAlertConfiguration 
-} from '@/lib/services/alert-service';
+} from '../../../../lib/services/alert-service';
 
 // GET - Obtener todas las configuraciones
 export const GET = withAdminAuth(async (request: NextRequest, context: any) => {

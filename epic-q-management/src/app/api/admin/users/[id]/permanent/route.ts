@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { CascadeService } from '@/lib/services/cascade-service';
+import { prisma } from '../../../../../../lib/database';
+import { CascadeService } from '../../../../../../lib/services/cascade-service';
 
 export async function DELETE(
   request: NextRequest,

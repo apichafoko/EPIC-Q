@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withCoordinatorAuth } from '@/lib/auth/middleware';
-import prisma from '@/lib/db-connection';
-import { getSignedFileUrl } from '@/lib/services/s3-service';
+import { withCoordinatorAuth } from '../../../../../../../lib/auth/middleware';
+import prisma from '../../../../../../../lib/db-connection';
+import { getSignedFileUrl } from '../../../../../../../lib/services/s3-service';
 
 async function handler(
   req: NextRequest,

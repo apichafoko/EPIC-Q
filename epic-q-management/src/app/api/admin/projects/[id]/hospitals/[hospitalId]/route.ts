@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { withAdminAuth } from '@/lib/auth/middleware';
+import { prisma } from '../../../../../../../lib/database';
+import { withAdminAuth } from '../../../../../../../lib/auth/middleware';
 import { z } from 'zod';
 
 const updateProjectHospitalSchema = z.object({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
-import { CascadeService } from '@/lib/services/cascade-service';
+import { prisma } from '../../../../lib/database';
+import { withAdminAuth, AuthContext } from '../../../../lib/auth/middleware';
+import { CascadeService } from '../../../../lib/services/cascade-service';
 
 async function handler(
   req: NextRequest,

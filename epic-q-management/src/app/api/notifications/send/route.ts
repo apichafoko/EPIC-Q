@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
-import { NotificationService } from '@/lib/notifications/notification-service';
-import { sendEmail } from '@/lib/notifications/email-service';
+import { SimpleAuthService } from '../../../../lib/auth/simple-auth-service';
+import { NotificationService } from '../../../../lib/notifications/notification-service';
+import { sendEmail } from '../../../../lib/notifications/email-service';
 // Push notifications are handled by the send-push endpoint
 
 export async function POST(request: NextRequest) {
