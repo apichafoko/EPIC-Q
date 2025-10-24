@@ -1,8 +1,13 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/generate-alerts",
-      "schedule": "0 9 * * *"
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
     }
-  ]
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
