@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd epic-q-management && npm run build",
+  "outputDirectory": "epic-q-management/.next",
+  "installCommand": "cd epic-q-management && npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "rootDirectory": "epic-q-management"
+}
