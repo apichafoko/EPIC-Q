@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, prisma } from '@/lib';
+import { withAdminAuth } from '@/lib/auth/middleware';
+import { prisma } from '@/lib/db-connection';
 
 export const GET = withAdminAuth(async (request: NextRequest) => {
   try {

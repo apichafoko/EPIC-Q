@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth, AuthContext, prisma } from '@/lib';
+import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
+import { prisma } from '@/lib/database';
 
 export async function PUT(
   request: NextRequest,
