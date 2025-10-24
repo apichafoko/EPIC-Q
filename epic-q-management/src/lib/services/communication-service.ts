@@ -48,7 +48,7 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
 
   const formattedCommunications: Communication[] = communications.map((c) => ({
     id: c.id,
-    hospital_id: c.hospital_id,
+    hospital_id: c.hospital_id || 'unknown',
     hospital_name: c.hospitals?.name || 'Hospital no encontrado',
     type: c.type || undefined,
     subject: c.subject || undefined,
@@ -74,7 +74,7 @@ export async function getCommunicationById(id: string) {
   const communication = await prisma.communications.findUnique({
     where: { id },
     include: {
-      hospital: true
+      hospitals: true
     },
   });
 
@@ -85,7 +85,7 @@ export async function getCommunicationById(id: string) {
   return {
     id: communication.id,
     hospital_id: communication.hospital_id,
-    hospital_name: communication.hospital?.name || 'Hospital no encontrado',
+    hospital_name: communication.hospitals?.name || 'Hospital no encontrado',
     type: communication.type || undefined,
     subject: communication.subject || undefined,
     content: communication.body || undefined,
@@ -224,11 +224,7 @@ async function sendInAppChannel(communication: any) {
         userId: communication.user_id,
         type: 'communication',
         title: communication.subject,
-        message: communication.body,
-        data: {
-          communicationId: communication.id,
-          type: communication.type
-        }
+        message: communication.body
       }
     });
 
@@ -385,8 +381,10 @@ export async function getCommunicationStatsByUser(userId: string) {
   const channelStats: Record<string, number> = {};
   byChannel.forEach(comm => {
     if (Array.isArray(comm.channels)) {
-      comm.channels.forEach((channel: string) => {
-        channelStats[channel] = (channelStats[channel] || 0) + 1;
+      comm.channels.forEach((channel) => {
+        if (typeof channel === 'string') {
+          channelStats[channel] = (channelStats[channel] || 0) + 1;
+        }
       });
     }
   });

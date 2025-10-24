@@ -11,7 +11,9 @@ export class ActivityService {
   }) {
     return await prisma.activity_logs.create({
       data: {
-        ...data,
+        id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: data.user_id || 'system',
+        action: data.action,
         details: data.details ? JSON.stringify(data.details) : null,
         created_at: new Date()
       }
@@ -21,14 +23,13 @@ export class ActivityService {
   // Obtener logs por usuario
   static async getLogsByUser(userId: string, limit: number = 50) {
     return await prisma.activity_logs.findMany({
-      where: { user_id: userId },
+      where: { userId: userId },
       include: {
-        hospital: {
+        users: {
           select: {
             id: true,
             name: true,
-            city: true,
-            province: true
+            email: true
           }
         }
       },
@@ -40,9 +41,13 @@ export class ActivityService {
   // Obtener logs por hospital
   static async getLogsByHospital(hospitalId: string, limit: number = 50) {
     return await prisma.activity_logs.findMany({
-      where: { hospital_id: hospitalId },
+      where: { 
+        details: {
+          contains: hospitalId
+        }
+      },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -59,19 +64,11 @@ export class ActivityService {
   static async getAllLogs(limit: number = 100) {
     return await prisma.activity_logs.findMany({
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
-          }
-        },
-        hospital: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            province: true
           }
         }
       },
@@ -85,19 +82,11 @@ export class ActivityService {
     return await prisma.activity_logs.findMany({
       where: { action },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
-          }
-        },
-        hospital: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            province: true
           }
         }
       },
@@ -116,19 +105,11 @@ export class ActivityService {
         }
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true
-          }
-        },
-        hospital: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            province: true
           }
         }
       },
@@ -151,8 +132,8 @@ export class ActivityService {
         _count: { action: true }
       }),
       prisma.activity_logs.groupBy({
-        by: ['user_id'],
-        _count: { user_id: true }
+        by: ['userId'],
+        _count: { userId: true }
       }),
       prisma.activity_logs.count({
         where: {
@@ -171,7 +152,7 @@ export class ActivityService {
         return acc;
       }, {} as Record<string, number>),
       byUser: byUser.reduce((acc, item) => {
-        acc[item.user_id || 'unknown'] = item._count.user_id;
+        acc[item.userId || 'unknown'] = item._count.userId;
         return acc;
       }, {} as Record<string, number>)
     };

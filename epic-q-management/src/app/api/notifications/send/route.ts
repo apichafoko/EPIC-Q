@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
 import { NotificationService } from '@/lib/notifications/notification-service';
 import { sendEmail } from '@/lib/notifications/email-service';
-import { sendPushNotification } from '@/lib/notifications/push-service';
+// Push notifications are handled by the send-push endpoint
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +62,22 @@ export async function POST(request: NextRequest) {
     // Send push notification if requested
     if (shouldSendPush && type === 'push') {
       try {
-        await sendPushNotification(userId, title, message);
+        // Call the send-push endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/send-push`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            message,
+            data: { userId, type }
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send push notification');
+        }
       } catch (error) {
         console.error('Failed to send push notification:', error);
       }

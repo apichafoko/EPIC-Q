@@ -39,9 +39,10 @@ export const forgotPasswordSchema = z.object({
 export const createUserSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email no válido'),
-  role: z.enum(['admin', 'coordinator'], {
-    errorMap: () => ({ message: 'Rol no válido' })
-  }),
+  role: z.enum(['admin', 'coordinator']).refine(
+    (val) => ['admin', 'coordinator'].includes(val),
+    { message: 'Rol no válido' }
+  ),
   hospital_id: z.string().optional(),
   hospital_name: z.string().optional(),
   sendInvitation: z.boolean().optional(),
@@ -96,10 +97,10 @@ export const emailTemplateSchema = z.object({
 // Recruitment period validation
 export const recruitmentPeriodSchema = z.object({
   start_date: z.date({
-    required_error: 'La fecha de inicio es requerida',
+    message: 'La fecha de inicio es requerida',
   }),
   end_date: z.date({
-    required_error: 'La fecha de fin es requerida',
+    message: 'La fecha de fin es requerida',
   }),
   hospital_id: z.string().min(1, 'Hospital requerido'),
 }).refine((data) => {

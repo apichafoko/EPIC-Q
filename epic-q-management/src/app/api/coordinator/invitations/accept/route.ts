@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
         is_active: false
       },
       include: {
-        user: true,
-        project: true,
-        hospital: true
+        users: true,
+        projects: true,
+        hospitals: true
       }
     });
 
@@ -60,12 +60,12 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Invitación aceptada exitosamente',
       project: {
-        id: invitation.project.id,
-        name: invitation.project.name
+        id: invitation.projects.id,
+        name: invitation.projects.name
       },
       hospital: {
-        id: invitation.hospital.id,
-        name: invitation.hospital.name
+        id: invitation.hospitals.id,
+        name: invitation.hospitals.name
       }
     });
 

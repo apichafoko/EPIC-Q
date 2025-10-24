@@ -12,6 +12,7 @@ import { Hospital, statusConfig } from '@/types';
 import { getHospitalById } from '@/lib/services/hospital-service';
 import { toast } from 'sonner';
 import { useLoadingState } from '@/hooks/useLoadingState';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { EditProjectHospitalModal } from '@/components/hospitals/edit-project-hospital-modal';
 import { getProjectHospitalStatusLabel, getProjectStatusLabel } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ export default function HospitalDetailPage() {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const { isLoading: isDeactivating, executeWithLoading: executeWithDeactivating } = useLoadingState();
   const { isLoading: isDeleting, executeWithLoading: executeWithDeleting } = useLoadingState();
+  const { confirm } = useConfirmation();
 
   useEffect(() => {
     const loadHospital = async () => {
@@ -31,7 +33,42 @@ export default function HospitalDetailPage() {
         setLoading(true);
         const hospitalData = await getHospitalById(params.id as string);
         if (hospitalData) {
-          setHospital(hospitalData);
+          // Add missing progress_percentage property with default value and fix status type
+          const hospitalWithProgress = {
+            ...hospitalData,
+            progress_percentage: 0, // Default value since it's not in the API response
+            status: (hospitalData.status === 'active' || hospitalData.status === 'inactive') 
+              ? hospitalData.status 
+              : 'active' as 'active' | 'inactive', // Default to active if status is not valid
+            progress: undefined, // Remove legacy progress field
+            created_at: hospitalData.created_at ? hospitalData.created_at.toISOString() : new Date().toISOString(),
+            updated_at: hospitalData.updated_at ? hospitalData.updated_at.toISOString() : new Date().toISOString(),
+            projects: hospitalData.projects?.map(project => ({
+              ...project,
+              start_date: project.start_date ? project.start_date.toISOString() : undefined,
+              end_date: project.end_date ? project.end_date.toISOString() : undefined,
+              required_periods: project.required_periods || project.project_required_periods || 2,
+              redcap_id: project.redcap_id || undefined,
+              project_hospital_status: project.project_hospital_status || 'active',
+              joined_at: project.joined_at ? project.joined_at.toISOString() : new Date().toISOString(),
+              progress: project.progress ? {
+                ...project.progress,
+                project_hospital_id: project.progress.project_hospital_id || '',
+                ethics_submitted: project.progress.ethics_submitted ?? undefined,
+                ethics_approved: project.progress.ethics_approved ?? undefined,
+                ethics_submitted_date: project.progress.ethics_submitted_date ? project.progress.ethics_submitted_date.toISOString() : undefined,
+                ethics_approved_date: project.progress.ethics_approved_date ? project.progress.ethics_approved_date.toISOString() : undefined,
+                created_at: project.progress.created_at ? project.progress.created_at.toISOString() : new Date().toISOString(),
+                updated_at: project.progress.updated_at ? project.progress.updated_at.toISOString() : new Date().toISOString()
+              } : undefined, // Convert null to undefined and fix all date/boolean types
+              coordinators: project.coordinators?.map(coord => ({
+                ...coord,
+                name: coord.name || 'Sin nombre',
+                accepted_at: coord.accepted_at ? coord.accepted_at.toISOString() : undefined
+              })) || []
+            })) || []
+          };
+          setHospital(hospitalWithProgress);
         } else {
           toast.error('Hospital no encontrado');
           router.push(`/${params.locale}/hospitals`);
@@ -74,7 +111,41 @@ export default function HospitalDetailPage() {
       try {
         const hospitalData = await getHospitalById(params.id as string);
         if (hospitalData) {
-          setHospital(hospitalData);
+          // Ensure progress_percentage is included and status is properly typed
+          const hospitalWithProgress = {
+            ...hospitalData,
+            progress_percentage: 0, // Default value since it's not in the API response
+            status: (hospitalData.status === 'active' || hospitalData.status === 'inactive') 
+              ? hospitalData.status 
+              : 'active' as 'active' | 'inactive',
+            created_at: hospitalData.created_at.toISOString(),
+            updated_at: hospitalData.updated_at.toISOString(),
+              projects: hospitalData.projects?.map(project => ({
+                ...project,
+                start_date: project.start_date ? project.start_date.toISOString() : undefined,
+                end_date: project.end_date ? project.end_date.toISOString() : undefined,
+                required_periods: project.required_periods || project.project_required_periods || 2,
+                redcap_id: project.redcap_id || undefined,
+                project_hospital_status: project.project_hospital_status || 'active',
+                joined_at: project.joined_at ? project.joined_at.toISOString() : new Date().toISOString(),
+                progress: project.progress ? {
+                  ...project.progress,
+                  project_hospital_id: project.progress.project_hospital_id || '',
+                  ethics_submitted: project.progress.ethics_submitted ?? undefined,
+                  ethics_approved: project.progress.ethics_approved ?? undefined,
+                  ethics_submitted_date: project.progress.ethics_submitted_date ? project.progress.ethics_submitted_date.toISOString() : undefined,
+                  ethics_approved_date: project.progress.ethics_approved_date ? project.progress.ethics_approved_date.toISOString() : undefined,
+                  created_at: project.progress.created_at.toISOString(),
+                  updated_at: project.progress.updated_at.toISOString()
+                } : undefined,
+                coordinators: project.coordinators?.map(coordinator => ({
+                  ...coordinator,
+                  name: coordinator.name || '',
+                  accepted_at: coordinator.accepted_at ? coordinator.accepted_at.toISOString() : undefined
+                })) || []
+              })) || []
+          };
+          setHospital(hospitalWithProgress);
         }
       } catch (error) {
         console.error('Error reloading hospital:', error);
@@ -124,32 +195,30 @@ export default function HospitalDetailPage() {
         variant: 'destructive'
       },
       async () => {
-        await executeWithDeactivating(async () => {
-          try {
-            const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
-              method: 'POST',
-              credentials: 'include'
+        try {
+          const response = await fetch(`/api/hospitals/${hospital.id}/deactivate`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            toast.success('Hospital desactivado exitosamente', {
+              description: `El hospital "${hospital.name}" ha sido desactivado`
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-              toast.success('Hospital desactivado exitosamente', {
-                description: `El hospital "${hospital.name}" ha sido desactivado`
-              });
-              router.push(`/${params.locale}/hospitals`);
-            } else {
-              toast.error('Error al desactivar hospital', {
-                description: data.error || 'Inténtalo de nuevo más tarde'
-              });
-            }
-          } catch (error) {
-            console.error('Error deactivating hospital:', error);
+            router.push(`/${params.locale}/hospitals`);
+          } else {
             toast.error('Error al desactivar hospital', {
-              description: 'Ocurrió un error inesperado'
+              description: data.error || 'Inténtalo de nuevo más tarde'
             });
           }
-        });
+        } catch (error) {
+          console.error('Error deactivating hospital:', error);
+          toast.error('Error al desactivar hospital', {
+            description: 'Ocurrió un error inesperado'
+          });
+        }
       }
     );
   };
@@ -622,7 +691,7 @@ export default function HospitalDetailPage() {
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         projectHospital={selectedProject}
-        project={hospital?.projects?.find(p => p.id === selectedProject?.project_id)}
+        project={hospital?.projects?.find(p => p.id === selectedProject?.project_id) || null}
         onSuccess={handleModalSuccess}
       />
     </div>

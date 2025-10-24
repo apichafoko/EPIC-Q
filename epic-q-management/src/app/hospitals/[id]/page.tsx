@@ -74,8 +74,8 @@ export default function HospitalDetailPage() {
                 <span>{statusConfigData.label}</span>
               </Badge>
               <span className="text-gray-600">{hospital.city}, {hospital.province}</span>
-              {hospital.redcap_id && (
-                <span className="text-sm text-gray-500">ID: {hospital.redcap_id}</span>
+              {hospital.projects?.[0]?.redcap_id && (
+                <span className="text-sm text-gray-500">ID: {hospital.projects[0].redcap_id}</span>
               )}
             </div>
           </div>

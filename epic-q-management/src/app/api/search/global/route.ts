@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
           status: true,
           project_hospitals: {
             select: {
-              project: {
+              projects: {
                 select: {
                   id: true,
                   name: true
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       });
 
       hospitals.forEach(hospital => {
-        const project = hospital.project_hospitals[0]?.project;
+        const project = hospital.project_hospitals[0]?.projects;
         results.push({
           id: hospital.id,
           type: 'hospital',
@@ -142,13 +142,13 @@ export async function POST(request: NextRequest) {
           isActive: true,
           project_coordinators: {
             select: {
-              project: {
+              projects: {
                 select: {
                   id: true,
                   name: true
                 }
               },
-              hospital: {
+              hospitals: {
                 select: {
                   id: true,
                   name: true
@@ -161,13 +161,13 @@ export async function POST(request: NextRequest) {
 
       coordinators.forEach(coordinator => {
         const projectCoordinator = coordinator.project_coordinators[0];
-        const project = projectCoordinator?.project;
-        const hospital = projectCoordinator?.hospital;
+        const project = projectCoordinator?.projects;
+        const hospital = projectCoordinator?.hospitals;
 
         results.push({
           id: coordinator.id,
           type: 'coordinator',
-          title: coordinator.name,
+          title: coordinator.name || 'Sin nombre',
           description: `${coordinator.email} - ${hospital?.name || 'Sin hospital asignado'}`,
           url: `/es/admin/coordinators/${coordinator.id}`,
           metadata: {
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
             hospital: hospital?.name
           },
           score: Math.max(
-            calculateScore(coordinator.name, query),
+            calculateScore(coordinator.name || '', query),
             calculateScore(coordinator.email, query)
           )
         });

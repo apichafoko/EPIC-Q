@@ -93,7 +93,7 @@ export function HospitalCommunicationsTab({ communications, hospitalName }: Hosp
   const filteredCommunications = communications.filter(comm => {
     const matchesSearch = !searchTerm || 
       comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comm.content.toLowerCase().includes(searchTerm.toLowerCase());
+      comm.content?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = typeFilter === 'all' || comm.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || comm.status === statusFilter;
@@ -102,7 +102,7 @@ export function HospitalCommunicationsTab({ communications, hospitalName }: Hosp
   });
 
   const sortedCommunications = filteredCommunications.sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
   );
 
   return (
@@ -215,27 +215,27 @@ export function HospitalCommunicationsTab({ communications, hospitalName }: Hosp
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3 flex-1">
                       <div className="flex-shrink-0 mt-1">
-                        {getTypeIcon(comm.type)}
+                        {getTypeIcon(comm.type || 'general')}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-2">
                           <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {comm.subject || `Comunicación ${getTypeLabel(comm.type)}`}
+                            {comm.subject || `Comunicación ${getTypeLabel(comm.type || 'general')}`}
                           </h4>
-                          <Badge className={getStatusColor(comm.status)}>
-                            {getStatusLabel(comm.status)}
+                          <Badge className={getStatusColor(comm.status || 'sent')}>
+                            {getStatusLabel(comm.status || 'sent')}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                           {comm.content}
                         </p>
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
-                          <span>Enviado por: {comm.sent_by}</span>
-                          {comm.sent_to && (
-                            <span>Para: {comm.sent_to}</span>
+                          <span>Enviado por: {comm.user_name}</span>
+                          {comm.hospital_name && (
+                            <span>Para: {comm.hospital_name}</span>
                           )}
                           <span>
-                            {new Date(comm.created_at).toLocaleDateString('es-AR', {
+                            {new Date(comm.sent_at).toLocaleDateString('es-AR', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
@@ -243,9 +243,6 @@ export function HospitalCommunicationsTab({ communications, hospitalName }: Hosp
                               minute: '2-digit'
                             })}
                           </span>
-                          {comm.template_used && (
-                            <span>Template: {comm.template_used}</span>
-                          )}
                         </div>
                       </div>
                     </div>

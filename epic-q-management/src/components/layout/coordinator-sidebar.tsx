@@ -74,41 +74,42 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
 
   // Determinar el estado de completitud de cada sección
   const getCompletionStatus = () => {
-    if (!currentProject?.coordinatorInfo?.hospital) {
+    if (!currentProject?.id) {
       return {
         hospitalForm: false,
         progress: false
       };
     }
 
-    const hospital = currentProject.coordinatorInfo.hospital;
-    const hospitalDetails = hospital.hospital_details;
+    // TODO: Fix coordinatorInfo access
+    // const hospital = currentProject.coordinatorInfo.hospital;
+    // const hospitalDetails = hospital.hospital_details;
     
     // Verificar si el formulario del hospital está completo
-    const hospitalFormComplete = !!(
-      hospitalDetails?.num_beds &&
-      hospitalDetails?.num_operating_rooms &&
-      hospitalDetails?.num_icu_beds &&
-      hospitalDetails?.avg_weekly_surgeries &&
-      hospitalDetails?.financing_type &&
-      hospitalDetails?.has_preop_clinic &&
-      hospital.lasos_participation !== null &&
-      hospital.hospital_contacts?.[0]?.name &&
-      hospital.hospital_contacts?.[0]?.email &&
-      hospital.hospital_contacts?.[0]?.phone &&
-      hospital.hospital_contacts?.[0]?.specialty
-    );
+    // const hospitalFormComplete = !!(
+    //   hospitalDetails?.num_beds &&
+    //   hospitalDetails?.num_operating_rooms &&
+    //   hospitalDetails?.num_icu_beds &&
+    //   hospitalDetails?.avg_weekly_surgeries &&
+    //   hospitalDetails?.financing_type &&
+    //   hospitalDetails?.has_preop_clinic &&
+    //   hospital.lasos_participation !== null &&
+    //   hospital.hospital_contacts?.[0]?.name &&
+    //   hospital.hospital_contacts?.[0]?.email &&
+    //   hospital.hospital_contacts?.[0]?.phone &&
+    //   hospital.hospital_contacts?.[0]?.specialty
+    // );
 
     // Verificar si la ética y períodos están completos
-    const progressComplete = !!(
-      progressStatus.ethicsSubmitted &&
-      progressStatus.ethicsApproved &&
-      progressStatus.recruitmentPeriods >= progressStatus.requiredPeriods
-    );
+    // const progressComplete = !!(
+    //   progressStatus.ethicsSubmitted &&
+    //   progressStatus.ethicsApproved &&
+    //   progressStatus.recruitmentPeriods >= progressStatus.requiredPeriods
+    // );
 
     return {
-      hospitalForm: hospitalFormComplete,
-      progress: progressComplete
+      hospitalForm: false, // hospitalFormComplete,
+      progress: false // progressComplete
     };
   };
 

@@ -7,7 +7,8 @@ import {
 } from '@/lib/services/communication-service';
 
 // GET - Listar comunicaciones
-export const GET = withAuth(async (request: NextRequest, context: any) => {
+export async function GET(request: NextRequest) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const { user } = context;
     const { searchParams } = new URL(request.url);
@@ -41,8 +42,9 @@ export const GET = withAuth(async (request: NextRequest, context: any) => {
     // Para admin: todas las comunicaciones
     // Para coordinador: solo sus comunicaciones
     const filters = {
-      search,
-      type: type === 'all' ? undefined : type
+      search: search || '',
+      type: type === 'all' ? '' : (type || ''),
+      status: ''
     };
 
     const result = await getCommunications(filters, page, limit);
@@ -63,10 +65,12 @@ export const GET = withAuth(async (request: NextRequest, context: any) => {
       { status: 500 }
     );
   }
-});
+  })(request);
+}
 
 // POST - Enviar comunicación manual
-export const POST = withAuth(async (request: NextRequest, context: any) => {
+export async function POST(request: NextRequest) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const { user } = context;
     const body = await request.json();
@@ -145,4 +149,5 @@ export const POST = withAuth(async (request: NextRequest, context: any) => {
       { status: 500 }
     );
   }
-});
+  })(request);
+}

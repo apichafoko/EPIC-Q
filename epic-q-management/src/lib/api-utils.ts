@@ -40,7 +40,7 @@ export async function handleApiResponse<T = any>(response: Response): Promise<Ap
 
   // Si no es JSON, verificar si hay un error de estado
   if (!response.ok) {
-    error = data?.message || data?.error || `Error ${response.status}: ${response.statusText}`;
+    error = (data as any)?.message || (data as any)?.error || `Error ${response.status}: ${response.statusText}`;
   }
 
   return {

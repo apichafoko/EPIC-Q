@@ -78,7 +78,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
         toast.error('Error al cargar el hospital', {
           description: errorMessage
         });
-        router.push(`/${params.locale}/hospitals`);
+        router.push(`/${(await params).locale}/hospitals`);
         return;
       }
 
@@ -94,7 +94,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
         toast.error('Error al cargar el hospital', {
           description: 'Error al procesar la respuesta del servidor'
         });
-        router.push(`/${params.locale}/hospitals`);
+        router.push(`/${(await params).locale}/hospitals`);
         return;
       }
 
@@ -112,7 +112,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
       toast.error('Error al cargar el hospital', {
         description: 'Ocurrió un error inesperado'
       });
-      router.push(`/${params.locale}/hospitals`);
+      router.push(`/${(await params).locale}/hospitals`);
     }
   };
 
@@ -157,7 +157,7 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
           toast.success('Hospital actualizado exitosamente', {
             description: `El hospital "${formData.name}" ha sido actualizado`
           });
-          router.push(`/${params.locale}/hospitals`);
+          router.push(`/${(await params).locale}/hospitals`);
         } else {
           toast.error('Error al actualizar el hospital', {
             description: data.error || 'Inténtalo de nuevo más tarde'

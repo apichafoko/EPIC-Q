@@ -76,7 +76,7 @@ export default function ProjectInfoPage() {
         
         if (newUrl) {
           // Actualizar la URL en el estado
-          setProjectInfo(prev => ({
+          setProjectInfo((prev: any) => ({
             ...prev,
             resources: prev.resources.map((r: Resource) => 
               r.id === resource.id ? { ...r, url: newUrl } : r

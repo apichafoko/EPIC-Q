@@ -782,7 +782,7 @@ export default function AdminProjectsPage() {
                                 Desactivar
                               </DropdownMenuItem>
                             )}
-                            {project.status === 'inactive' && (
+                            {project.status === 'archived' && (
                               <DropdownMenuItem
                                 onClick={() => handleActivateProject(project.id)}
                                 className="text-green-600"

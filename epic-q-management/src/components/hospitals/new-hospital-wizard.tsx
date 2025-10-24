@@ -24,7 +24,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
     name: '',
     province: '',
     city: '',
-    status: 'initial_contact',
+    status: 'active',
     participated_lasos: false,
     financing_type: 'public',
     num_beds: undefined,
@@ -174,7 +174,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             id="num_beds"
             type="number"
             value={formData.num_beds || ''}
-            onChange={(e) => updateFormData('num_beds', e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => updateFormData('num_beds', e.target.value ? Number(e.target.value) : 0)}
             placeholder="Ej: 150"
           />
         </div>
@@ -187,7 +187,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             id="num_operating_rooms"
             type="number"
             value={formData.num_operating_rooms || ''}
-            onChange={(e) => updateFormData('num_operating_rooms', e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => updateFormData('num_operating_rooms', e.target.value ? Number(e.target.value) : 0)}
             placeholder="Ej: 5"
           />
         </div>
@@ -197,7 +197,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             id="num_icu_beds"
             type="number"
             value={formData.num_icu_beds || ''}
-            onChange={(e) => updateFormData('num_icu_beds', e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => updateFormData('num_icu_beds', e.target.value ? Number(e.target.value) : 0)}
             placeholder="Ej: 12"
           />
         </div>
@@ -210,7 +210,7 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
             id="avg_weekly_surgeries"
             type="number"
             value={formData.avg_weekly_surgeries || ''}
-            onChange={(e) => updateFormData('avg_weekly_surgeries', e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => updateFormData('avg_weekly_surgeries', e.target.value ? Number(e.target.value) : 0)}
             placeholder="Ej: 25"
           />
         </div>

@@ -210,11 +210,11 @@ export async function POST(request: NextRequest) {
       where: { project_hospital_id: projectHospital.id }
     });
 
-    const maxPeriods = projectHospital.required_periods;
+    const maxPeriods = 2; // Default value since required_periods doesn't exist in project_hospitals
     if (existingPeriodsCount >= maxPeriods) {
       return NextResponse.json(
         { 
-          error: `Este hospital solo puede tener ${maxPeriods} período${maxPeriods !== 1 ? 's' : ''} de reclutamiento. Ya se han creado ${existingPeriodsCount}.` 
+          error: `Este hospital solo puede tener ${maxPeriods} períodos de reclutamiento. Ya se han creado ${existingPeriodsCount}.` 
         },
         { status: 400 }
       );

@@ -3,7 +3,8 @@ import { withAuth } from '@/lib/auth/middleware';
 import { getAlerts } from '@/lib/services/alert-service';
 
 // GET - Listar alertas
-export const GET = withAuth(async (request: NextRequest, context: any) => {
+export async function GET(request: NextRequest) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const { searchParams } = new URL(request.url);
     
@@ -41,4 +42,5 @@ export const GET = withAuth(async (request: NextRequest, context: any) => {
       { status: 500 }
     );
   }
-});
+  })(request);
+}

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       exists: !!user,
       isActive: user?.isActive,
       role: user?.role,
-      userId: decoded.userId
+      userId: typeof decoded === 'string' ? decoded : decoded.userId
     });
 
     if (!user || !user.isActive || user.role !== 'admin') {
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 
@@ -191,6 +191,7 @@ export async function POST(request: NextRequest) {
     // Crear template
     const template = await prisma.communication_templates.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         description,
         type,

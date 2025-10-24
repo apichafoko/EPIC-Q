@@ -241,7 +241,7 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-              {mockHospitals.map((hospital) => (
+              {summary?.hospitals?.map((hospital: any) => (
                 <div key={hospital.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={hospital.id}
@@ -252,7 +252,7 @@ export default function ReportsPage() {
                     {hospital.name}
                   </label>
                 </div>
-              ))}
+              )) || []}
             </div>
           </div>
 

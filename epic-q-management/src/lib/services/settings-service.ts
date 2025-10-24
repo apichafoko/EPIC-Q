@@ -58,10 +58,10 @@ export async function getEmailTemplates() {
   return templates.map(template => ({
     id: template.id,
     name: template.name,
-    subject: template.subject,
-    content: template.content,
+    subject: template.email_subject || '',
+    content: template.email_body || '',
     variables: template.variables || [],
-    isDefault: template.is_default || false,
+    isDefault: false,
     createdAt: template.created_at,
     updatedAt: template.updated_at
   }));
@@ -70,11 +70,14 @@ export async function getEmailTemplates() {
 export async function createEmailTemplate(template: any) {
   const newTemplate = await prisma.communication_templates.create({
     data: {
+      id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: template.name,
-      subject: template.subject,
-      content: template.content,
+      email_subject: template.subject,
+      email_body: template.content,
       variables: template.variables || [],
-      is_default: template.isDefault || false,
+      category: template.category || 'general',
+      is_active: true,
+      usage_count: 0
     }
   });
 
@@ -86,10 +89,10 @@ export async function updateEmailTemplate(id: string, template: any) {
     where: { id },
     data: {
       name: template.name,
-      subject: template.subject,
-      content: template.content,
+      email_subject: template.subject,
+      email_body: template.content,
       variables: template.variables || [],
-      is_default: template.isDefault || false,
+      category: template.category || 'general',
       updated_at: new Date(),
     }
   });

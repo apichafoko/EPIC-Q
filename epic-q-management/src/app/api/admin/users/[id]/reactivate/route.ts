@@ -3,7 +3,7 @@ import { prisma } from '@/lib/database';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación manualmente
@@ -44,13 +44,13 @@ export async function PATCH(
       );
     }
 
-    const userId = params.id;
+    const userId = (await params).id;
 
     // Verificar que el usuario a reactivar existe
     const userToReactivate = await prisma.users.findUnique({
       where: { id: userId },
       include: {
-        hospital: true,
+        hospitals: true,
       }
     });
 
@@ -77,7 +77,7 @@ export async function PATCH(
         updated_at: new Date()
       },
       include: {
-        hospital: true
+        hospitals: true
       }
     });
 
@@ -91,8 +91,8 @@ export async function PATCH(
         email: reactivatedUser.email,
         name: reactivatedUser.name,
         role: reactivatedUser.role,
-        hospital_id: reactivatedUser.hospital_id,
-        hospital_name: reactivatedUser.hospital?.name,
+        hospital_id: reactivatedUser.hospitalId,
+        hospital_name: reactivatedUser.hospitals?.name,
         isActive: reactivatedUser.isActive,
         lastLogin: reactivatedUser.lastLogin,
         created_at: reactivatedUser.created_at

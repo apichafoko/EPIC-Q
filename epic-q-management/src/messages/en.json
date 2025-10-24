@@ -158,8 +158,7 @@
     "notNow": "Not now"
   },
   "sidebar": {
-    "installApp": "Install App"
-  },
+    "installApp": "Install App",
     "exportData": "Export data",
     "viewDetails": "View details",
     "viewAll": "View all",

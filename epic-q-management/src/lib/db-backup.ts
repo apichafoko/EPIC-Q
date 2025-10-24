@@ -41,7 +41,7 @@ export class DatabaseBackupService {
         data: {
           hospitals: await prisma.hospitals.findMany(),
           hospital_details: await prisma.hospital_details.findMany(),
-          contacts: await prisma.contact.findMany(),
+          hospital_contacts: await prisma.hospital_contacts.findMany(),
           hospital_progress: await prisma.hospital_progress.findMany(),
           recruitment_periods: await prisma.recruitment_periods.findMany(),
           case_metrics: await prisma.case_metrics.findMany(),
@@ -66,7 +66,7 @@ export class DatabaseBackupService {
       console.error('❌ Error al crear backup:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -94,7 +94,7 @@ export class DatabaseBackupService {
       await prisma.case_metrics.deleteMany();
       await prisma.recruitment_periods.deleteMany();
       await prisma.hospital_progress.deleteMany();
-      await prisma.contact.deleteMany();
+      await prisma.hospital_contacts.deleteMany();
       await prisma.hospital_details.deleteMany();
       await prisma.hospitals.deleteMany();
       await prisma.communication_templates.deleteMany();
@@ -112,8 +112,8 @@ export class DatabaseBackupService {
         await prisma.hospital_details.createMany({ data: backupData.data.hospital_details });
       }
       
-      if (backupData.data.contacts) {
-        await prisma.contact.createMany({ data: backupData.data.contacts });
+      if (backupData.data.hospital_contacts) {
+        await prisma.hospital_contacts.createMany({ data: backupData.data.hospital_contacts });
       }
       
       if (backupData.data.hospital_progress) {
@@ -157,7 +157,7 @@ export class DatabaseBackupService {
       console.error('❌ Error al restaurar backup:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -191,7 +191,7 @@ export class DatabaseBackupService {
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -210,7 +210,7 @@ export class DatabaseBackupService {
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -256,7 +256,7 @@ export class DatabaseBackupService {
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -292,7 +292,7 @@ export class DatabaseBackupService {
       return {
         success: false,
         deleted: 0,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -335,7 +335,7 @@ export class DatabaseBackupService {
       return {
         success: false,
         valid: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }

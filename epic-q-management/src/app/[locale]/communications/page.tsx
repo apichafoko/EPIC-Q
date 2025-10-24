@@ -318,8 +318,8 @@ export default function CommunicationsPage() {
                 <TableRow key={comm.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      {getTypeIcon(comm.type)}
-                      <span className="text-sm">{getTypeLabel(comm.type)}</span>
+                      {getTypeIcon(comm.type || 'general')}
+                      <span className="text-sm">{getTypeLabel(comm.type || 'general')}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -327,16 +327,16 @@ export default function CommunicationsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium truncate max-w-xs">
-                      {comm.subject || `Comunicación ${getTypeLabel(comm.type)}`}
+                      {comm.subject || `Comunicación ${getTypeLabel(comm.type || 'general')}`}
                     </div>
                     <div className="text-xs text-gray-500 truncate max-w-xs">
-                      {comm.content.substring(0, 50)}...
+                      {comm.content?.substring(0, 50) || 'Sin contenido'}...
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{comm.user_name}</TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(comm.status)}>
-                      {getStatusLabel(comm.status)}
+                    <Badge className={getStatusColor(comm.status || 'sent')}>
+                      {getStatusLabel(comm.status || 'sent')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">

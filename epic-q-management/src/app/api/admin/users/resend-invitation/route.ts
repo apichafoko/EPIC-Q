@@ -31,7 +31,7 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
     const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
-        hospital: {
+        hospitals: {
           select: { name: true }
         }
       }
@@ -65,12 +65,12 @@ export const POST = withAdminAuth(async (request: NextRequest, context: AuthCont
 
     // Send invitation email
     try {
-      const hospitalName = user.hospital?.name || 'Sistema EPIC-Q';
+      const hospitalName = user.hospitals?.name || 'Sistema EPIC-Q';
       await emailService.sendInvitationEmail(
         user.email, 
         resetToken, 
         hospitalName, 
-        user.name, // Pasar el nombre del usuario
+        user.name || 'Usuario', // Pasar el nombre del usuario
         user.role, // Pasar el rol del usuario
         tempPassword // Pasar la contraseña temporal (sin hashear)
       );

@@ -210,19 +210,20 @@ model notifications {
 }
 
 model project_coordinators {
-  id          String    @id
-  project_id  String
-  hospital_id String
-  user_id     String
-  is_active   Boolean   @default(true)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @default(now())
-  accepted_at DateTime?
-  invited_at  DateTime  @default(now())
-  role        String    @default("coordinator")
-  hospitals   hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  projects    projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id               String    @id
+  project_id       String
+  hospital_id      String
+  user_id          String
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now())
+  accepted_at      DateTime?
+  invited_at       DateTime  @default(now())
+  invitation_token String?
+  role             String    @default("coordinator")
+  hospitals        hospitals @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  projects         projects  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([project_id, hospital_id, user_id])
 }

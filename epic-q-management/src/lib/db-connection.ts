@@ -88,8 +88,8 @@ export async function getDatabaseInfo() {
     
     return {
       provider,
-      version: version[0]?.version || 'Unknown',
-      currentTime: currentTime[0]?.now || new Date(),
+      version: (version as any)[0]?.version || 'Unknown',
+      currentTime: (currentTime as any)[0]?.now || new Date(),
       connected: true
     };
   } catch (error) {

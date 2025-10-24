@@ -78,8 +78,8 @@ export default function SettingsPage() {
     if (user) {
       setSettings(prev => ({
         ...prev,
-        timezone: user.timezone || 'America/Argentina/Buenos_Aires',
-        country: user.country || 'AR',
+        timezone: (user as any).timezone || 'America/Argentina/Buenos_Aires',
+        country: (user as any).country || 'AR',
         language: user.preferredLanguage || 'es'
       }));
     }

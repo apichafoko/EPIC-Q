@@ -114,9 +114,9 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating ethics information:', error);
     console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
     });
     return NextResponse.json(
       { error: 'Error interno del servidor' },

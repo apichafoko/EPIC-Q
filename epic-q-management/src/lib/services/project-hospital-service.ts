@@ -10,7 +10,7 @@ export async function getProjectHospitalsByHospitalId(hospitalId: string) {
         hospital_id: hospitalId
       },
       include: {
-        project: {
+        projects: {
           select: {
             id: true,
             name: true,
@@ -19,7 +19,7 @@ export async function getProjectHospitalsByHospitalId(hospitalId: string) {
             end_date: true
           }
         },
-        hospital: {
+        hospitals: {
           select: {
             id: true,
             name: true,
@@ -29,7 +29,7 @@ export async function getProjectHospitalsByHospitalId(hospitalId: string) {
         }
       },
       orderBy: {
-        joined_at: 'desc'
+        created_at: 'desc'
       }
     });
 
@@ -65,7 +65,7 @@ export async function getProjectHospitalById(projectHospitalId: string) {
         id: projectHospitalId
       },
       include: {
-        project: {
+        projects: {
           select: {
             id: true,
             name: true,
@@ -74,7 +74,7 @@ export async function getProjectHospitalById(projectHospitalId: string) {
             end_date: true
           }
         },
-        hospital: {
+        hospitals: {
           select: {
             id: true,
             name: true,

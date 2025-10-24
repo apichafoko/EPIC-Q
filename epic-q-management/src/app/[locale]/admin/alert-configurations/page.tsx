@@ -25,7 +25,7 @@ interface AlertConfiguration {
 
 export default function AlertConfigurationsPage() {
   const [configurations, setConfigurations] = useState<AlertConfiguration[]>([]);
-  const { loading, setLoading } = useLoadingState();
+  const { isLoading, startLoading, stopLoading } = useLoadingState();
 
   useEffect(() => {
     loadConfigurations();
@@ -33,7 +33,7 @@ export default function AlertConfigurationsPage() {
 
   const loadConfigurations = async () => {
     try {
-      setLoading(true);
+      startLoading();
       const response = await fetch('/api/alerts/configurations', {
         credentials: 'include'
       });
@@ -48,7 +48,7 @@ export default function AlertConfigurationsPage() {
       console.error('Error loading configurations:', error);
       toast.error('Error al cargar configuraciones');
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -109,7 +109,7 @@ export default function AlertConfigurationsPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />

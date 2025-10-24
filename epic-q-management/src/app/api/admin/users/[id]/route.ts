@@ -13,17 +13,17 @@ export async function GET(
       const user = await prisma.users.findUnique({
         where: { id: userId },
         include: {
-          hospital: true,
+          hospitals: true,
           project_coordinators: {
             include: {
-              project: {
+              projects: {
                 select: {
                   id: true,
                   name: true,
                   status: true
                 }
               },
-              hospital: {
+              hospitals: {
                 select: {
                   id: true,
                   name: true
@@ -53,7 +53,7 @@ export async function GET(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }
 
 export async function DELETE(
@@ -117,5 +117,5 @@ export async function DELETE(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }

@@ -28,7 +28,7 @@ export class DatabaseMigrationService {
       await prisma.case_metrics.deleteMany();
       await prisma.recruitment_periods.deleteMany();
       await prisma.hospital_progress.deleteMany();
-      await prisma.contact.deleteMany();
+      await prisma.hospital_contacts.deleteMany();
       await prisma.hospital_details.deleteMany();
       await prisma.hospitals.deleteMany();
       await prisma.communication_templates.deleteMany();
@@ -38,7 +38,14 @@ export class DatabaseMigrationService {
       // Migrar usuarios
       console.log('👥 Migrando usuarios...');
       for (const user of mockUsers) {
-        await prisma.users.create({ data: user });
+        await prisma.users.create({ 
+          data: {
+            ...user,
+            password: 'defaultPassword123', // Default password for mock users
+            isActive: true,
+            isTemporaryPassword: true
+          }
+        });
       }
       
       // Migrar hospitales
@@ -47,12 +54,11 @@ export class DatabaseMigrationService {
         await prisma.hospitals.create({
           data: {
             id: hospital.id,
-            redcap_id: hospital.redcap_id,
             name: hospital.name,
             province: hospital.province,
             city: hospital.city,
             status: hospital.status,
-            participated_lasos: hospital.participated_lasos,
+            lasos_participation: hospital.participated_lasos,
             created_at: new Date(hospital.created_at),
             updated_at: new Date(hospital.updated_at)
           }
@@ -64,6 +70,7 @@ export class DatabaseMigrationService {
       for (const detail of mockHospitalDetails) {
         await prisma.hospital_details.create({
           data: {
+            id: crypto.randomUUID(),
             hospital_id: detail.hospital_id,
             num_beds: detail.num_beds,
             num_operating_rooms: detail.num_operating_rooms,
@@ -83,7 +90,7 @@ export class DatabaseMigrationService {
       // Migrar contactos
       console.log('👤 Migrando contactos...');
       for (const contact of mockContacts) {
-        await prisma.contact.create({
+        await prisma.hospital_contacts.create({
           data: {
             id: contact.id,
             hospital_id: contact.hospital_id,
@@ -102,18 +109,15 @@ export class DatabaseMigrationService {
       for (const progress of mockHospitalProgress) {
         await prisma.hospital_progress.create({
           data: {
+            id: crypto.randomUUID(),
             hospital_id: progress.hospital_id,
-            descriptive_form_status: progress.descriptive_form_status,
+            project_id: 'default-project-id', // Default project ID since it's required
+            status: 'pending',
+            progress_percentage: 0,
             ethics_submitted: progress.ethics_submitted,
             ethics_approved: progress.ethics_approved,
-            redcap_unit_created: progress.redcap_unit_created,
-            coordinator_user_created: progress.coordinator_user_created,
-            collaborator_users_created: progress.collaborator_users_created,
-            num_collaborators: progress.num_collaborators,
-            ready_for_recruitment: progress.ready_for_recruitment,
-            dates_assigned_period1: progress.dates_assigned_period1,
-            dates_assigned_period2: progress.dates_assigned_period2,
-            updated_at: new Date(progress.updated_at)
+            ethics_submitted_date: progress.ethics_submitted_date,
+            ethics_approved_date: progress.ethics_approved_date
           }
         });
       }
@@ -124,11 +128,11 @@ export class DatabaseMigrationService {
         await prisma.recruitment_periods.create({
           data: {
             id: period.id,
-            hospital_id: period.hospital_id,
+            project_hospital_id: 'default-project-hospital-id', // Default project hospital ID since it's required
             period_number: period.period_number,
             start_date: new Date(period.start_date),
             end_date: new Date(period.end_date),
-            status: period.status
+            target_cases: null
           }
         });
       }
@@ -138,11 +142,10 @@ export class DatabaseMigrationService {
       for (const metric of mockCaseMetrics) {
         await prisma.case_metrics.create({
           data: {
-            id: metric.id,
+            id: crypto.randomUUID(),
             hospital_id: metric.hospital_id,
             recorded_date: new Date(metric.recorded_date),
             cases_created: metric.cases_created,
-            cases_completed: metric.cases_completed,
             completion_percentage: metric.completion_percentage,
             last_case_date: metric.last_case_date ? new Date(metric.last_case_date) : null
           }
@@ -156,14 +159,13 @@ export class DatabaseMigrationService {
           data: {
             id: communication.id,
             hospital_id: communication.hospital_id,
-            type: communication.type,
-            subject: communication.subject,
-            content: communication.content,
-            sent_by: communication.sent_by,
-            sent_to: communication.sent_to,
-            template_used: communication.template_used,
-            status: communication.status,
-            created_at: new Date(communication.created_at)
+            user_id: communication.user_id || 'default-user-id',
+            type: communication.type || 'general',
+            subject: communication.subject || 'Sin asunto',
+            body: communication.content || 'Sin contenido',
+            channels: ['email'],
+            sent_at: new Date(communication.sent_at),
+            created_at: new Date(communication.sent_at)
           }
         });
       }
@@ -175,8 +177,10 @@ export class DatabaseMigrationService {
           data: {
             id: template.id,
             name: template.name,
-            subject: template.subject,
-            body: template.body,
+            internal_subject: template.subject,
+            internal_body: template.body,
+            email_subject: template.subject,
+            email_body: template.body,
             variables: template.variables,
             category: template.category,
             is_active: template.is_active,
@@ -194,7 +198,7 @@ export class DatabaseMigrationService {
           data: {
             id: alert.id,
             hospital_id: alert.hospital_id,
-            alert_type: alert.alert_type,
+            type: alert.alert_type,
             severity: alert.severity,
             title: alert.title,
             message: alert.message,
@@ -214,7 +218,7 @@ export class DatabaseMigrationService {
       console.error('❌ Error durante la migración:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -235,7 +239,7 @@ export class DatabaseMigrationService {
       console.error('❌ Error durante la migración desde CSV:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       };
     }
   }
@@ -257,7 +261,7 @@ export class DatabaseMigrationService {
       console.error('❌ Error durante la migración desde base de datos:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       };
     }
   }
@@ -276,7 +280,7 @@ export class DatabaseMigrationService {
         userCount
       ] = await Promise.all([
         prisma.hospitals.count(),
-        prisma.contact.count(),
+        prisma.hospital_contacts.count(),
         prisma.communications.count(),
         prisma.communication_templates.count(),
         prisma.alerts.count(),
@@ -284,17 +288,11 @@ export class DatabaseMigrationService {
       ]);
       
       // Verificar relaciones
-      const hospitalsWithDetails = await prisma.hospitals.count({
-        where: { details: { isNot: null } }
-      });
+      const hospitalsWithDetails = await prisma.hospital_details.count();
       
-      const hospitalsWithContacts = await prisma.hospitals.count({
-        where: { contacts: { some: {} } }
-      });
+      const hospitalsWithContacts = await prisma.hospital_contacts.count();
       
-      const hospitalsWithProgress = await prisma.hospitals.count({
-        where: { progress: { isNot: null } }
-      });
+      const hospitalsWithProgress = await prisma.hospital_progress.count();
       
       return {
         success: true,
@@ -321,7 +319,7 @@ export class DatabaseMigrationService {
       console.error('❌ Error al verificar integridad:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       };
     }
   }
@@ -336,7 +334,7 @@ export class DatabaseMigrationService {
       await prisma.case_metrics.deleteMany();
       await prisma.recruitment_periods.deleteMany();
       await prisma.hospital_progress.deleteMany();
-      await prisma.contact.deleteMany();
+      await prisma.hospital_contacts.deleteMany();
       await prisma.hospital_details.deleteMany();
       await prisma.hospitals.deleteMany();
       await prisma.communication_templates.deleteMany();
@@ -351,7 +349,7 @@ export class DatabaseMigrationService {
       console.error('❌ Error al limpiar datos de migración:', error);
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Error desconocido'
       };
     }
   }

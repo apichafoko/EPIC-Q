@@ -51,4 +51,6 @@ async function handler(req: NextRequest, context: AuthContext) {
   }
 }
 
-export const GET = withCoordinatorAuth(handler);
+export async function GET(request: NextRequest) {
+  return withCoordinatorAuth(handler)(request);
+}

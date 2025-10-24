@@ -1078,7 +1078,7 @@ function EditUserModal({
             <label className="block text-sm font-medium mb-1">Rol</label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value, hospital_id: '' }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as "admin" | "coordinator", hospital_id: '' }))}
               className="w-full border rounded px-3 py-2"
             >
               <option value="admin">Administrador</option>

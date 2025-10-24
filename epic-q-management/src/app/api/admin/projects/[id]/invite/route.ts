@@ -196,7 +196,7 @@ export async function POST(
     // Solo si el email se envió correctamente, crear los registros en una transacción
     const result = await prisma.$transaction(async (tx) => {
       // Crear ProjectHospital si no existe
-      let projectHospital = existingProjectHospital;
+      let projectHospital: any = existingProjectHospital;
       if (!projectHospital) {
         projectHospital = await tx.project_hospitals.create({
           data: {
@@ -240,9 +240,9 @@ export async function POST(
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Validation error:', error.errors);
+      console.error('Validation error:', error.issues);
       return NextResponse.json(
-        { error: 'Datos inválidos', details: error.errors },
+        { error: 'Datos inválidos', details: error.issues },
         { status: 400 }
       );
     }
@@ -253,5 +253,5 @@ export async function POST(
       { status: 500 }
     );
   }
-  })(request, { params });
+  })(request);
 }

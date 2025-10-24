@@ -122,7 +122,7 @@ export class GlobalSearchService {
     return suggestions.slice(0, 5);
   }
 
-  static formatSearchResult(result: SearchResult): {
+  static formatSearchResult(result: SearchResult, query?: string): {
     icon: string;
     typeLabel: string;
     highlight: string;
@@ -139,7 +139,7 @@ export class GlobalSearchService {
     return {
       icon: config.icon,
       typeLabel: config.label,
-      highlight: this.highlightQuery(result.title, query)
+      highlight: this.highlightQuery(result.title, query || '')
     };
   }
 

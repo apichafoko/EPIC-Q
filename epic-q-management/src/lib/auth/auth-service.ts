@@ -14,7 +14,7 @@ export class AuthService {
       const user = await prisma.users.findUnique({
         where: { email },
         include: {
-          hospital: {
+          hospitals: {
             select: {
               id: true,
               name: true
@@ -61,11 +61,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        hospitalId: user.hospital_id,
-        hospital: user.hospital,
+        role: user.role as 'admin' | 'coordinator',
+        hospitalId: user.hospitalId,
+        hospital: user.hospitals,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
+        isTemporaryPassword: user.isTemporaryPassword || false, // Assuming default false if not set
         lastLogin: user.lastLogin?.toISOString() || null
       };
 
@@ -90,7 +91,7 @@ export class AuthService {
       const user = await prisma.users.findUnique({
         where: { id: decoded.userId },
         include: {
-          hospital: {
+          hospitals: {
             select: {
               id: true,
               name: true
@@ -107,11 +108,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        hospitalId: user.hospital_id,
-        hospital: user.hospital,
+        role: user.role as 'admin' | 'coordinator',
+        hospitalId: user.hospitalId,
+        hospital: user.hospitals,
         preferredLanguage: user.preferredLanguage,
         isActive: user.isActive,
+        isTemporaryPassword: user.isTemporaryPassword || false, // Assuming default false if not set
         lastLogin: user.lastLogin?.toISOString() || null
       };
     } catch (error) {

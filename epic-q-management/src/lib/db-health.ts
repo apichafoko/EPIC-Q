@@ -13,7 +13,7 @@ export class DatabaseHealthService {
       // Verificar tablas principales
       const tableChecks = await Promise.allSettled([
         prisma.hospitals.count(),
-        prisma.contact.count(),
+        prisma.hospital_contacts.count(),
         prisma.communications.count(),
         prisma.communication_templates.count(),
         prisma.alerts.count(),
@@ -50,7 +50,7 @@ export class DatabaseHealthService {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         responseTime: null,
         tables: null,
         integrity: null,
@@ -66,7 +66,7 @@ export class DatabaseHealthService {
       
       // Verificar hospitales sin detalles
       const hospitalsWithoutDetails = await prisma.hospitals.count({
-        where: { details: null }
+        where: { hospital_details: null }
       });
       if (hospitalsWithoutDetails > 0) {
         issues.push(`${hospitalsWithoutDetails} hospitales sin detalles`);
@@ -74,7 +74,7 @@ export class DatabaseHealthService {
       
       // Verificar hospitales sin contactos
       const hospitalsWithoutContacts = await prisma.hospitals.count({
-        where: { contacts: { none: {} } }
+        where: { hospital_contacts: { none: {} } }
       });
       if (hospitalsWithoutContacts > 0) {
         issues.push(`${hospitalsWithoutContacts} hospitales sin contactos`);
@@ -82,7 +82,7 @@ export class DatabaseHealthService {
       
       // Verificar hospitales sin progreso
       const hospitalsWithoutProgress = await prisma.hospitals.count({
-        where: { progress: null }
+        where: { hospital_progress: { none: {} } }
       });
       if (hospitalsWithoutProgress > 0) {
         issues.push(`${hospitalsWithoutProgress} hospitales sin progreso`);
@@ -90,7 +90,7 @@ export class DatabaseHealthService {
       
       // Verificar comunicaciones sin hospital
       const orphanedCommunications = await prisma.communications.count({
-        where: { hospital: null }
+        where: { hospitals: null }
       });
       if (orphanedCommunications > 0) {
         issues.push(`${orphanedCommunications} comunicaciones huérfanas`);
@@ -104,7 +104,7 @@ export class DatabaseHealthService {
     } catch (error) {
       return {
         status: 'error',
-        issues: [`Error al verificar integridad: ${error.message}`],
+        issues: [`Error al verificar integridad: ${error instanceof Error ? error.message : 'Unknown error'}`],
         count: 1
       };
     }
@@ -122,7 +122,7 @@ export class DatabaseHealthService {
         WHERE state = 'active'
       `;
       
-      const stats = connectionInfo[0] as any;
+      const stats = (connectionInfo as any)[0];
       
       return {
         activeConnections: parseInt(stats.active_connections) || 0,
@@ -134,7 +134,7 @@ export class DatabaseHealthService {
         activeConnections: 0,
         maxIdleTime: 'unknown',
         status: 'error',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -147,7 +147,7 @@ export class DatabaseHealthService {
       // Ejecutar consultas de prueba
       await Promise.all([
         prisma.hospitals.findMany({ take: 10 }),
-        prisma.contact.findMany({ take: 10 }),
+        prisma.users.findMany({ take: 10 }),
         prisma.communications.findMany({ take: 10 })
       ]);
       
@@ -162,7 +162,7 @@ export class DatabaseHealthService {
       return {
         status: 'error',
         responseTime: null,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -170,13 +170,16 @@ export class DatabaseHealthService {
   // Verificar espacio en disco
   static async checkDiskSpace() {
     try {
-      const diskInfo = await prisma.$queryRaw`
+      const diskInfo = await prisma.$queryRaw<Array<{
+        database_size: string;
+        database_size_pretty: string;
+      }>>`
         SELECT 
           pg_database_size(current_database()) as database_size,
           pg_size_pretty(pg_database_size(current_database())) as database_size_pretty
       `;
       
-      const stats = diskInfo[0] as any;
+      const stats = diskInfo[0];
       const sizeInMB = parseInt(stats.database_size) / (1024 * 1024);
       
       return {
@@ -189,7 +192,7 @@ export class DatabaseHealthService {
         size: 'unknown',
         sizeInMB: 0,
         status: 'error',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -241,7 +244,7 @@ export class DatabaseHealthService {
         hospitals: { total: 0, active: 0, percentage: 0 },
         communications: { total: 0, recent: 0, percentage: 0 },
         alerts: { total: 0, active: 0, percentage: 0 },
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -280,7 +283,7 @@ export class DatabaseHealthService {
       return {
         timestamp: new Date().toISOString(),
         overall: 'error',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         health: null,
         performance: null,
         diskSpace: null,

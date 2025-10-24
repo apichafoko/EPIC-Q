@@ -58,18 +58,13 @@ export async function getAlerts(filters?: AlertFilters, page: number = 1, limit:
     const formattedAlerts: Alert[] = alerts.map((a) => ({
       id: a.id,
       hospital_id: a.hospital_id,
-      hospital_name: a.hospitals?.name || 'Hospital no encontrado',
-      project_name: a.projects?.name,
+      alert_type: a.type as 'no_activity_30_days' | 'low_completion_rate' | 
+                  'upcoming_recruitment_period' | 'ethics_approval_pending' | 'missing_documentation',
+      severity: a.severity as 'low' | 'medium' | 'high' | 'critical',
       title: a.title,
       message: a.message,
-      type: a.type,
-      severity: a.severity,
       is_resolved: a.is_resolved,
-      auto_resolved: a.auto_resolved,
-      created_at: a.created_at,
-      resolved_at: a.resolved_at,
-      resolved_by: a.resolved_by,
-      resolver_name: a.resolver?.name,
+      created_at: a.created_at.toISOString(),
       metadata: a.metadata || {},
     }));
 

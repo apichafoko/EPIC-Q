@@ -29,7 +29,7 @@ export async function DELETE(
           id: coordinatorId
         },
         include: {
-          user: true
+          users: true
         }
       });
 
@@ -47,7 +47,7 @@ export async function DELETE(
 
       return NextResponse.json({
         success: true,
-        message: `Coordinador "${projectCoordinator.user.name}" eliminado del proyecto exitosamente`
+        message: `Coordinador "${projectCoordinator.users.name}" eliminado del proyecto exitosamente`
       });
 
     } catch (error) {
@@ -57,5 +57,5 @@ export async function DELETE(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }

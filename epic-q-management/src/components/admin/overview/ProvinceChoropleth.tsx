@@ -100,6 +100,7 @@ export function ProvinceChoropleth({
             series={{
               regions: [
                 {
+                  attribute: "fill",
                   values: mapData,
                   scale: ["#dc2626", "#ea580c", "#eab308", "#84cc16", "#16a34a"],
                   normalizeFunction: "polynomial",
@@ -154,12 +155,12 @@ export function ProvinceChoropleth({
                 stats = {};
               }
               
-              const total = stats?.hospitals || 0;
-              const casesLoaded = stats?.totalCasesLoaded || 0;
-              const activeLoading = stats?.activeLoading || 0;
-              const completedPeriods = stats?.completedPeriods || 0;
+              const total = (stats as any)?.hospitals || 0;
+              const casesLoaded = (stats as any)?.totalCasesLoaded || 0;
+              const activeLoading = (stats as any)?.activeLoading || 0;
+              const completedPeriods = (stats as any)?.completedPeriods || 0;
               
-              el.html(`
+              (el as any).html(`
                 <div style="padding: 12px; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.15); min-width: 200px;">
                   <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #1f2937;">
                     ${provinceName}
@@ -169,10 +170,10 @@ export function ProvinceChoropleth({
                       <strong>Hospitales:</strong> ${total}
                     </div>
                     <div style="margin-bottom: 4px;">
-                      <strong>Ética Aprobado:</strong> ${stats?.ethicsApproved || 0}
+                      <strong>Ética Aprobado:</strong> ${(stats as any)?.ethicsApproved || 0}
                     </div>
                     <div style="margin-bottom: 4px;">
-                      <strong>Formulario Completo:</strong> ${stats?.formComplete || 0}
+                      <strong>Formulario Completo:</strong> ${(stats as any)?.formComplete || 0}
                     </div>
                     <div style="margin-bottom: 4px;">
                       <strong>Casos Cargados:</strong> ${casesLoaded}

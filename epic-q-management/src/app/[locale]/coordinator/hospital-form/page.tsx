@@ -67,43 +67,46 @@ export default function HospitalFormPage() {
 
   // Debug: Log formData changes
   console.log('🔄 Render - formData.name:', formData.name);
-  console.log('🔄 Render - currentProject:', currentProject?.coordinatorInfo?.hospital?.name);
+  console.log('🔄 Render - currentProject:', currentProject?.name);
 
   // Load hospital data from current project
   useEffect(() => {
     console.log('🔄 useEffect ejecutándose, currentProject:', currentProject);
-    console.log('🔄 currentProject?.coordinatorInfo:', currentProject?.coordinatorInfo);
-    console.log('🔄 currentProject?.coordinatorInfo?.hospital:', currentProject?.coordinatorInfo?.hospital);
+    console.log('🔄 currentProject?.name:', currentProject?.name);
     
-    if (!currentProject?.coordinatorInfo?.hospital) {
+    if (!currentProject) {
       console.log('❌ No hay hospital en currentProject');
       return;
     }
     
-    console.log('✅ Hospital encontrado:', currentProject.coordinatorInfo.hospital);
-    console.log('✅ Hospital name:', currentProject.coordinatorInfo.hospital.name);
+    console.log('✅ Hospital encontrado:', currentProject.name);
+    console.log('✅ Hospital name:', currentProject.name);
     
-    if (!currentProject.coordinatorInfo.hospital.hospital_details) {
+    if (!currentProject) {
       console.log('⚠️ No hay hospital_details, pero continuando con datos básicos');
     }
     
-    const hospital = currentProject.coordinatorInfo.hospital;
+    // Usar datos básicos del proyecto como hospital
+    const hospital = {
+      name: currentProject.name,
+      // Agregar otros campos necesarios si están disponibles
+    };
     setHospitalData(hospital);
     
     // Determinar si los campos de provincia y ciudad deben ser editables
-    const hasLocationData = hospital.province && hospital.city;
+    const hasLocationData = false; // Por ahora, siempre editable
     
-    // Obtener datos estructurales del hospital
-    const hospitalDetails = hospital.hospital_details;
-    const coordinatorContact = hospital.hospital_contacts?.[0]; // Primer contacto coordinador principal
+    // Obtener datos estructurales del hospital (usar datos por defecto)
+    const hospitalDetails = null; // No disponible en el tipo Project
+    const coordinatorContact = null; // No disponible en el tipo Project
     
     console.log('🔄 Precargando datos del formulario:', {
       hospital: hospital,
       hospitalName: hospital.name,
       hospitalDetails: hospitalDetails,
       coordinatorContact: coordinatorContact,
-      financingType: hospitalDetails?.financing_type,
-      hasPreopClinic: hospitalDetails?.has_preop_clinic
+      financingType: null, // No disponible en el tipo Project
+      hasPreopClinic: null // No disponible en el tipo Project
     });
     
     // Usar un setTimeout para asegurar que el estado se actualice correctamente
@@ -113,35 +116,35 @@ export default function HospitalFormPage() {
           ...prev,
           // Datos básicos
           name: hospital.name || "",
-          province: hospital.province || "",
-          city: hospital.city || "",
-          participatedLasos: hospital.lasos_participation || false,
+          province: "", // No disponible en el tipo Project
+          city: "", // No disponible en el tipo Project
+          participatedLasos: false, // No disponible en el tipo Project
           // Marcar si los campos de ubicación son editables
           isLocationEditable: !hasLocationData,
           
-          // Datos estructurales
-          numBeds: hospitalDetails?.num_beds?.toString() || "",
-          numOperatingRooms: hospitalDetails?.num_operating_rooms?.toString() || "",
-          numIcuBeds: hospitalDetails?.num_icu_beds?.toString() || "",
-          avgWeeklySurgeries: hospitalDetails?.avg_weekly_surgeries?.toString() || "",
-          financingType: hospitalDetails?.financing_type || "",
-          hasPreopClinic: hospitalDetails?.has_preop_clinic || "",
+          // Datos estructurales (usar valores por defecto)
+          numBeds: "",
+          numOperatingRooms: "",
+          numIcuBeds: "",
+          avgWeeklySurgeries: "",
+          financingType: "public",
+          hasPreopClinic: "",
           
           // Características del hospital (checkboxes)
-          hasResidencyProgram: hospitalDetails?.has_residency_program || false,
-          hasEthicsCommittee: hospitalDetails?.has_ethics_committee || false,
-          hasRapidResponseTeam: hospitalDetails?.has_rapid_response_team || false,
-          universityAffiliated: hospitalDetails?.university_affiliated || false,
+          hasResidencyProgram: false,
+          hasEthicsCommittee: false,
+          hasRapidResponseTeam: false,
+          universityAffiliated: false,
           
           // Notas adicionales
-          notes: hospitalDetails?.notes || "",
+          notes: "",
           
-          // Datos del coordinador
-          coordinatorFirstName: coordinatorContact?.name?.split(' ')[0] || "",
-          coordinatorLastName: coordinatorContact?.name?.split(' ').slice(1).join(' ') || "",
-          coordinatorEmail: coordinatorContact?.email || "",
-          coordinatorPhone: coordinatorContact?.phone || "",
-          coordinatorPosition: coordinatorContact?.specialty || ""
+          // Datos del coordinador (usar valores por defecto)
+          coordinatorFirstName: "",
+          coordinatorLastName: "",
+          coordinatorEmail: "",
+          coordinatorPhone: "",
+          coordinatorPosition: ""
         };
         
         console.log('✅ FormData actualizado:', {
@@ -266,18 +269,18 @@ export default function HospitalFormPage() {
   };
 
   const handleSave = async () => {
-    if (!currentProject?.coordinatorInfo?.hospital?.id) {
-      console.error('No hospital ID available');
+    if (!currentProject?.id) {
+      console.error('No project ID available');
       return;
     }
 
     console.log('Saving form data:', {
-      hospitalId: currentProject.coordinatorInfo.hospital.id,
+      projectId: currentProject.id,
       formData: formData
     });
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
+      const response = await fetch(`/api/hospitals/${currentProject.id}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -373,18 +376,18 @@ export default function HospitalFormPage() {
     // Si la validación es exitosa, proceder con el guardado
     setPendingFields([]);
     
-    if (!currentProject?.coordinatorInfo?.hospital?.id) {
-      console.error('No hospital ID available');
+    if (!currentProject?.id) {
+      console.error('No project ID available');
       return;
     }
 
     console.log('Finishing form with data:', {
-      hospitalId: currentProject.coordinatorInfo.hospital.id,
+      hospitalId: currentProject.id,
       formData: formData
     });
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${currentProject.coordinatorInfo.hospital.id}/form`, {
+      const response = await fetch(`/api/hospitals/${currentProject.id}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

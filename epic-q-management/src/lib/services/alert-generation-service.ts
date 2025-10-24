@@ -45,18 +45,20 @@ export async function generateEthicsApprovalAlerts(): Promise<AlertGenerationRes
     // Buscar hospitales con ética pendiente por más de X días
     const hospitalsWithPendingEthics = await prisma.hospitals.findMany({
       where: {
-        hospital_details: {
-          ethics_approval_status: 'pending'
-        },
-        hospital_details: {
-          ethics_submission_date: {
-            lte: thresholdDate
+        hospital_progress: {
+          some: {
+            ethics_approved: false,
+            ethics_submitted: true,
+            ethics_submitted_date: {
+              lte: thresholdDate
+            }
           }
         }
       },
       include: {
         hospital_details: true,
-        projects: {
+        hospital_progress: true,
+        project_hospitals: {
           include: {
             projects: true
           }
@@ -81,19 +83,20 @@ export async function generateEthicsApprovalAlerts(): Promise<AlertGenerationRes
         }
 
         // Crear nueva alerta
+        const progress = hospital.hospital_progress[0];
         const alert = await prisma.alerts.create({
           data: {
             id: `alert_${Date.now()}_${hospital.id}`,
             hospital_id: hospital.id,
-            project_id: hospital.projects[0]?.project_id || null,
+            project_id: hospital.project_hospitals[0]?.project_id || null,
             type: 'ethics_approval_pending',
             title: 'Aprobación de Ética Pendiente',
             message: `El hospital ${hospital.name} tiene la aprobación de ética pendiente desde hace más de ${thresholdDays} días.`,
             severity: 'high',
             metadata: {
               hospital_name: hospital.name,
-              ethics_submission_date: hospital.hospital_details?.ethics_submission_date,
-              days_pending: Math.floor((Date.now() - (hospital.hospital_details?.ethics_submission_date?.getTime() || 0)) / (1000 * 60 * 60 * 24)),
+              ethics_submission_date: progress?.ethics_submitted_date,
+              days_pending: Math.floor((Date.now() - (progress?.ethics_submitted_date?.getTime() || 0)) / (1000 * 60 * 60 * 24)),
               threshold_days: thresholdDays
             }
           }
@@ -142,14 +145,19 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
     // Buscar hospitales con documentación incompleta
     const hospitalsWithMissingDocs = await prisma.hospitals.findMany({
       where: {
-        OR: [
-          { hospital_details: { hospital_form_status: 'pending' } },
-          { hospital_details: { ethics_approval_status: 'pending' } }
-        ]
+        hospital_progress: {
+          some: {
+            OR: [
+              { ethics_approved: false },
+              { ethics_submitted: false }
+            ]
+          }
+        }
       },
       include: {
         hospital_details: true,
-        projects: {
+        hospital_progress: true,
+        project_hospitals: {
           include: {
             projects: true
           }
@@ -172,11 +180,12 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
           continue;
         }
 
+        const progress = hospital.hospital_progress[0];
         const missingDocs = [];
-        if (hospital.hospital_details?.hospital_form_status === 'pending') {
+        if (!progress?.ethics_submitted) {
           missingDocs.push('Formulario del Hospital');
         }
-        if (hospital.hospital_details?.ethics_approval_status === 'pending') {
+        if (!progress?.ethics_approved) {
           missingDocs.push('Aprobación de Ética');
         }
 
@@ -184,7 +193,7 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
           data: {
             id: `alert_${Date.now()}_${hospital.id}`,
             hospital_id: hospital.id,
-            project_id: hospital.projects[0]?.project_id || null,
+            project_id: hospital.project_hospitals[0]?.project_id || null,
             type: 'missing_documentation',
             title: 'Documentación Faltante',
             message: `El hospital ${hospital.name} tiene documentación faltante: ${missingDocs.join(', ')}.`,
@@ -192,8 +201,8 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
             metadata: {
               hospital_name: hospital.name,
               missing_documents: missingDocs,
-              hospital_form_status: hospital.hospital_details?.hospital_form_status,
-              ethics_approval_status: hospital.hospital_details?.ethics_approval_status
+              ethics_submitted: progress?.ethics_submitted,
+              ethics_approved: progress?.ethics_approved
             }
           }
         });
@@ -354,7 +363,7 @@ export async function generateNoActivityAlerts(): Promise<AlertGenerationResult>
         }
       },
       include: {
-        projects: {
+        project_hospitals: {
           include: {
             projects: true
           }
@@ -383,7 +392,7 @@ export async function generateNoActivityAlerts(): Promise<AlertGenerationResult>
           data: {
             id: `alert_${Date.now()}_${hospital.id}`,
             hospital_id: hospital.id,
-            project_id: hospital.projects[0]?.project_id || null,
+            project_id: hospital.project_hospitals[0]?.project_id || null,
             type: 'no_activity_30_days',
             title: 'Hospital Sin Actividad',
             message: `El hospital ${hospital.name} no ha tenido actividad en los últimos ${daysSinceActivity} días.`,
@@ -450,7 +459,7 @@ export async function generateLowCompletionRateAlerts(): Promise<AlertGeneration
             }
           }
         },
-        projects: {
+        project_hospitals: {
           include: {
             projects: true
           }
@@ -486,7 +495,7 @@ export async function generateLowCompletionRateAlerts(): Promise<AlertGeneration
           data: {
             id: `alert_${Date.now()}_${hospital.id}`,
             hospital_id: hospital.id,
-            project_id: hospital.projects[0]?.project_id || null,
+            project_id: hospital.project_hospitals[0]?.project_id || null,
             type: 'low_completion_rate',
             title: 'Tasa de Completitud Baja',
             message: `El hospital ${hospital.name} tiene una tasa de completitud del ${completionRate.toFixed(1)}%, por debajo del umbral del ${thresholdPercentage}%.`,

@@ -56,7 +56,7 @@ export function HospitalInfoTab({ hospital, details, contacts }: HospitalInfoTab
             </div>
             <div className="flex items-center space-x-2">
               <Badge className="bg-blue-100 text-blue-800">
-                {hospital.redcap_id || 'Sin ID RedCap'}
+                {hospital.projects?.[0]?.redcap_id || 'Sin ID RedCap'}
               </Badge>
               <Badge className="bg-green-100 text-green-800">
                 {hospital.participated_lasos ? 'Participó LASOS' : 'No participó LASOS'}

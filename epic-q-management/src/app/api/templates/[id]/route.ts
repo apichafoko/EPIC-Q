@@ -36,7 +36,7 @@ export async function GET(
 
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 
@@ -106,7 +106,7 @@ export async function PATCH(
 
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 
@@ -216,7 +216,7 @@ export async function DELETE(
 
     // Verificar que el usuario existe y es admin
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 

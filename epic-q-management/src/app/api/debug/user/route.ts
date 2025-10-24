@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Verificar que el usuario existe
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
 
@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
         createdAt: user?.created_at
       },
       token: {
-        userId: decoded.userId,
-        iat: decoded.iat,
-        exp: decoded.exp
+        userId: typeof decoded === 'string' ? decoded : decoded.userId,
+        iat: typeof decoded === 'string' ? undefined : decoded.iat,
+        exp: typeof decoded === 'string' ? undefined : decoded.exp
       }
     });
 

@@ -315,9 +315,9 @@ Si no esperabas recibir esta invitación, puedes ignorar este email.
       const projectCoordinator = await prisma.project_coordinators.findUnique({
         where: { id: projectCoordinatorId },
         include: {
-          user: true,
-          project: true,
-          hospital: true
+          users: true,
+          projects: true,
+          hospitals: true
         }
       });
 
@@ -329,13 +329,13 @@ Si no esperabas recibir esta invitación, puedes ignorar este email.
       // Por ahora, enviaremos a un email genérico o podrías implementar una lógica más específica
       const adminEmail = process.env.ADMIN_EMAIL || 'demo@epic-q.com';
 
-      const subject = `Invitación Aceptada - ${projectCoordinator.project.name}`;
+      const subject = `Invitación Aceptada - ${projectCoordinator.projects.name}`;
       
       const html = `
         <h2>Invitación Aceptada</h2>
-        <p>El coordinador <strong>${projectCoordinator.user.name}</strong> ha aceptado la invitación al proyecto <strong>${projectCoordinator.project.name}</strong>.</p>
-        <p><strong>Hospital:</strong> ${projectCoordinator.hospital.name}</p>
-        <p><strong>Email:</strong> ${projectCoordinator.user.email}</p>
+        <p>El coordinador <strong>${projectCoordinator.users.name}</strong> ha aceptado la invitación al proyecto <strong>${projectCoordinator.projects.name}</strong>.</p>
+        <p><strong>Hospital:</strong> ${projectCoordinator.hospitals.name}</p>
+        <p><strong>Email:</strong> ${projectCoordinator.users.email}</p>
         <p><strong>Fecha de aceptación:</strong> ${new Date().toLocaleString('es-ES')}</p>
       `;
 

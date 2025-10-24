@@ -35,7 +35,10 @@ export default function HospitalsPage() {
           getStatuses()
         ]);
         
-        setHospitals(hospitalsData.hospitals);
+        setHospitals(hospitalsData.hospitals.map((hospital: any) => ({
+          ...hospital,
+          progress_percentage: hospital.progress_percentage || 0
+        })));
         setTotalPages(hospitalsData.totalPages);
         setTotalHospitals(hospitalsData.total);
         setProvinces(provincesData);
@@ -75,7 +78,10 @@ export default function HospitalsPage() {
           getStatuses()
         ]);
         
-        setHospitals(hospitalsData.hospitals);
+        setHospitals(hospitalsData.hospitals.map((hospital: any) => ({
+          ...hospital,
+          progress_percentage: hospital.progress_percentage || 0
+        })));
         setTotalPages(hospitalsData.totalPages);
         setTotalHospitals(hospitalsData.total);
         setProvinces(provincesData);
@@ -94,7 +100,7 @@ export default function HospitalsPage() {
   const stats = {
     total: totalHospitals,
     active: hospitals.filter(h => h.status === 'active').length,
-    pending: hospitals.filter(h => h.status === 'pending').length,
+    pending: 0, // No hay status 'pending' en el tipo Hospital
     inactive: hospitals.filter(h => h.status === 'inactive').length
   };
 

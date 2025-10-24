@@ -20,6 +20,7 @@ export class InternalNotificationService {
         // Crear notificación interna
         await prisma.notifications.create({
           data: {
+            id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             userId: userId,
             title: processed.subject || '¡Bienvenido al sistema EPIC-Q!',
             message: processed.body || '',
@@ -35,11 +36,12 @@ export class InternalNotificationService {
       // Fallback si no hay template
       await prisma.notifications.create({
         data: {
+          id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           userId: userId,
           title: '¡Bienvenido al sistema EPIC-Q!',
           message: `¡Hola ${userName}!\n\nBienvenido al sistema de gestión del Estudio Perioperatorio Integral de Cuidados Quirúrgicos (EPIC-Q).\n\nComo coordinador del hospital ${hospitalName}, tienes acceso a todas las funciones del sistema.\n\n¡Esperamos que tengas una excelente experiencia!`,
           type: 'welcome',
-          read: false
+          isRead: false
         }
       });
 
@@ -55,11 +57,12 @@ export class InternalNotificationService {
     try {
       await prisma.notifications.create({
         data: {
+          id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           userId: userId,
           title: title,
           message: message,
           type: type,
-          read: false
+          isRead: false
         }
       });
 
@@ -75,7 +78,7 @@ export class InternalNotificationService {
     try {
       const notifications = await prisma.notifications.findMany({
         where: { userId: userId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         take: limit
       });
 
@@ -90,7 +93,7 @@ export class InternalNotificationService {
     try {
       await prisma.notifications.update({
         where: { id: notificationId },
-        data: { read: true }
+        data: { isRead: true }
       });
 
       return true;
@@ -105,9 +108,9 @@ export class InternalNotificationService {
       await prisma.notifications.updateMany({
         where: { 
           userId: userId,
-          read: false 
+          isRead: false 
         },
-        data: { read: true }
+        data: { isRead: true }
       });
 
       return true;

@@ -3,7 +3,8 @@ import { withAuth } from '@/lib/auth/middleware';
 import { getAlertTypes } from '@/lib/services/alert-service';
 
 // GET - Obtener tipos de alertas
-export const GET = withAuth(async (request: NextRequest, context: any) => {
+export async function GET(request: NextRequest) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const types = await getAlertTypes();
 
@@ -23,4 +24,5 @@ export const GET = withAuth(async (request: NextRequest, context: any) => {
       { status: 500 }
     );
   }
-});
+  })(request);
+}

@@ -6,7 +6,11 @@ import {
 } from '@/lib/services/communication-service';
 
 // GET - Obtener detalle de comunicación
-export const GET = withAuth(async (request: NextRequest, context: any, params: Promise<{ id: string }>) => {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const { user } = context;
     const { id } = await params;
@@ -44,10 +48,15 @@ export const GET = withAuth(async (request: NextRequest, context: any, params: P
       { status: 500 }
     );
   }
-});
+  })(request);
+}
 
 // PATCH - Marcar como leída
-export const PATCH = withAuth(async (request: NextRequest, context: any, params: Promise<{ id: string }>) => {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const { user } = context;
     const { id } = await params;
@@ -77,4 +86,5 @@ export const PATCH = withAuth(async (request: NextRequest, context: any, params:
       { status: 500 }
     );
   }
-});
+  })(request);
+}

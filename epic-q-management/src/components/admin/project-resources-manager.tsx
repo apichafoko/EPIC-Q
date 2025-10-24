@@ -193,7 +193,7 @@ export function ProjectResourcesManager({ projectId }: { projectId: string }) {
                   >
                     <LinkIcon className="h-4 w-4" />
                   </Button>
-                  {resource.s3_key && (
+                  {resource.url && (
                     <Button
                       variant="ghost"
                       size="sm"

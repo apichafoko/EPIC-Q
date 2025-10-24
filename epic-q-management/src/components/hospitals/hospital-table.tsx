@@ -311,7 +311,6 @@ export function HospitalTable({
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         variant: 'destructive',
-        confirmationWord: 'ELIMINAR'
       },
       async () => {
         await executeWithDeleting(async () => {
@@ -413,6 +412,11 @@ export function HospitalTable({
   const sortedHospitals = [...hospitals].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
+    
+    // Handle null/undefined values
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return sortDirection === 'asc' ? -1 : 1;
+    if (bValue == null) return sortDirection === 'asc' ? 1 : -1;
     
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -518,7 +522,7 @@ export function HospitalTable({
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleSort('redcap_id')}
+                onClick={() => handleSort('name')}
               >
                 ID RedCap
               </TableHead>
@@ -581,7 +585,7 @@ export function HospitalTable({
                     />
                   </TableCell>
                   <TableCell className="font-mono text-sm">
-                    {hospital.redcap_id || '-'}
+                    {hospital.projects?.[0]?.redcap_id || '-'}
                   </TableCell>
                   <TableCell>
                     <Link 
@@ -758,7 +762,7 @@ export function HospitalTable({
         isOpen={!!confirmationData}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
-        options={confirmationData?.options}
+        options={confirmationData?.options || { title: '', description: '' }}
         isLoading={isDeactivating || isDeleting}
       />
 

@@ -21,7 +21,7 @@ async function handler(
             project_coordinators: {
               some: {
                 user_id: context.user.id,
-                status: 'accepted'
+                is_active: true
               }
             }
           }

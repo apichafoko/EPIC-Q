@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
     // Crear template
     const template = await prisma.communication_templates.create({
       data: {
+        id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name,
-        subject,
-        body: templateBody,
+        internal_body: templateBody,
         variables: variables || {},
         category,
         is_active: true,

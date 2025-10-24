@@ -19,8 +19,8 @@ export class DatabaseUtils {
       const currentTime = await prisma.$queryRaw`SELECT NOW()`;
       
       return {
-        version: version[0]?.version || 'Unknown',
-        currentTime: currentTime[0]?.now || new Date(),
+        version: (version as any)[0]?.version || 'Unknown',
+        currentTime: (currentTime as any)[0]?.now || new Date(),
         connected: true
       };
     } catch (error) {
@@ -60,12 +60,12 @@ export class DatabaseUtils {
         'activity_log'
       ];
 
-      const stats = {};
+      const stats: Record<string, number> = {};
       
       for (const table of tables) {
         try {
           const count = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM ${table}`);
-          stats[table] = count[0]?.count || 0;
+          stats[table] = (count as any)[0]?.count || 0;
         } catch (error) {
           stats[table] = 0;
         }
@@ -85,7 +85,6 @@ export class DatabaseUtils {
       await prisma.case_metrics.deleteMany();
       await prisma.recruitment_periods.deleteMany();
       await prisma.hospital_progress.deleteMany();
-      await prisma.contact.deleteMany();
       await prisma.hospital_details.deleteMany();
       await prisma.hospitals.deleteMany();
       await prisma.communication_templates.deleteMany();
@@ -103,7 +102,6 @@ export class DatabaseUtils {
     try {
       const data = {
         hospitals: await prisma.hospitals.findMany(),
-        contacts: await prisma.contact.findMany(),
         hospitalDetails: await prisma.hospital_details.findMany(),
         hospitalProgress: await prisma.hospital_progress.findMany(),
         recruitmentPeriods: await prisma.recruitment_periods.findMany(),
@@ -134,9 +132,6 @@ export class DatabaseUtils {
       // Restaurar datos
       if (backupData.hospitals) {
         await prisma.hospitals.createMany({ data: backupData.hospitals });
-      }
-      if (backupData.contacts) {
-        await prisma.contact.createMany({ data: backupData.contacts });
       }
       if (backupData.hospitalDetails) {
         await prisma.hospital_details.createMany({ data: backupData.hospitalDetails });
@@ -195,7 +190,7 @@ export class DatabaseUtils {
       // Verificar hospitales sin detalles
       const hospitalsWithoutDetails = await prisma.hospitals.findMany({
         where: {
-          details: null
+          hospital_details: null
         }
       });
       if (hospitalsWithoutDetails.length > 0) {
@@ -205,7 +200,7 @@ export class DatabaseUtils {
       // Verificar hospitales sin contactos
       const hospitalsWithoutContacts = await prisma.hospitals.findMany({
         where: {
-          contacts: {
+          hospital_contacts: {
             none: {}
           }
         }
@@ -217,7 +212,9 @@ export class DatabaseUtils {
       // Verificar hospitales sin progreso
       const hospitalsWithoutProgress = await prisma.hospitals.findMany({
         where: {
-          progress: null
+          hospital_progress: {
+            none: {}
+          }
         }
       });
       if (hospitalsWithoutProgress.length > 0) {

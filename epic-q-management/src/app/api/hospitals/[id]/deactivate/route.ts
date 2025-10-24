@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database';
-import { withAdminAuth } from '@/lib/auth/middleware';
+import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
 
-export const POST = withAdminAuth(async (
-  request: NextRequest,
-  context: any,
+async function handler(
+  req: NextRequest,
+  context: AuthContext,
   { params }: { params: Promise<{ id: string }> }
-) => {
+) {
   try {
     console.log('🏥 POST /api/hospitals/[id]/deactivate - Iniciando desactivación');
     console.log('👤 Usuario autenticado:', { id: context.user.id, email: context.user.email, role: context.user.role });
@@ -85,4 +85,13 @@ export const POST = withAdminAuth(async (
       { status: 500 }
     );
   }
-});
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAdminAuth(async (req: NextRequest, context: AuthContext) => {
+    return handler(req, context, { params });
+  })(request);
+}

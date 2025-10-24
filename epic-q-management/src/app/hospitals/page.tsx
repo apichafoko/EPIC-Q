@@ -24,7 +24,7 @@ export default function HospitalsPage() {
       const matchesSearch = !filters.search || 
         hospital.name.toLowerCase().includes(filters.search.toLowerCase()) ||
         hospital.city.toLowerCase().includes(filters.search.toLowerCase()) ||
-        hospital.redcap_id?.toLowerCase().includes(filters.search.toLowerCase());
+        hospital.projects?.[0]?.redcap_id?.toLowerCase().includes(filters.search.toLowerCase());
       
       const matchesProvince = filters.province === 'all' || hospital.province === filters.province;
       const matchesStatus = filters.status === 'all' || hospital.status === filters.status;
@@ -83,19 +83,19 @@ export default function HospitalsPage() {
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-green-600">
-            {filteredHospitals.filter(h => h.status === 'active_recruiting').length}
+            {filteredHospitals.filter(h => h.status === 'active').length}
           </div>
           <div className="text-sm text-gray-600">Activos</div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-blue-600">
-            {filteredHospitals.filter(h => h.status === 'ethics_approval_process').length}
+            {filteredHospitals.filter(h => h.status === 'inactive').length}
           </div>
           <div className="text-sm text-gray-600">En aprobación ética</div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-yellow-600">
-            {filteredHospitals.filter(h => h.status === 'initial_contact').length}
+            {filteredHospitals.filter(h => h.status === 'active').length}
           </div>
           <div className="text-sm text-gray-600">Contacto inicial</div>
         </div>
@@ -111,6 +111,7 @@ export default function HospitalsPage() {
       <HospitalTable
         hospitals={filteredHospitals}
         currentPage={currentPage}
+        totalPages={Math.ceil(filteredHospitals.length / itemsPerPage)}
         itemsPerPage={itemsPerPage}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}

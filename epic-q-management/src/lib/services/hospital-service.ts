@@ -35,6 +35,7 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
           include: {
             hospital_details: true,
             hospital_contacts: true,
+            hospital_progress: true,
             project_hospitals: {
               include: {
                 projects: {
@@ -43,7 +44,8 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
                     name: true,
                     status: true,
                     start_date: true,
-                    end_date: true
+                    end_date: true,
+                    required_periods: true
                   }
                 }
               }
@@ -70,6 +72,7 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
               include: {
                 hospital_details: true,
                 hospital_contacts: true,
+                hospital_progress: true,
                 project_hospitals: {
                   include: {
                     projects: {
@@ -78,7 +81,8 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
                         name: true,
                         status: true,
                         start_date: true,
-                        end_date: true
+                        end_date: true,
+                        required_periods: true
                       }
                     }
                   }
@@ -127,7 +131,7 @@ export async function getHospitals(filters?: HospitalFilters, page: number = 1, 
           status: ph.projects.status,
           start_date: ph.projects.start_date,
           end_date: ph.projects.end_date,
-          required_periods: ph.required_periods,
+          required_periods: ph.projects.required_periods,
           redcap_id: ph.redcap_id
         })),
         last_activity: hospital.updated_at,
@@ -253,7 +257,7 @@ export async function getHospitalById(id: string) {
           status: ph.projects.status,
           start_date: ph.projects.start_date,
           end_date: ph.projects.end_date,
-          required_periods: ph.required_periods || ph.projects.required_periods,
+          required_periods: ph.projects.required_periods,
           project_required_periods: ph.projects.required_periods,
           redcap_id: ph.redcap_id,
           project_hospital_status: ph.status,

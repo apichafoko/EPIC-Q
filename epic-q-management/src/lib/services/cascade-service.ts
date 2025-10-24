@@ -450,7 +450,7 @@ export class CascadeService {
    * Verifica qué hospitales quedarán sin coordinador después de eliminar un usuario
    */
   private static async checkHospitalsWithoutCoordinatorsAfterUserDeletion(userId: string): Promise<string[]> {
-    const user = await prisma.userss.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
         project_coordinators: {

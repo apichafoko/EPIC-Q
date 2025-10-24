@@ -3,10 +3,14 @@ import { withAuth } from '@/lib/auth/middleware';
 import { resolveAlert } from '@/lib/services/alert-service';
 
 // POST - Resolver alerta manualmente
-export const POST = withAuth(async (request: NextRequest, context: any, params: Promise<{ id: string }>) => {
-  try {
-    const { user } = context;
-    const { id } = await params;
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return withAuth(async (request: NextRequest, context: any) => {
+    try {
+      const { user } = context;
+      const { id } = await params;
 
     const result = await resolveAlert(id, user.id, false);
 
@@ -34,4 +38,5 @@ export const POST = withAuth(async (request: NextRequest, context: any, params: 
       { status: 500 }
     );
   }
-});
+  })(request);
+}

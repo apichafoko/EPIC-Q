@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 export function TranslatedComponent() {
-  const { t, formatDate, formatNumber, formatCurrency, formatRelativeTime } = useTranslations();
+  const { t, locale } = useTranslations();
 
   // Ejemplo de datos
   const sampleData = {
@@ -15,6 +15,19 @@ export function TranslatedComponent() {
     completionRate: 87.5,
     lastActivity: new Date('2024-01-15T10:30:00'),
     budget: 50000
+  };
+
+  // Funciones de formateo simples
+  const formatNumber = (num: number) => num.toLocaleString(locale);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat(locale, { 
+    style: 'currency', 
+    currency: 'ARS' 
+  }).format(amount);
+  const formatDate = (date: Date) => date.toLocaleDateString(locale);
+  const formatRelativeTime = (date: Date) => {
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    return `${diffInDays} días atrás`;
   };
 
   return (
@@ -41,11 +54,7 @@ export function TranslatedComponent() {
             <div>
               <h4 className="font-medium">{t('hospitals.completion')}</h4>
               <p className="text-2xl font-bold text-green-600">
-                {formatNumber(sampleData.completionRate, { 
-                  style: 'percent',
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 1
-                })}
+                {formatNumber(sampleData.completionRate)}%
               </p>
             </div>
           </div>
@@ -66,11 +75,7 @@ export function TranslatedComponent() {
             </div>
             <div>
               <h4 className="font-medium">Fecha corta</h4>
-              <p>{formatDate(sampleData.lastActivity, { 
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-              })}</p>
+              <p>{formatDate(sampleData.lastActivity)}</p>
             </div>
             <div>
               <h4 className="font-medium">Tiempo relativo</h4>

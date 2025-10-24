@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
           return { success: true, endpoint: subscription.endpoint };
         } catch (error) {
           console.error('Error sending push notification:', error);
-          return { success: false, endpoint: subscription.endpoint, error: error.message };
+          return { success: false, endpoint: subscription.endpoint, error: error instanceof Error ? error.message : 'Unknown error' };
         }
       })
     );

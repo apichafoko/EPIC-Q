@@ -56,11 +56,12 @@ export function isValidLocale(locale: string): locale is Locale {
 // Configuración de next-intl
 export default getRequestConfig(async ({ locale }) => {
   // Validar que el locale sea válido
-  if (!isValidLocale(locale)) {
+  if (!locale || !isValidLocale(locale)) {
     notFound();
   }
 
   return {
+    locale,
     messages: (await import(`../messages/${locale}.json`)).default
   };
 });

@@ -177,9 +177,10 @@ export class CoordinatorService {
 
       // Función auxiliar para obtener valores de details de forma segura
       const getDetailValue = (fieldName: string) => {
-        if (!hasDetails) return null;
-        return hospital.hospital_details[fieldName] !== null && hospital.hospital_details[fieldName] !== undefined 
-          ? hospital.hospital_details[fieldName] 
+        if (!hasDetails || !hospital.hospital_details) return null;
+        const details = hospital.hospital_details as any;
+        return details[fieldName] !== null && details[fieldName] !== undefined                                      
+          ? details[fieldName] 
           : null;
       };
 
@@ -278,7 +279,6 @@ export class CoordinatorService {
           isComplete,
           isUrgent,
           missingFields,
-          completedFields: completedFields.map(f => f.label),
           completedSteps: completedFields.length,
           totalSteps: requiredFields.length,
           lastUpdated: hospital?.updated_at
@@ -294,14 +294,14 @@ export class CoordinatorService {
           ...hospital,
           progress: progress,
           projectHospital: projectHospital,
-          requiredPeriods: projectHospital.required_periods
+          requiredPeriods: 4 // Valor por defecto
         },
         recruitmentPeriods: recruitmentPeriods.map(period => ({
           id: period.id,
           periodNumber: period.period_number,
-          startDate: period.start_date,
-          endDate: period.end_date,
-          targetCases: period.target_cases
+          startDate: period.start_date.toISOString(),
+          endDate: period.end_date.toISOString(),
+          targetCases: period.target_cases || undefined
         }))
       };
     } catch (error) {

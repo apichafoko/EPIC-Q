@@ -45,7 +45,7 @@ export async function DELETE(
       );
     }
 
-    const userId = params.id;
+    const userId = (await params).id;
 
     // Verificar que el usuario a eliminar existe
     const userToDelete = await prisma.users.findUnique({

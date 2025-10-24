@@ -34,7 +34,6 @@ export interface Hospital {
   }>;
   // Legacy fields for backward compatibility
   coordinator?: string;
-  progress?: number;
   cases?: number;
   completion?: number;
   last_activity?: string;
@@ -144,6 +143,18 @@ export interface Alert {
   created_at: string;
 }
 
+export interface AlertFilters {
+  hospital_id?: string;
+  alert_type?: string;
+  type?: string;
+  severity?: string;
+  status?: string;
+  is_resolved?: boolean;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
 export interface EmailTemplate {
   id: string;
   name: string;
@@ -153,6 +164,8 @@ export interface EmailTemplate {
   variables: string[];
   is_active: boolean;
   usage_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface User {

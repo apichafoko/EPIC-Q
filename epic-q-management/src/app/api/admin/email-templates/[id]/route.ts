@@ -44,7 +44,7 @@ export async function GET(
       );
     }
 
-    const templateId = params.id;
+    const templateId = (await params).id;
 
     // Obtener template
     const template = await prisma.communication_templates.findUnique({
@@ -115,7 +115,7 @@ export async function PATCH(
       );
     }
 
-    const templateId = params.id;
+    const templateId = (await params).id;
     const body = await request.json();
 
     // Verificar que el template existe
@@ -172,7 +172,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación manualmente
@@ -213,7 +213,7 @@ export async function DELETE(
       );
     }
 
-    const templateId = params.id;
+    const templateId = (await params).id;
 
     // Verificar que el template existe
     const existingTemplate = await prisma.communication_templates.findUnique({

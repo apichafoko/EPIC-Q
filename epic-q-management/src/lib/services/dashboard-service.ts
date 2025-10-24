@@ -193,14 +193,29 @@ export class DashboardService {
         take: limit
       });
 
-      return periods.map(period => ({
-        id: period.id,
-        hospital_name: period.project_hospitals?.hospitals?.name || 'Hospital desconocido',
-        period_number: period.period_number,
-        start_date: period.start_date,
-        end_date: period.end_date,
-        status: period.status
-      }));
+      return periods.map(period => {
+        const now = new Date();
+        const startDate = new Date(period.start_date);
+        const endDate = new Date(period.end_date);
+        
+        let status: 'planned' | 'active' | 'completed' | 'cancelled';
+        if (now < startDate) {
+          status = 'planned';
+        } else if (now >= startDate && now <= endDate) {
+          status = 'active';
+        } else {
+          status = 'completed';
+        }
+
+        return {
+          id: period.id,
+          hospital_name: period.project_hospitals?.hospitals?.name || 'Hospital desconocido',
+          period_number: period.period_number,
+          start_date: period.start_date,
+          end_date: period.end_date,
+          status: status
+        };
+      });
     } catch (error) {
       console.error('Error getting upcoming recruitment:', error);
       return [];

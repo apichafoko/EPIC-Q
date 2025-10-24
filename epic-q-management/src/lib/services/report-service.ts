@@ -65,26 +65,26 @@ export async function getProvinceDistribution() {
 export async function getProgressReport() {
   const progressData = await prisma.hospital_progress.findMany({
     include: {
-      hospital: {
+      hospitals: {
         select: { name: true, province: true }
       }
     }
   });
 
   return progressData.map(item => ({
-    hospitalName: item.hospital?.name || 'Unknown',
-    province: item.hospital?.province || 'Unknown',
+    hospitalName: item.hospitals?.name || 'Unknown',
+    province: item.hospitals?.province || 'Unknown',
     progressPercentage: item.progress_percentage || 0,
     ethicsSubmitted: item.ethics_submitted || false,
     ethicsApproved: item.ethics_approved || false,
-    readyForRecruitment: item.ready_for_recruitment || false
+    readyForRecruitment: (item.ethics_approved && item.progress_percentage >= 100) || false
   }));
 }
 
 export async function getCaseMetricsReport() {
   const caseMetrics = await prisma.case_metrics.findMany({
     include: {
-      hospital: {
+      hospitals: {
         select: { name: true, province: true }
       }
     },
@@ -92,8 +92,8 @@ export async function getCaseMetricsReport() {
   });
 
   return caseMetrics.map(item => ({
-    hospitalName: item.hospital?.name || 'Unknown',
-    province: item.hospital?.province || 'Unknown',
+    hospitalName: item.hospitals?.name || 'Unknown',
+    province: item.hospitals?.province || 'Unknown',
     casesCreated: item.cases_created || 0,
     completionPercentage: item.completion_percentage || 0,
     date: item.created_at
@@ -103,10 +103,10 @@ export async function getCaseMetricsReport() {
 export async function getCommunicationReport() {
   const communications = await prisma.communications.findMany({
     include: {
-      hospital: {
+      hospitals: {
         select: { name: true, province: true }
       },
-      user: {
+      recipient: {
         select: { name: true }
       }
     },
@@ -115,20 +115,20 @@ export async function getCommunicationReport() {
 
   return communications.map(item => ({
     id: item.id,
-    hospitalName: item.hospital?.name || 'Unknown',
-    province: item.hospital?.province || 'Unknown',
+    hospitalName: item.hospitals?.name || 'Unknown',
+    province: item.hospitals?.province || 'Unknown',
     type: item.type,
     subject: item.subject,
-    sentBy: item.user?.name || 'Unknown',
+    sentBy: item.recipient?.name || 'Unknown',
     sentAt: item.created_at,
-    status: item.status || 'sent'
+    status: item.email_status || 'sent'
   }));
 }
 
 export async function getAlertReport() {
   const alerts = await prisma.alerts.findMany({
     include: {
-      hospital: {
+      hospitals: {
         select: { name: true, province: true }
       }
     },
@@ -137,8 +137,8 @@ export async function getAlertReport() {
 
   return alerts.map(item => ({
     id: item.id,
-    hospitalName: item.hospital?.name || 'Unknown',
-    province: item.hospital?.province || 'Unknown',
+    hospitalName: item.hospitals?.name || 'Unknown',
+    province: item.hospitals?.province || 'Unknown',
     title: item.title,
     message: item.message,
     severity: item.severity,

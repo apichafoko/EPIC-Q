@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log('Token decoded successfully:', !!decoded, 'userId:', decoded.userId);
+      console.log('Token decoded successfully:', !!decoded, 'userId:', typeof decoded === 'string' ? decoded : decoded.userId);
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);
       return NextResponse.json(
@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar que el usuario existe y es admin
-    console.log('Looking for user with ID:', decoded.userId);
+    console.log('Looking for user with ID:', typeof decoded === 'string' ? decoded : decoded.userId);
     const user = await prisma.users.findUnique({
-      where: { id: decoded.userId },
+      where: { id: typeof decoded === 'string' ? decoded : decoded.userId },
       include: { hospitals: true }
     });
     console.log('User found:', !!user, 'role:', user?.role, 'isActive:', user?.isActive);
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       success: true,
       templates,
       debug: {
-        userId: decoded.userId,
+        userId: typeof decoded === 'string' ? decoded : decoded.userId,
         userRole: user.role,
         userActive: user.isActive,
         templateCount: templates.length

@@ -72,13 +72,12 @@ export async function PUT(
       const updatedRelation = await prisma.project_hospitals.update({
         where: { id: existingRelation.id },
         data: {
-          required_periods: validatedData.required_periods,
           redcap_id: validatedData.redcap_id || null,
           status: validatedData.status,
           updated_at: new Date()
         },
         include: {
-          project: {
+          projects: {
             select: {
               id: true,
               name: true,
@@ -87,7 +86,7 @@ export async function PUT(
               end_date: true
             }
           },
-          progress: true
+          hospital_progress: true
         }
       });
 
@@ -101,7 +100,7 @@ export async function PUT(
       
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Datos inválidos', details: error.errors },
+          { error: 'Datos inválidos', details: error.issues },
           { status: 400 }
         );
       }
@@ -111,7 +110,7 @@ export async function PUT(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }
 
 export async function DELETE(
@@ -178,5 +177,5 @@ export async function DELETE(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }

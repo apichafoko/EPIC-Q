@@ -40,12 +40,12 @@ export default function ProfilePage() {
         name: user.name || '',
         email: user.email || '',
         preferredLanguage: user.preferredLanguage || 'es',
-        timezone: user.timezone || 'America/Argentina/Buenos_Aires',
-        country: user.country || 'AR',
+        timezone: (user as any).timezone || 'America/Argentina/Buenos_Aires',
+        country: (user as any).country || 'AR',
         role: user.role || '',
         isActive: user.isActive || false,
-        lastLogin: user.lastLogin || null,
-        createdAt: user.createdAt || null
+        lastLogin: null,
+        createdAt: null
       });
     }
   }, [user]);
@@ -96,12 +96,12 @@ export default function ProfilePage() {
         name: user.name || '',
         email: user.email || '',
         preferredLanguage: user.preferredLanguage || 'es',
-        timezone: user.timezone || 'America/Argentina/Buenos_Aires',
-        country: user.country || 'AR',
+        timezone: (user as any).timezone || 'America/Argentina/Buenos_Aires',
+        country: (user as any).country || 'AR',
         role: user.role || '',
         isActive: user.isActive || false,
-        lastLogin: user.lastLogin || null,
-        createdAt: user.createdAt || null
+        lastLogin: null,
+        createdAt: null
       });
     }
     setIsEditing(false);

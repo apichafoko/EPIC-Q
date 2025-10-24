@@ -13,9 +13,10 @@ const changePasswordSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'La contraseña debe contener al menos una letra minúscula, una mayúscula y un número')
 });
 
-export const POST = withRoleAuth(
-  ['admin', 'coordinator'],
-  async (request: NextRequest, context: AuthContext) => {
+export async function POST(request: NextRequest) {
+  return withRoleAuth(
+    ['admin', 'coordinator'],
+    async (request: NextRequest, context: AuthContext) => {
     try {
       const userId = context.user.id;
       const body = await request.json();
@@ -72,7 +73,7 @@ export const POST = withRoleAuth(
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Datos inválidos', details: error.errors },
+          { error: 'Datos inválidos', details: error.issues },
           { status: 400 }
         );
       }
@@ -84,4 +85,5 @@ export const POST = withRoleAuth(
       );
     }
   }
-);
+  )(request);
+}

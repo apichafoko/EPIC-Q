@@ -53,7 +53,7 @@ export class PushService {
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(
           process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BOTJvNXdGDoFNRjk5CO6XvhFPpmtwpedkBL2IBZsKSxZbuRFmMz5XYJg6POUQg7cOkxV9tS6HNoopCSQQ-1pfAI'
-        )
+        ) as any
       });
 
       console.log('Suscripción push creada:', subscription);

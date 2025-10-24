@@ -1,5 +1,5 @@
 import { prisma } from './database';
-import { mockHospitals, mockContacts, mockHospitalDetails, mockHospitalProgress, mockRecruitmentPeriods, mockCaseMetrics, mockCommunications, mockEmailTemplates, mockAlerts, mockUsers } from './mock-data';
+import { mockHospitals, mockHospitalDetails, mockHospitalProgress, mockRecruitmentPeriods, mockCaseMetrics, mockCommunications, mockEmailTemplates, mockAlerts, mockUsers } from './mock-data';
 
 // Función para poblar la base de datos con datos de ejemplo
 export async function seedDatabase() {
@@ -13,7 +13,6 @@ export async function seedDatabase() {
     await prisma.case_metrics.deleteMany();
     await prisma.recruitment_periods.deleteMany();
     await prisma.hospital_progress.deleteMany();
-    await prisma.contact.deleteMany();
     await prisma.hospital_details.deleteMany();
     await prisma.hospitals.deleteMany();
     await prisma.communication_templates.deleteMany();
@@ -24,7 +23,10 @@ export async function seedDatabase() {
     console.log('👥 Creando usuarios...');
     for (const user of mockUsers) {
       await prisma.users.create({
-        data: user
+        data: {
+          ...user,
+          password: 'defaultPassword123'
+        }
       });
     }
 
@@ -34,12 +36,11 @@ export async function seedDatabase() {
       await prisma.hospitals.create({
         data: {
           id: hospital.id,
-          redcap_id: hospital.redcap_id,
           name: hospital.name,
           province: hospital.province,
           city: hospital.city,
           status: hospital.status,
-          participated_lasos: hospital.participated_lasos,
+          lasos_participation: hospital.participated_lasos,
           created_at: new Date(hospital.created_at),
           updated_at: new Date(hospital.updated_at)
         }
@@ -51,56 +52,30 @@ export async function seedDatabase() {
     for (const detail of mockHospitalDetails) {
       await prisma.hospital_details.create({
         data: {
+          id: `detail_${detail.hospital_id}`,
           hospital_id: detail.hospital_id,
-          num_beds: detail.num_beds,
-          num_operating_rooms: detail.num_operating_rooms,
-          num_icu_beds: detail.num_icu_beds,
           avg_weekly_surgeries: detail.avg_weekly_surgeries,
-          has_residency_program: detail.has_residency_program,
-          has_preop_clinic: detail.has_preop_clinic,
-          has_rapid_response_team: detail.has_rapid_response_team,
-          financing_type: detail.financing_type,
-          has_ethics_committee: detail.has_ethics_committee,
-          university_affiliated: detail.university_affiliated,
-          notes: detail.notes
+          financing_type: detail.financing_type
         }
       });
     }
 
-    // Crear contactos
-    console.log('👤 Creando contactos...');
-    for (const contact of mockContacts) {
-      await prisma.contact.create({
-        data: {
-          id: contact.id,
-          hospital_id: contact.hospital_id,
-          role: contact.role,
-          name: contact.name,
-          email: contact.email,
-          phone: contact.phone,
-          specialty: contact.specialty,
-          is_primary: contact.is_primary
-        }
-      });
-    }
 
     // Crear progreso de hospitales
     console.log('📊 Creando progreso de hospitales...');
     for (const progress of mockHospitalProgress) {
       await prisma.hospital_progress.create({
         data: {
+          id: `progress_${progress.hospital_id}`,
           hospital_id: progress.hospital_id,
-          descriptive_form_status: progress.descriptive_form_status,
-          ethics_submitted: progress.ethics_submitted,
+          project_id: 'default-project-id',
+          status: 'pending',
+          progress_percentage: 0,
+          notes: 'Progress notes',
           ethics_approved: progress.ethics_approved,
-          redcap_unit_created: progress.redcap_unit_created,
-          coordinator_user_created: progress.coordinator_user_created,
-          collaborator_users_created: progress.collaborator_users_created,
-          num_collaborators: progress.num_collaborators,
-          ready_for_recruitment: progress.ready_for_recruitment,
-          dates_assigned_period1: progress.dates_assigned_period1,
-          dates_assigned_period2: progress.dates_assigned_period2,
-          updated_at: new Date(progress.updated_at)
+          ethics_approved_date: progress.ethics_approved ? new Date() : null,
+          ethics_submitted: progress.ethics_submitted,
+          ethics_submitted_date: progress.ethics_submitted ? new Date() : null
         }
       });
     }
@@ -111,11 +86,11 @@ export async function seedDatabase() {
       await prisma.recruitment_periods.create({
         data: {
           id: period.id,
-          hospital_id: period.hospital_id,
+          project_hospital_id: `project_hospital_${period.hospital_id}`,
           period_number: period.period_number,
           start_date: new Date(period.start_date),
           end_date: new Date(period.end_date),
-          status: period.status
+          target_cases: 100 // Valor por defecto
         }
       });
     }
@@ -125,11 +100,10 @@ export async function seedDatabase() {
     for (const metric of mockCaseMetrics) {
       await prisma.case_metrics.create({
         data: {
-          id: metric.id,
+          id: `metric_${metric.hospital_id}_${Date.now()}`,
           hospital_id: metric.hospital_id,
           recorded_date: new Date(metric.recorded_date),
           cases_created: metric.cases_created,
-          cases_completed: metric.cases_completed,
           completion_percentage: metric.completion_percentage,
           last_case_date: metric.last_case_date ? new Date(metric.last_case_date) : null
         }
@@ -143,14 +117,12 @@ export async function seedDatabase() {
         data: {
           id: communication.id,
           hospital_id: communication.hospital_id,
-          type: communication.type,
-          subject: communication.subject,
-          content: communication.content,
-          sent_by: communication.sent_by,
-          sent_to: communication.sent_to,
-          template_used: communication.template_used,
-          status: communication.status,
-          created_at: new Date(communication.created_at)
+          user_id: communication.user_id || 'default-user-id',
+          type: communication.type || 'manual',
+          subject: communication.subject || 'Sin asunto',
+          body: communication.content || 'Sin contenido',
+          channels: ['email'],
+          sent_at: new Date(communication.sent_at)
         }
       });
     }
@@ -162,8 +134,8 @@ export async function seedDatabase() {
         data: {
           id: template.id,
           name: template.name,
-          subject: template.subject,
-          body: template.body,
+          email_subject: template.subject,
+          email_body: template.body,
           variables: template.variables,
           category: template.category,
           is_active: template.is_active,
@@ -181,7 +153,7 @@ export async function seedDatabase() {
         data: {
           id: alert.id,
           hospital_id: alert.hospital_id,
-          alert_type: alert.alert_type,
+          type: alert.alert_type,
           severity: alert.severity,
           title: alert.title,
           message: alert.message,
@@ -196,7 +168,6 @@ export async function seedDatabase() {
     // Mostrar estadísticas
     const stats = await prisma.$transaction([
       prisma.hospitals.count(),
-      prisma.contact.count(),
       prisma.communications.count(),
       prisma.communication_templates.count(),
       prisma.alerts.count(),
@@ -205,11 +176,10 @@ export async function seedDatabase() {
 
     console.log('📊 Estadísticas de la base de datos:');
     console.log(`- Hospitales: ${stats[0]}`);
-    console.log(`- Contactos: ${stats[1]}`);
-    console.log(`- Comunicaciones: ${stats[2]}`);
-    console.log(`- Templates: ${stats[3]}`);
-    console.log(`- Alertas: ${stats[4]}`);
-    console.log(`- Usuarios: ${stats[5]}`);
+    console.log(`- Comunicaciones: ${stats[1]}`);
+    console.log(`- Templates: ${stats[2]}`);
+    console.log(`- Alertas: ${stats[3]}`);
+    console.log(`- Usuarios: ${stats[4]}`);
 
   } catch (error) {
     console.error('❌ Error durante el seed:', error);
@@ -227,7 +197,6 @@ export async function clearDatabase() {
     await prisma.case_metrics.deleteMany();
     await prisma.recruitment_periods.deleteMany();
     await prisma.hospital_progress.deleteMany();
-    await prisma.contact.deleteMany();
     await prisma.hospital_details.deleteMany();
     await prisma.hospitals.deleteMany();
     await prisma.communication_templates.deleteMany();
@@ -246,7 +215,6 @@ export async function checkDatabaseStatus() {
   try {
     const stats = await prisma.$transaction([
       prisma.hospitals.count(),
-      prisma.contact.count(),
       prisma.communications.count(),
       prisma.communication_templates.count(),
       prisma.alerts.count(),
@@ -255,11 +223,10 @@ export async function checkDatabaseStatus() {
 
     return {
       hospitals: stats[0],
-      contacts: stats[1],
-      communications: stats[2],
-      templates: stats[3],
-      alerts: stats[4],
-      users: stats[5],
+      communications: stats[1],
+      templates: stats[2],
+      alerts: stats[3],
+      users: stats[4],
       total: stats.reduce((sum, count) => sum + count, 0)
     };
   } catch (error) {

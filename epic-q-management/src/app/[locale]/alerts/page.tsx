@@ -18,10 +18,19 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
-import { Alert, AlertFilters } from '@/types';
+import { Alert } from '@/types';
 import { toast } from 'sonner';
 import { useLoadingState } from '@/hooks/useLoadingState';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Definir el tipo AlertFilters
+interface AlertFilters {
+  search: string;
+  severity: string;
+  status: string;
+  hospital_id: string;
+  type: string;
+}
 
 export default function AlertsPage() {
   const [activeTab, setActiveTab] = useState('active');
@@ -29,7 +38,8 @@ export default function AlertsPage() {
     search: '',
     severity: 'all',
     status: 'active',
-    hospital_id: 'all'
+    hospital_id: 'all',
+    type: 'all'
   });
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, resolved: 0, critical: 0, high: 0, medium: 0, low: 0 });
@@ -364,7 +374,7 @@ export default function AlertsPage() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={() => setFilters({ search: '', severity: 'all', status: 'active', hospital_id: 'all' })}>
+            <Button variant="outline" onClick={() => setFilters({ search: '', severity: 'all', status: 'active', hospital_id: 'all', type: 'all' })}>
               <Filter className="h-4 w-4 mr-2" />
               Limpiar
             </Button>
@@ -419,7 +429,7 @@ export default function AlertsPage() {
                         <p className="text-gray-600 mb-3">{alert.message}</p>
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
                           <span className="text-blue-600">
-                            {alert.hospital_name}
+                            {alert.hospital_id}
                           </span>
                           <span>
                             {new Date(alert.created_at).toLocaleDateString('es-AR')}

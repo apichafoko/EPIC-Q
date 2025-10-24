@@ -9,6 +9,7 @@ export interface ConfirmationOptions {
   confirmText?: string;
   cancelText?: string;
   variant?: 'default' | 'destructive';
+  confirmationWord?: string;
 }
 
 export function useConfirmation() {

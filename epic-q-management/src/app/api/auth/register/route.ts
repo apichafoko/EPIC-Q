@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
 // Email configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST,
   port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
   secure: false,
@@ -45,10 +45,12 @@ export async function POST(request: NextRequest) {
     // Create user
     const user = await prisma.users.create({
       data: {
+        id: crypto.randomUUID(),
         email,
         name,
+        password: '', // Will be set when user sets their password
         role: role as 'admin' | 'coordinator',
-        hospital_id: hospitalId || null,
+        hospitalId: hospitalId || null,
         resetToken: invitationToken,
         resetTokenExpiry: tokenExpiry,
         isActive: true,

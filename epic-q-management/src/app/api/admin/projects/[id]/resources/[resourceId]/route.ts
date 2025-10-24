@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAdminAuth } from '@/lib/auth/middleware';
+import { withAdminAuth, AuthContext } from '@/lib/auth/middleware';
 import prisma from '@/lib/db-connection';
 import { deleteFile } from '@/lib/services/s3-service';
 
 async function handler(
   req: NextRequest,
-  context: any,
-  params?: { params: Promise<{ id: string; resourceId: string }> }
+  context: AuthContext,
+  { params }: { params: Promise<{ id: string; resourceId: string }> }
 ) {
-  if (!params) {
-    return NextResponse.json({ error: 'Parámetros no encontrados' }, { status: 400 });
-  }
-  const { resourceId } = await params.params;
+  const { resourceId } = await params;
 
   if (req.method === 'PATCH') {
     try {
@@ -59,5 +56,20 @@ async function handler(
   return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
 
-export const PATCH = withAdminAuth(handler);
-export const DELETE = withAdminAuth(handler);
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; resourceId: string }> }
+) {
+  return withAdminAuth(async (req: NextRequest, context: AuthContext) => {
+    return handler(req, context, { params });
+  })(request);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; resourceId: string }> }
+) {
+  return withAdminAuth(async (req: NextRequest, context: AuthContext) => {
+    return handler(req, context, { params });
+  })(request);
+}

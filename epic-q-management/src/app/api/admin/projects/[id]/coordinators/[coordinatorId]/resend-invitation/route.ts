@@ -31,8 +31,8 @@ export async function POST(
           id: coordinatorId
         },
         include: {
-          user: true,
-          hospital: true
+          users: true,
+          hospitals: true
         }
       });
 
@@ -58,7 +58,6 @@ export async function POST(
       await prisma.project_coordinators.update({
         where: { id: projectCoordinator.id },
         data: {
-          invitation_token: newInvitationToken,
           invited_at: new Date() // Actualizar fecha de invitación
         }
       });
@@ -66,18 +65,18 @@ export async function POST(
       // Enviar email de invitación
       await projectInvitationService.sendProjectInvitation({
         projectName: project.name,
-        hospitalName: projectCoordinator.hospital.name,
-        coordinatorName: projectCoordinator.user.name,
-        coordinatorEmail: projectCoordinator.user.email,
+        hospitalName: projectCoordinator.hospitals.name,
+        coordinatorName: projectCoordinator.users.name || projectCoordinator.users.email,
+        coordinatorEmail: projectCoordinator.users.email,
         invitationToken: newInvitationToken,
         requiredPeriods: 2, // Valor por defecto
-        projectDescription: project.description,
+        projectDescription: project.description || '',
         adminName: context.user.name
       });
 
       return NextResponse.json({
         success: true,
-        message: `Invitación reenviada exitosamente a ${projectCoordinator.user.email}`
+        message: `Invitación reenviada exitosamente a ${projectCoordinator.users.email}`
       });
 
     } catch (error) {
@@ -87,5 +86,5 @@ export async function POST(
         { status: 500 }
       );
     }
-  })(request, { params });
+  })(request);
 }

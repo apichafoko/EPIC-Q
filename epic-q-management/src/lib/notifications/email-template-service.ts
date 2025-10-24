@@ -73,7 +73,11 @@ export class EmailTemplateService {
         ]
       });
 
-      return templates as EmailTemplate[];
+      return templates.map(template => ({
+        ...template,
+        subject: template.email_subject || '',
+        body: template.email_body || ''
+      })) as EmailTemplate[];
     } catch (error) {
       console.error('Error getting all templates:', error);
       return [];
@@ -93,17 +97,22 @@ export class EmailTemplateService {
     try {
       const template = await prisma.communication_templates.create({
         data: {
+          id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: templateData.name,
-          subject: templateData.subject,
-          body: templateData.body,
-          variables: templateData.variables || {},
+          email_subject: templateData.subject,
+          email_body: templateData.body,
+          variables: Array.isArray(templateData.variables) ? templateData.variables : [],
           category: templateData.category,
           is_active: true,
           usage_count: 0
         }
       });
 
-      return template as EmailTemplate;
+      return {
+        ...template,
+        subject: template.email_subject || '',
+        body: template.email_body || ''
+      } as EmailTemplate;
     } catch (error) {
       console.error('Error creating template:', error);
       return null;
@@ -130,7 +139,11 @@ export class EmailTemplateService {
         }
       });
 
-      return template as EmailTemplate;
+      return {
+        ...template,
+        subject: template.email_subject || '',
+        body: template.email_body || ''
+      } as EmailTemplate;
     } catch (error) {
       console.error('Error updating template:', error);
       return null;
@@ -183,13 +196,13 @@ export class EmailTemplateService {
       logoUrl: getEmailLogoUrl() || getLogoBase64()
     };
     
-    let processedSubject = template.email_subject || template.subject || 'Invitación al sistema EPIC-Q';
-    let processedBody = template.email_body || template.body || '';
+    let processedSubject = template.subject || 'Invitación al sistema EPIC-Q';
+    let processedBody = template.body || '';
 
     // Reemplazar variables en el subject
     Object.keys(enhancedVariables).forEach(key => {
       const placeholder = `{{${key}}}`;
-      const value = enhancedVariables[key] || '';
+      const value = (enhancedVariables as any)[key] || '';
       processedSubject = processedSubject.replace(new RegExp(placeholder, 'g'), String(value));
     });
 
@@ -199,7 +212,7 @@ export class EmailTemplateService {
     // Reemplazar variables en el body
     Object.keys(enhancedVariables).forEach(key => {
       const placeholder = `{{${key}}}`;
-      const value = enhancedVariables[key] || '';
+      const value = (enhancedVariables as any)[key] || '';
       processedBody = processedBody.replace(new RegExp(placeholder, 'g'), String(value));
     });
 

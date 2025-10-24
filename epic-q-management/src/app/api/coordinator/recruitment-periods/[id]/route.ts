@@ -4,7 +4,7 @@ import { SimpleAuthService } from '@/lib/auth/simple-auth-service';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -24,7 +24,7 @@ export async function PUT(
       );
     }
 
-    const periodId = params.id;
+    const periodId = (await params).id;
     const body = await request.json();
     const { startDate, endDate } = body;
 
@@ -54,7 +54,9 @@ export async function PUT(
     const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         id: periodId,
-        hospital_id: authResult.user.hospitalId
+        project_hospitals: {
+          hospital_id: authResult.user.hospitalId || ''
+        }
       }
     });
 
@@ -114,7 +116,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -134,13 +136,15 @@ export async function DELETE(
       );
     }
 
-    const periodId = params.id;
+    const periodId = (await params).id;
 
     // Verificar que el período pertenece al hospital del coordinador
     const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
         id: periodId,
-        hospital_id: authResult.user.hospitalId
+        project_hospitals: {
+          hospital_id: authResult.user.hospitalId || ''
+        }
       }
     });
 

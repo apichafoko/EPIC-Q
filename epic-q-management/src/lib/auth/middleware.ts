@@ -91,10 +91,10 @@ export function withAuth(
 }
 
 export function withAdminAuth(
-  handler: (request: NextRequest, context: AuthContext, params?: { params: Promise<{ id: string }> }) => Promise<NextResponse> | NextResponse
+  handler: (request: NextRequest, context: AuthContext) => Promise<NextResponse> | NextResponse
 ) {
-  return async (request: NextRequest, params?: { params: Promise<{ id: string }> }) => {
-    return withAuth(handler, { roles: ['admin'] })(request, params);
+  return async (request: NextRequest) => {
+    return withAuth(handler, { roles: ['admin'] })(request);
   };
 }
 

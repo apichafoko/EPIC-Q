@@ -16,12 +16,14 @@ export class CaseMetricsService {
     hospital_id: string;
     recorded_date: Date;
     cases_created: number;
-    cases_completed: number;
     completion_percentage?: number;
     last_case_date?: Date;
   }) {
     return await prisma.case_metrics.create({
-      data
+      data: {
+        ...data,
+        id: `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }
     });
   }
 
@@ -64,7 +66,10 @@ export class CaseMetricsService {
     }
 
     const totalCreated = metrics.reduce((sum, m) => sum + m.cases_created, 0);
-    const totalCompleted = metrics.reduce((sum, m) => sum + m.cases_completed, 0);
+    const totalCompleted = metrics.reduce((sum, m) => {
+      const completed = Math.round((m.cases_created * m.completion_percentage) / 100);
+      return sum + completed;
+    }, 0);
     const completionRate = totalCreated > 0 ? Math.round((totalCompleted / totalCreated) * 100) : 0;
     const lastCaseDate = metrics.find(m => m.last_case_date)?.last_case_date || null;
 
@@ -107,7 +112,8 @@ export class CaseMetricsService {
       }
 
       acc[weekKey].cases_created += metric.cases_created;
-      acc[weekKey].cases_completed += metric.cases_completed;
+      const completed = Math.round((metric.cases_created * metric.completion_percentage) / 100);
+      acc[weekKey].cases_completed += completed;
       
       return acc;
     }, {} as Record<string, any>);
@@ -128,7 +134,11 @@ export class RecruitmentPeriodService {
   // Obtener períodos por hospital
   static async getPeriodsByHospital(hospitalId: string) {
     return await prisma.recruitment_periods.findMany({
-      where: { hospital_id: hospitalId },
+      where: { 
+        project_hospitals: {
+          hospital_id: hospitalId
+        }
+      },
       orderBy: { period_number: 'asc' }
     });
   }
@@ -142,7 +152,14 @@ export class RecruitmentPeriodService {
     status?: string;
   }) {
     return await prisma.recruitment_periods.create({
-      data
+      data: {
+        id: `period_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        project_hospital_id: `project_hospital_${data.hospital_id}`,
+        period_number: data.period_number,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        target_cases: 100 // Valor por defecto
+      }
     });
   }
 
@@ -173,7 +190,9 @@ export class RecruitmentPeriodService {
     // Verificar que el período no exista
     const existingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
-        hospital_id,
+        project_hospitals: {
+          hospital_id: hospital_id
+        },
         period_number
       }
     });
@@ -196,7 +215,9 @@ export class RecruitmentPeriodService {
     // Verificar que no haya solapamiento con otros períodos
     const overlappingPeriod = await prisma.recruitment_periods.findFirst({
       where: {
-        hospital_id,
+        project_hospitals: {
+          hospital_id: hospital_id
+        },
         OR: [
           {
             start_date: {
@@ -225,7 +246,9 @@ export class RecruitmentPeriodService {
     // Verificar que haya al menos 4 meses entre períodos
     const lastPeriod = await prisma.recruitment_periods.findFirst({
       where: {
-        hospital_id,
+        project_hospitals: {
+          hospital_id: hospital_id
+        },
         period_number: {
           lt: period_number
         }
@@ -253,16 +276,19 @@ export class RecruitmentPeriodService {
         start_date: {
           lte: futureDate,
           gte: new Date()
-        },
-        status: 'planned'
+        }
       },
       include: {
-        hospital: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            province: true
+        project_hospitals: {
+          include: {
+            hospitals: {
+              select: {
+                id: true,
+                name: true,
+                city: true,
+                province: true
+              }
+            }
           }
         }
       },
@@ -281,16 +307,19 @@ export class RecruitmentPeriodService {
         },
         end_date: {
           gte: today
-        },
-        status: 'active'
+        }
       },
       include: {
-        hospital: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            province: true
+        project_hospitals: {
+          include: {
+            hospitals: {
+              select: {
+                id: true,
+                name: true,
+                city: true,
+                province: true
+              }
+            }
           }
         }
       },
@@ -302,21 +331,15 @@ export class RecruitmentPeriodService {
   static async getPeriodStats() {
     const [
       total,
-      byStatus,
       upcoming,
       active
     ] = await Promise.all([
       prisma.recruitment_periods.count(),
-      prisma.recruitment_periods.groupBy({
-        by: ['status'],
-        _count: { status: true }
-      }),
       prisma.recruitment_periods.count({
         where: {
           start_date: {
             gte: new Date()
-          },
-          status: 'planned'
+          }
         }
       }),
       prisma.recruitment_periods.count({
@@ -326,8 +349,7 @@ export class RecruitmentPeriodService {
           },
           end_date: {
             gte: new Date()
-          },
-          status: 'active'
+          }
         }
       })
     ]);
@@ -336,10 +358,11 @@ export class RecruitmentPeriodService {
       total,
       upcoming,
       active,
-      byStatus: byStatus.reduce((acc, item) => {
-        acc[item.status || 'unknown'] = item._count.status;
-        return acc;
-      }, {} as Record<string, number>)
+      byStatus: {
+        planned: upcoming,
+        active: active,
+        completed: total - upcoming - active
+      }
     };
   }
 }

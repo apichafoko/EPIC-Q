@@ -38,5 +38,5 @@ export async function POST(
         { status: 500 }
       );
     }
-  })(req, { params });
+  })(req);
 }

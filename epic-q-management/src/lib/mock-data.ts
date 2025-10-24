@@ -88,15 +88,14 @@ const hospitalNames = [
 // Generar hospitales
 export const mockHospitals: Hospital[] = hospitalNames.map((name, index) => {
   const statuses: Hospital['status'][] = [
-    'initial_contact', 'pending_evaluation', 'ethics_approval_process', 
-    'redcap_setup', 'active_recruiting', 'completed', 'inactive'
+    'active', 'inactive'
   ];
   
-  const statusWeights = [8, 12, 15, 5, 20, 3, 2]; // Distribución realista
+  const statusWeights = [80, 20]; // Distribución realista
   const randomStatus = Math.sin(index * 1.1) * 10000;
   const randomValue = randomStatus - Math.floor(randomStatus);
   let cumulativeWeight = 0;
-  let selectedStatus: Hospital['status'] = 'initial_contact';
+  let selectedStatus: Hospital['status'] = 'active';
   
   for (let i = 0; i < statuses.length; i++) {
     cumulativeWeight += statusWeights[i] / 100;
@@ -160,12 +159,7 @@ function generateCityName(province: string, seed: number = 0): string {
 // Función para calcular porcentaje de progreso basado en estado
 function calculateProgressPercentage(status: Hospital['status'], seed: number = 0): number {
   const baseProgress = {
-    'initial_contact': 10,
-    'pending_evaluation': 25,
-    'ethics_approval_process': 45,
-    'redcap_setup': 65,
-    'active_recruiting': 85,
-    'completed': 100,
+    'active': 75,
     'inactive': 0
   };
   
@@ -300,7 +294,7 @@ export const mockHospitalProgress: HospitalProgress[] = mockHospitals.map(hospit
 
 // Generar períodos de reclutamiento
 export const mockRecruitmentPeriods: RecruitmentPeriod[] = mockHospitals
-  .filter(h => h.status === 'active_recruiting' || h.status === 'completed')
+  .filter(h => h.status === 'active')
   .flatMap(hospital => {
     const periods: RecruitmentPeriod[] = [];
     const baseDate = new Date(2024, 0, 1);
@@ -332,7 +326,7 @@ export const mockRecruitmentPeriods: RecruitmentPeriod[] = mockHospitals
 
 // Generar métricas de casos
 export const mockCaseMetrics: CaseMetrics[] = mockHospitals
-  .filter(h => h.status === 'active_recruiting' || h.status === 'completed')
+  .filter(h => h.status === 'active')
   .flatMap((hospital, hospitalIndex) => {
     const metrics: CaseMetrics[] = [];
     const startDate = new Date(2024, 0, 1);
@@ -379,14 +373,14 @@ export const mockCommunications: Communication[] = mockHospitals.flatMap((hospit
     communications.push({
       id: generateId(seed),
       hospital_id: hospital.id,
+      hospital_name: hospital.name,
       type,
       subject: generateCommunicationSubject(type, seed),
       content: generateCommunicationContent(type, seed),
-      sent_by: 'admin-user-id',
-      sent_to: type === 'email' ? `coordinator.${hospital.id}@hospital.com` : undefined,
-      template_used: type === 'email' ? generateTemplateName(seed) : undefined,
+      user_id: 'admin-user-id',
+      user_name: 'Admin User',
       status,
-      created_at: createdDate
+      sent_at: createdDate
     });
   }
   
@@ -551,7 +545,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nLe escribimos para invitarlo/a a participar en el Estudio Perioperatorio Integral de Cuidados Quirúrgicos (EPIC-Q) que se está llevando a cabo en Argentina.\n\nEl estudio tiene como objetivo...\n\nHospital: {{hospital_name}}\nID RedCap: {{redcap_id}}\n\nSaludos cordiales,\nEquipo EPIC-Q',
     variables: ['coordinator_name', 'hospital_name', 'redcap_id'],
     is_active: true,
-    usage_count: 45
+    usage_count: 45,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: generateId(50001),
@@ -561,7 +557,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nLe recordamos que la documentación de aprobación ética para el hospital {{hospital_name}} está pendiente.\n\nPor favor, complete la documentación requerida para continuar con el estudio.\n\nSaludos,\nEquipo EPIC-Q',
     variables: ['coordinator_name', 'hospital_name'],
     is_active: true,
-    usage_count: 23
+    usage_count: 23,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: generateId(50002),
@@ -571,7 +569,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nConfirmamos que el hospital {{hospital_name}} ha sido dado de alta exitosamente en RedCap.\n\nID RedCap: {{redcap_id}}\n\nPuede comenzar a registrar casos.\n\nSaludos,\nEquipo Técnico EPIC-Q',
     variables: ['coordinator_name', 'hospital_name', 'redcap_id'],
     is_active: true,
-    usage_count: 18
+    usage_count: 18,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: generateId(50003),
@@ -581,7 +581,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nLe informamos que el período de reclutamiento {{period_number}} del hospital {{hospital_name}} está próximo a iniciarse.\n\nFechas: {{start_date}} al {{end_date}}\n\nPor favor, prepare el equipo para el inicio del período.\n\nSaludos,\nEquipo EPIC-Q',
     variables: ['coordinator_name', 'hospital_name', 'period_number', 'start_date', 'end_date'],
     is_active: true,
-    usage_count: 12
+    usage_count: 12,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: generateId(50004),
@@ -591,7 +593,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nHemos notado que el hospital {{hospital_name}} tiene una completitud de casos del {{completion_percentage}}%, que está por debajo del objetivo del 70%.\n\nCasos creados: {{cases_created}}\nCasos completos: {{cases_completed}}\n\nPor favor, revise los casos pendientes.\n\nSaludos,\nEquipo de Calidad EPIC-Q',
     variables: ['coordinator_name', 'hospital_name', 'completion_percentage', 'cases_created', 'cases_completed'],
     is_active: true,
-    usage_count: 8
+    usage_count: 8,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   },
   {
     id: generateId(50005),
@@ -601,7 +605,9 @@ export const mockEmailTemplates: EmailTemplate[] = [
     body: 'Estimado/a {{coordinator_name}},\n\nAdjuntamos el reporte mensual de avances del hospital {{hospital_name}}.\n\nResumen:\n- Casos creados: {{cases_created}}\n- Casos completos: {{cases_completed}}\n- Completitud: {{completion_percentage}}%\n- Última actividad: {{last_case_date}}\n\nSaludos,\nEquipo EPIC-Q',
     variables: ['coordinator_name', 'hospital_name', 'cases_created', 'cases_completed', 'completion_percentage', 'last_case_date'],
     is_active: true,
-    usage_count: 6
+    usage_count: 6,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z'
   }
 ];
 
@@ -627,13 +633,20 @@ export const mockUsers: User[] = [
 // Generar KPIs del dashboard
 export const mockDashboardKPIs: DashboardKPIs = {
   totalHospitals: mockHospitals.length,
-  activeHospitals: mockHospitals.filter(h => h.status === 'active_recruiting').length,
+  activeHospitals: mockHospitals.filter(h => h.status === 'active').length,
   totalCases: mockCaseMetrics.reduce((sum, metric) => sum + metric.cases_created, 0),
   averageCompletion: Math.round(
     mockCaseMetrics.reduce((sum, metric) => sum + metric.completion_percentage, 0) / 
     mockCaseMetrics.length
   ),
-  activeAlerts: mockAlerts.filter(a => !a.is_resolved).length
+  activeAlerts: mockAlerts.filter(a => !a.is_resolved).length,
+  trends: {
+    totalHospitals: 5,
+    activeHospitals: 3,
+    totalCases: 12,
+    averageCompletion: 8,
+    activeAlerts: -2
+  }
 };
 
 // Generar datos para gráficos
@@ -645,17 +658,12 @@ export const mockChartData: ChartData[] = Object.entries(
 ).map(([status, value]) => ({
   name: statusConfig[status as keyof typeof statusConfig]?.label || status,
   value,
-  color: getStatusColor(status as keyof typeof statusConfig)
+  color: getStatusColor(status)
 }));
 
-function getStatusColor(status: keyof typeof statusConfig): string {
-  const colors = {
-    initial_contact: '#fbbf24',
-    pending_evaluation: '#f97316',
-    ethics_approval_process: '#3b82f6',
-    redcap_setup: '#8b5cf6',
-    active_recruiting: '#10b981',
-    completed: '#6b7280',
+function getStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    active: '#10b981',
     inactive: '#ef4444'
   };
   return colors[status] || '#6b7280';

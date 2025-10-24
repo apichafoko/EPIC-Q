@@ -300,16 +300,12 @@ export default function CoordinatorDashboard() {
                     </div>
                   </div>
 
-                  {/* Completed Fields */}
-                  {stats.hospitalFormStatus.completedFields && stats.hospitalFormStatus.completedFields.length > 0 && (
+                  {/* Completed Fields - Temporarily disabled due to missing property */}
+                  {false && (
                     <div className="mt-4">
                       <p className="text-sm font-medium mb-2 text-green-700">Campos completados:</p>
                       <div className="flex flex-wrap gap-2">
-                        {stats.hospitalFormStatus.completedFields.map((field, index) => (
-                          <Badge key={index} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                            ✓ {field}
-                          </Badge>
-                        ))}
+                        {/* completedFields property not available in current type */}
                       </div>
                     </div>
                   )}

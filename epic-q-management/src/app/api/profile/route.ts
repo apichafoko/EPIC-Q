@@ -19,60 +19,62 @@ const updateProfileSchema = z.object({
     .max(2, 'Código de país inválido')
 });
 
-export const PUT = withRoleAuth(
-  ['admin', 'coordinator'],
-  async (request: NextRequest, context: AuthContext) => {
-    try {
-      const userId = context.user.id;
-      const body = await request.json();
-      
-      // Validar datos
-      const validatedData = updateProfileSchema.parse(body);
-      
-      // Actualizar usuario
-      const updatedUser = await prisma.users.update({
-        where: { id: userId },
-        data: {
-          name: validatedData.name,
-          preferredLanguage: validatedData.preferredLanguage,
-          timezone: validatedData.timezone,
-          country: validatedData.country,
-          updated_at: new Date()
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          preferredLanguage: true,
-          timezone: true,
-          country: true,
-          isActive: true,
-          lastLogin: true,
-          createdAt: true,
-          updated_at: true
+export async function PUT(request: NextRequest) {
+  return withRoleAuth(
+    ['admin', 'coordinator'],
+    async (request: NextRequest, context: AuthContext) => {
+      try {
+        const userId = context.user.id;
+        const body = await request.json();
+        
+        // Validar datos
+        const validatedData = updateProfileSchema.parse(body);
+        
+        // Actualizar usuario
+        const updatedUser = await prisma.users.update({
+          where: { id: userId },
+          data: {
+            name: validatedData.name,
+            preferredLanguage: validatedData.preferredLanguage,
+            timezone: validatedData.timezone,
+            country: validatedData.country,
+            updated_at: new Date()
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            preferredLanguage: true,
+            timezone: true,
+            country: true,
+            isActive: true,
+            lastLogin: true,
+            created_at: true,
+            updated_at: true
+          }
+        });
+
+        return NextResponse.json({
+          success: true,
+          user: updatedUser,
+          message: 'Perfil actualizado exitosamente'
+        });
+
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: 'Datos inválidos', details: error.issues },
+            { status: 400 }
+          );
         }
-      });
 
-      return NextResponse.json({
-        success: true,
-        user: updatedUser,
-        message: 'Perfil actualizado exitosamente'
-      });
-
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+        console.error('Error updating profile:', error);
         return NextResponse.json(
-          { error: 'Datos inválidos', details: error.errors },
-          { status: 400 }
+          { error: 'Error interno del servidor' },
+          { status: 500 }
         );
       }
-
-      console.error('Error updating profile:', error);
-      return NextResponse.json(
-        { error: 'Error interno del servidor' },
-        { status: 500 }
-      );
     }
-  }
-);
+  )(request);
+}

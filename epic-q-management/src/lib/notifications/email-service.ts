@@ -294,7 +294,7 @@ class EmailService {
       };
 
       // Procesar template según el tipo
-      let processedSubject, processedBody;
+      let processedSubject: string, processedBody: string;
       
       if ('email_subject' in template) {
         // Es un communication_template

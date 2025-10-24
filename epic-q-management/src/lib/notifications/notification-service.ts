@@ -23,6 +23,7 @@ export class NotificationService {
   static async createNotification(data: CreateNotificationData) {
     const notification = await prisma.notifications.create({
       data: {
+        id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: data.userId,
         title: data.title,
         message: data.message,
@@ -133,7 +134,7 @@ export class NotificationService {
     const coordinators = await prisma.users.findMany({
       where: { 
         role: 'coordinator',
-        hospital_id: hospitalId,
+        hospitalId: hospitalId,
       },
       select: { id: true },
     });

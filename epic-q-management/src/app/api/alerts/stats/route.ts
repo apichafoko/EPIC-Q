@@ -3,7 +3,8 @@ import { withAuth } from '@/lib/auth/middleware';
 import { getAlertStats } from '@/lib/services/alert-service';
 
 // GET - Obtener estadísticas de alertas
-export const GET = withAuth(async (request: NextRequest, context: any) => {
+export async function GET(request: NextRequest) {
+  return withAuth(async (request: NextRequest, context: any) => {
   try {
     const stats = await getAlertStats();
 
@@ -23,4 +24,5 @@ export const GET = withAuth(async (request: NextRequest, context: any) => {
       { status: 500 }
     );
   }
-});
+  })(request);
+}
