@@ -3,7 +3,7 @@ import { GET, POST } from '../route';
 import { prisma } from '../../../../../lib/database';
 
 // Mock de Prisma
-jest.mock('@/lib/database', () => ({
+jest.mock('../../../../../lib/database', () => ({
   prisma: {
     project: {
       findMany: jest.fn(),
@@ -14,7 +14,7 @@ jest.mock('@/lib/database', () => ({
 }));
 
 // Mock de middleware de autenticación
-jest.mock('@/lib/auth/middleware', () => ({
+jest.mock('../../../../../lib/auth/middleware', () => ({
   withAdminAuth: (handler: any) => handler,
 }));
 

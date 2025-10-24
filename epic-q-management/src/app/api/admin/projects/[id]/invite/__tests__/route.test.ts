@@ -3,7 +3,7 @@ import { POST } from '../route';
 import { prisma } from '../../../../../../../lib/database';
 
 // Mock de Prisma
-jest.mock('@/lib/database', () => ({
+jest.mock('../../../../../../../lib/database', () => ({
   prisma: {
     project: {
       findUnique: jest.fn(),
@@ -27,12 +27,12 @@ jest.mock('@/lib/database', () => ({
 }));
 
 // Mock de middleware de autenticación
-jest.mock('@/lib/auth/middleware', () => ({
+jest.mock('../../../../../../../lib/auth/middleware', () => ({
   withAdminAuth: (handler: any) => handler,
 }));
 
 // Mock del servicio de email
-jest.mock('@/lib/notifications/project-invitation-service', () => ({
+jest.mock('../../../../../../../lib/notifications/project-invitation-service', () => ({
   projectInvitationService: {
     sendProjectInvitation: jest.fn(),
   },
@@ -106,7 +106,7 @@ describe('/api/admin/projects/[id]/invite', () => {
         hospital: mockHospital,
       });
 
-      const { projectInvitationService } = require('@/lib/notifications/project-invitation-service');
+      const { projectInvitationService } = require('../../../../../../../lib/notifications/project-invitation-service');
       projectInvitationService.sendProjectInvitation.mockResolvedValue(true);
 
       const request = new NextRequest('http://localhost:3000/api/admin/projects/project-1/invite', {
@@ -163,7 +163,7 @@ describe('/api/admin/projects/[id]/invite', () => {
         hospital: mockHospital,
       });
 
-      const { projectInvitationService } = require('@/lib/notifications/project-invitation-service');
+      const { projectInvitationService } = require('../../../../../../../lib/notifications/project-invitation-service');
       projectInvitationService.sendProjectInvitation.mockResolvedValue(true);
 
       const request = new NextRequest('http://localhost:3000/api/admin/projects/project-1/invite', {
@@ -328,7 +328,7 @@ describe('/api/admin/projects/[id]/invite', () => {
         hospital: mockHospital,
       });
 
-      const { projectInvitationService } = require('@/lib/notifications/project-invitation-service');
+      const { projectInvitationService } = require('../../../../../../../lib/notifications/project-invitation-service');
       projectInvitationService.sendProjectInvitation.mockResolvedValue(false); // Email failed
 
       const request = new NextRequest('http://localhost:3000/api/admin/projects/project-1/invite', {
