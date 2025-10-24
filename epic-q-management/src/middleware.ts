@@ -6,18 +6,25 @@ const defaultLocale = 'es';
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip API routes
-  if (pathname.startsWith('/api/')) {
+  // Skip API routes, static files, and Next.js internals
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/_static/') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  // Extract locale from pathname
+  // Check if pathname already has a locale
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
+  // If no locale, redirect to default locale
   if (!pathnameHasLocale) {
-    return NextResponse.redirect(new URL(`/${defaultLocale}`, request.url));
+    const redirectUrl = new URL(`/${defaultLocale}${pathname}`, request.url);
+    return NextResponse.redirect(redirectUrl);
   }
 
   return NextResponse.next();
