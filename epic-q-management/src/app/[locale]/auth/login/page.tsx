@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../../../contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {

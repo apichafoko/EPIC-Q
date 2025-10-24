@@ -8,11 +8,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
+} from '../../components/ui/dialog';
+import { Button } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Badge } from '../../components/ui/badge';
 import { AlertTriangle, User, Building, Trash2, UserX } from 'lucide-react';
 
 interface CascadeAction {

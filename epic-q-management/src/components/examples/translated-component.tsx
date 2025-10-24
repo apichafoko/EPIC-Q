@@ -1,9 +1,9 @@
 'use client';
 
-import { useTranslations } from '@/hooks/useTranslations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 
 export function TranslatedComponent() {
   const { t, locale } = useTranslations();

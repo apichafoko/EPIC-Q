@@ -1,6 +1,6 @@
 import { EmailService } from './email-service';
 import { EmailTemplateService } from './email-template-service';
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 import { getLogoBase64, getEmailLogoUrl } from './email-logo';
 
 interface ProjectInvitationData {

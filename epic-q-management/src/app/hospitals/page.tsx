@@ -3,11 +3,11 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, Download, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { HospitalFiltersComponent } from '@/components/hospitals/hospital-filters';
-import { HospitalTable } from '@/components/hospitals/hospital-table';
-import { HospitalFilters } from '@/types';
-import { mockHospitals } from '@/lib/mock-data';
+import { Button } from '../../components/ui/button';
+import { HospitalFiltersComponent } from '../../components/hospitals/hospital-filters';
+import { HospitalTable } from '../../components/hospitals/hospital-table';
+import { HospitalFilters } from '../../types';
+import { mockHospitals } from '../../lib/mock-data';
 
 export default function HospitalsPage() {
   const [filters, setFilters] = useState<HospitalFilters>({

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -16,8 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import { Alert, alertTypes, alertSeverities } from '@/types';
-import { mockAlerts, getHospitalById } from '@/lib/mock-data';
+import { Alert, alertTypes, alertSeverities } from '../../types';
+import { mockAlerts, getHospitalById } from '../../lib/mock-data';
 
 export default function AlertsPage() {
   const [activeTab, setActiveTab] = useState('active');

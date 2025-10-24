@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-connection';
+import { prisma } from '../../lib/db-connection';
 
 // Función para validar que los períodos no se superpongan
 export function validatePeriodOverlap(

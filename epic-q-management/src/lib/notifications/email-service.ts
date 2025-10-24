@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { EmailTemplateService, TemplateVariables } from './email-template-service';
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 
 interface EmailOptions {
   to: string;

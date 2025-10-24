@@ -1,20 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from '@/hooks/useTranslations';
-import { useProject } from '@/contexts/project-context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from '@/components/ui/modal';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { useProject } from '../../../../contexts/project-context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Checkbox } from '../../../../components/ui/checkbox';
+import { Progress } from '../../../../components/ui/progress';
+import { Badge } from '../../../../components/ui/badge';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
+import { Calendar } from '../../../../components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../../components/ui/popover';
+import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from '../../../../components/ui/modal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
 import { 
   Calendar as CalendarIcon, 
   Upload, 
@@ -29,10 +29,10 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useLoadingState } from '@/hooks/useLoadingState';
+import { LoadingButton } from '../../../../components/ui/loading-button';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
-import { validatePeriodOverlap } from '@/lib/services/coordinator-service';
+import { validatePeriodOverlap } from '../../../../lib/services/coordinator-service';
 
 export default function CoordinatorProgressPage() {
   const { t } = useTranslations();

@@ -1,5 +1,5 @@
-import { InstallPrompt } from '@/components/pwa/install-prompt';
-import { OfflineIndicator } from '@/components/pwa/offline-indicator';
+import { InstallPrompt } from '../../../components/pwa/install-prompt';
+import { OfflineIndicator } from '../../../components/pwa/offline-indicator';
 
 export default function AdminLayout({
   children,

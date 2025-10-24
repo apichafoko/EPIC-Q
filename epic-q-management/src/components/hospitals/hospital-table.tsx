@@ -4,11 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MoreHorizontal, Eye, Edit, Mail, Phone, Settings, Trash2, Shield, CheckSquare, Square } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Progress } from '../../components/ui/progress';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '../../components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -32,16 +32,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Hospital, statusConfig } from '@/types';
-import { useLoadingState } from '@/hooks/useLoadingState';
-import { useConfirmation } from '@/hooks/useConfirmation';
-import { ConfirmationToast } from '@/components/ui/confirmation-toast';
-import { CascadeConfirmationModal } from '@/components/ui/cascade-confirmation-modal';
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Hospital, statusConfig } from '../../types';
+import { useLoadingState } from '../../hooks/useLoadingState';
+import { useConfirmation } from '../../hooks/useConfirmation';
+import { ConfirmationToast } from '../../components/ui/confirmation-toast';
+import { CascadeConfirmationModal } from '../../components/ui/cascade-confirmation-modal';
 import { toast } from 'sonner';
-import { safeFetch, formatApiError } from '@/lib/api-utils';
+import { safeFetch, formatApiError } from '../../lib/api-utils';
 
 interface HospitalTableProps {
   hospitals: Hospital[];

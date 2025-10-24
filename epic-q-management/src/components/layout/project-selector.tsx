@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, FolderOpen, Check } from 'lucide-react';
-import { useProject } from '@/contexts/project-context';
-import { Project } from '@/types';
+import { useProject } from '../../contexts/project-context';
+import { Project } from '../../types';
 
 interface ProjectSelectorProps {
   className?: string;

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 import { User, LoginCredentials, LoginResponse } from './types';
-import { prisma } from '@/lib/db-connection';
+import { prisma } from '../../lib/db-connection';
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret-key';
 

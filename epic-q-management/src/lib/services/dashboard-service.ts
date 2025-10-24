@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/database';
-import { DashboardKPIs } from '@/types';
+import { prisma } from '../../lib/database';
+import { DashboardKPIs } from '../../types';
 
 export class DashboardService {
   /**

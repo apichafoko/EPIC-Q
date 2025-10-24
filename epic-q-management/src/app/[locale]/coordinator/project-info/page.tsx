@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
 import { FileText, Video, Link as LinkIcon, Youtube, Download, ExternalLink, RefreshCw } from 'lucide-react';
-import { AuthGuard } from '@/components/auth/auth-guard';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
 import { toast } from 'sonner';
 
 interface Resource {

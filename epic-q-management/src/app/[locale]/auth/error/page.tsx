@@ -1,10 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 

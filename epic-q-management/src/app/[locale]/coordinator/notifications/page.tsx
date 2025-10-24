@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
-import { useTranslations } from '@/hooks/useTranslations';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '../../../../contexts/auth-context';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
 import { 
   Bell, 
   AlertTriangle, 
@@ -14,8 +14,8 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useLoadingState } from '@/hooks/useLoadingState';
+import { LoadingButton } from '../../../../components/ui/loading-button';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 

@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { HospitalFiltersComponent } from '@/components/hospitals/hospital-filters';
-import { HospitalTable } from '@/components/hospitals/hospital-table';
-import { HospitalFilters, Hospital } from '@/types';
-import { getHospitals, getProvinces, getStatuses } from '@/lib/services/hospital-service';
+import { Button } from '../../../components/ui/button';
+import { HospitalFiltersComponent } from '../../../components/hospitals/hospital-filters';
+import { HospitalTable } from '../../../components/hospitals/hospital-table';
+import { HospitalFilters, Hospital } from '../../../types';
+import { getHospitals, getProvinces, getStatuses } from '../../../lib/services/hospital-service';
 
 export default function HospitalsPage() {
   const [filters, setFilters] = useState<HospitalFilters>({

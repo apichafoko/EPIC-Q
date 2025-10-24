@@ -1,7 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/database';
-import { ProjectHospital } from '@/types';
+import { prisma } from '../../lib/database';
+import { ProjectHospital } from '../../types';
 
 export async function getProjectHospitalsByHospitalId(hospitalId: string) {
   try {

@@ -4,17 +4,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, Users, Building, Activity, Trash2, Shield } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Hospital, statusConfig } from '@/types';
-import { getHospitalById } from '@/lib/services/hospital-service';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import { Hospital, statusConfig } from '../../../../types';
+import { getHospitalById } from '../../../../lib/services/hospital-service';
 import { toast } from 'sonner';
-import { useLoadingState } from '@/hooks/useLoadingState';
-import { useConfirmation } from '@/hooks/useConfirmation';
-import { EditProjectHospitalModal } from '@/components/hospitals/edit-project-hospital-modal';
-import { getProjectHospitalStatusLabel, getProjectStatusLabel } from '@/lib/utils';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
+import { useConfirmation } from '../../../../hooks/useConfirmation';
+import { EditProjectHospitalModal } from '../../../../components/hospitals/edit-project-hospital-modal';
+import { getProjectHospitalStatusLabel, getProjectStatusLabel } from '../../../../lib/utils';
 
 export default function HospitalDetailPage() {
   const params = useParams();

@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
-import { languageConfig, type Locale } from '@/i18n/config';
+import { languageConfig, type Locale } from '../i18n/config';
 
 interface LanguageContextType {
   currentLocale: Locale;

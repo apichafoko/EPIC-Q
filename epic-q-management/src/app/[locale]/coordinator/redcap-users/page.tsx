@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
+import { Label } from '../../../../components/ui/label';
+import { Input } from '../../../../components/ui/input';
 import { 
   Users, 
   Copy, 
@@ -19,8 +19,8 @@ import {
   Shield,
   Info
 } from 'lucide-react';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useLoadingState } from '@/hooks/useLoadingState';
+import { LoadingButton } from '../../../../components/ui/loading-button';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
 
 export default function RedCapUsersPage() {

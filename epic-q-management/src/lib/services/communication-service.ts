@@ -1,7 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/database';
-import { Communication, CommunicationFilters } from '@/types';
+import { prisma } from '../../lib/database';
+import { Communication, CommunicationFilters } from '../../types';
 
 export interface SendCommunicationParams {
   recipientIds: string[];

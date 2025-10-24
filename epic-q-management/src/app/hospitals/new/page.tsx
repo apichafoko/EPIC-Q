@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { NewHospitalWizard } from '@/components/hospitals/new-hospital-wizard';
-import { NewHospitalForm } from '@/types';
+import { Button } from '../../../components/ui/button';
+import { NewHospitalWizard } from '../../../components/hospitals/new-hospital-wizard';
+import { NewHospitalForm } from '../../../types';
 import { toast } from 'sonner';
 
 export default function NewHospitalPage() {

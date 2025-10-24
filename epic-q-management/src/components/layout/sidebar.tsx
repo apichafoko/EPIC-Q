@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Logo } from '@/components/ui/logo';
+import { cn } from '../../lib/utils';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Logo } from '../../components/ui/logo';
 import {
   BarChart3,
   Building2,

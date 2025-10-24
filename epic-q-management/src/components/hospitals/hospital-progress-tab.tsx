@@ -1,9 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Progress } from '../../components/ui/progress';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
 import { CheckCircle, Clock, XCircle, Calendar, Users, FileText } from 'lucide-react';
-import { Hospital, HospitalProgress } from '@/types';
+import { Hospital, HospitalProgress } from '../../types';
 
 interface HospitalProgressTabProps {
   hospital: Hospital;

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthState, LoginCredentials } from '@/lib/auth/types';
-import { ChangePasswordModal } from '@/components/auth/change-password-modal';
+import { User, AuthState, LoginCredentials } from '../lib/auth/types';
+import { ChangePasswordModal } from '../components/auth/change-password-modal';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;

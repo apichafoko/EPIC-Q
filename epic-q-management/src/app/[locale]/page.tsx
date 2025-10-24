@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { KPICard } from '@/components/dashboard/kpi-card';
-import { HospitalsByStatusChart } from '@/components/dashboard/hospitals-by-status-chart';
-import { StatusDistributionChart } from '@/components/dashboard/status-distribution-chart';
-import { RecentAlerts } from '@/components/dashboard/recent-alerts';
-import { UpcomingRecruitment } from '@/components/dashboard/upcoming-recruitment';
-import { useTranslations } from '@/hooks/useTranslations';
-import { DashboardKPIs } from '@/types';
+import { KPICard } from '../../components/dashboard/kpi-card';
+import { HospitalsByStatusChart } from '../../components/dashboard/hospitals-by-status-chart';
+import { StatusDistributionChart } from '../../components/dashboard/status-distribution-chart';
+import { RecentAlerts } from '../../components/dashboard/recent-alerts';
+import { UpcomingRecruitment } from '../../components/dashboard/upcoming-recruitment';
+import { useTranslations } from '../../hooks/useTranslations';
+import { DashboardKPIs } from '../../types';
 import { 
   Building2, 
   Activity, 

@@ -1,7 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/database';
-import { Alert, AlertFilters } from '@/types';
+import { prisma } from '../../lib/database';
+import { Alert, AlertFilters } from '../../types';
 
 export async function getAlerts(filters?: AlertFilters, page: number = 1, limit: number = 25) {
   try {

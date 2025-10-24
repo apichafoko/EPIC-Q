@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../contexts/auth-context';
 import { Bell, User, LogOut, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,13 +10,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SimpleLanguageSelector } from '@/components/simple-language-selector';
-import { ProjectSelector } from '@/components/layout/project-selector';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Logo } from '@/components/ui/logo';
-import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
-import { cn } from '@/lib/utils';
+} from '../../components/ui/dropdown-menu';
+import { SimpleLanguageSelector } from '../../components/simple-language-selector';
+import { ProjectSelector } from '../../components/layout/project-selector';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Logo } from '../../components/ui/logo';
+import { PWAInstallButton } from '../../components/pwa/pwa-install-button';
+import { cn } from '../../lib/utils';
 
 interface CoordinatorHeaderProps {
   isMobile?: boolean;

@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../../../contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
-import { useConfirmation } from '@/hooks/useConfirmation';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { useConfirmation } from '../../../../hooks/useConfirmation';
 import { toast } from 'sonner';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { ConfirmationToast } from '@/components/ui/confirmation-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { ConfirmationToast } from '../../../../components/ui/confirmation-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Badge } from '../../../../components/ui/badge';
 import { 
   Table, 
   TableBody, 
@@ -19,7 +19,7 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/components/ui/table';
+} from '../../../../components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,14 +27,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../../../../components/ui/select';
 import { 
   Plus, 
   Search, 

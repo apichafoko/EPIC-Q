@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 
 export async function getSystemSettings() {
   // This would typically come from a settings table

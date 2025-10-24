@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
+import { Switch } from '../../../components/ui/switch';
 import { 
   Plus, 
   Edit, 
@@ -17,8 +17,8 @@ import {
   BarChart3,
   AlertTriangle
 } from 'lucide-react';
-import { EmailTemplate, templateCategories } from '@/types';
-import { mockEmailTemplates } from '@/lib/mock-data';
+import { EmailTemplate, templateCategories } from '../../../types';
+import { mockEmailTemplates } from '../../../lib/mock-data';
 
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>(mockEmailTemplates);

@@ -1,5 +1,5 @@
 import { prisma } from '../database';
-import { CaseMetrics, RecruitmentPeriod } from '@/types';
+import { CaseMetrics, RecruitmentPeriod } from '../../types';
 
 // Servicio para Métricas de Casos
 export class CaseMetricsService {

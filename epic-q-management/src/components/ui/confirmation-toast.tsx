@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '../../components/ui/button';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { useConfirmation, ConfirmationOptions } from '@/hooks/useConfirmation';
+import { useConfirmation, ConfirmationOptions } from '../../hooks/useConfirmation';
 import { useState, useEffect } from 'react';
 
 interface ConfirmationToastProps {

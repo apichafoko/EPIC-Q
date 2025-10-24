@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../../../contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
+import { useTranslations } from '../../../../hooks/useTranslations';
 import { toast } from 'sonner';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Badge } from '../../../../components/ui/badge';
 import { 
   Table, 
   TableBody, 
@@ -17,7 +17,7 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/components/ui/table';
+} from '../../../../components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,18 +25,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useLoadingState } from '@/hooks/useLoadingState';
-import { Checkbox } from '@/components/ui/checkbox';
-import { BulkActions } from '@/components/ui/bulk-actions';
+} from '../../../../components/ui/select';
+import { LoadingButton } from '../../../../components/ui/loading-button';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
+import { Checkbox } from '../../../../components/ui/checkbox';
+import { BulkActions } from '../../../../components/ui/bulk-actions';
 import { 
   Plus, 
   Search, 

@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../contexts/auth-context';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
 import { CoordinatorSidebar } from './coordinator-sidebar';
 import { CoordinatorHeader } from './coordinator-header';
 import { Loader2 } from 'lucide-react';
-import { useMobileDetection } from '@/hooks/useMobileDetection';
-import { cn } from '@/lib/utils';
+import { useMobileDetection } from '../../hooks/useMobileDetection';
+import { cn } from '../../lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;

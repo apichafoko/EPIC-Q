@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Download, X, Clock } from 'lucide-react';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Logo } from '@/components/ui/logo';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Logo } from '../../components/ui/logo';
 
 interface PWAInstallModalProps {
   userRole: 'admin' | 'coordinator';

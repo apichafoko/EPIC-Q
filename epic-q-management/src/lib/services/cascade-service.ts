@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 
 export interface CascadeResult {
   success: boolean;

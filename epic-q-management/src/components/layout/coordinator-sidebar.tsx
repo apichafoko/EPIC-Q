@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Logo } from '@/components/ui/logo';
-import { useProject } from '@/contexts/project-context';
+import { cn } from '../../lib/utils';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Logo } from '../../components/ui/logo';
+import { useProject } from '../../contexts/project-context';
 import {
   BarChart3,
   Building2,
@@ -22,7 +22,7 @@ import {
   X,
   Info
 } from 'lucide-react';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 interface CoordinatorSidebarProps {
   isOpen?: boolean;

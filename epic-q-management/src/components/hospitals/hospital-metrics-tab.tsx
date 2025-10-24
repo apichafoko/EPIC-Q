@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import { 
   LineChart, 
   Line, 
@@ -22,7 +22,7 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import { CaseMetrics } from '@/types';
+import { CaseMetrics } from '../../types';
 
 interface HospitalMetricsTabProps {
   metrics: CaseMetrics[];

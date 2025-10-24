@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from '@/components/ui/modal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from '../../components/ui/modal';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Loader2, Eye, EyeOff, Shield } from 'lucide-react';
 
 interface ChangePasswordModalProps {

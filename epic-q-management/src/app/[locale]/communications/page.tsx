@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { Badge } from '../../../components/ui/badge';
 import { 
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '../../../components/ui/table';
 import { 
   Plus, 
   Search, 
@@ -26,12 +26,12 @@ import {
   Reply,
   Filter
 } from 'lucide-react';
-import { Communication, CommunicationFilters } from '@/types';
-import { getCommunications, getCommunicationTypes, getCommunicationStats } from '@/lib/services/communication-service';
-import { Skeleton } from '@/components/ui/skeleton';
-import CommunicationComposer from '@/components/communications/communication-composer';
+import { Communication, CommunicationFilters } from '../../../types';
+import { getCommunications, getCommunicationTypes, getCommunicationStats } from '../../../lib/services/communication-service';
+import { Skeleton } from '../../../components/ui/skeleton';
+import CommunicationComposer from '../../../components/communications/communication-composer';
 import { toast } from 'sonner';
-import { useLoadingState } from '@/hooks/useLoadingState';
+import { useLoadingState } from '../../../hooks/useLoadingState';
 
 export default function CommunicationsPage() {
   const [activeTab, setActiveTab] = useState('all');

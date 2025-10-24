@@ -4,8 +4,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 const locales = ['es', 'pt', 'en'];
-import { MainLayout } from '@/components/layout/main-layout';
-import { Toaster } from '@/components/ui/sonner';
+import { MainLayout } from '../../components/layout/main-layout';
+import { Toaster } from '../../components/ui/sonner';
 import '../globals.css';
 
 const geistSans = Geist({

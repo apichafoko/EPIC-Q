@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { useAuth } from '@/contexts/auth-context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { useAuth } from '../../../../contexts/auth-context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Badge } from '../../../../components/ui/badge';
+import { Input } from '../../../../components/ui/input';
 import {
   Table,
   TableBody,
@@ -16,13 +16,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '../../../../components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -31,10 +31,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '../../../../components/ui/dialog';
+import { Label } from '../../../../components/ui/label';
+import { Textarea } from '../../../../components/ui/textarea';
+import { Checkbox } from '../../../../components/ui/checkbox';
 import { 
   Plus, 
   Search, 
@@ -52,11 +52,11 @@ import {
   X,
   Play
 } from 'lucide-react';
-import { Project } from '@/types';
-import { LoadingButton } from '@/components/ui/loading-button';
-import { useLoadingState } from '@/hooks/useLoadingState';
+import { Project } from '../../../../types';
+import { LoadingButton } from '../../../../components/ui/loading-button';
+import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
-import { InviteCoordinatorModal } from '@/components/admin/invite-coordinator-modal';
+import { InviteCoordinatorModal } from '../../../../components/admin/invite-coordinator-modal';
 
 interface ProjectWithCounts extends Project {
   _count: {

@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
 import { Calendar, Plus, Edit, X, Clock, CheckCircle } from 'lucide-react';
-import { RecruitmentPeriod } from '@/types';
+import { RecruitmentPeriod } from '../../types';
 
 interface HospitalRecruitmentTabProps {
   periods: RecruitmentPeriod[];

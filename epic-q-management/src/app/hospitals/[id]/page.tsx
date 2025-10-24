@@ -2,16 +2,16 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
 import { ArrowLeft, Edit, Mail, Phone } from 'lucide-react';
 import Link from 'next/link';
-import { HospitalInfoTab } from '@/components/hospitals/hospital-info-tab';
-import { HospitalProgressTab } from '@/components/hospitals/hospital-progress-tab';
-import { HospitalRecruitmentTab } from '@/components/hospitals/hospital-recruitment-tab';
-import { HospitalMetricsTab } from '@/components/hospitals/hospital-metrics-tab';
-import { HospitalCommunicationsTab } from '@/components/hospitals/hospital-communications-tab';
+import { HospitalInfoTab } from '../../../components/hospitals/hospital-info-tab';
+import { HospitalProgressTab } from '../../../components/hospitals/hospital-progress-tab';
+import { HospitalRecruitmentTab } from '../../../components/hospitals/hospital-recruitment-tab';
+import { HospitalMetricsTab } from '../../../components/hospitals/hospital-metrics-tab';
+import { HospitalCommunicationsTab } from '../../../components/hospitals/hospital-communications-tab';
 import { 
   getHospitalById, 
   getContactsByHospital, 
@@ -20,8 +20,8 @@ import {
   getMetricsByHospital, 
   getCommunicationsByHospital,
   mockHospitalDetails 
-} from '@/lib/mock-data';
-import { statusConfig } from '@/types';
+} from '../../../lib/mock-data';
+import { statusConfig } from '../../../types';
 
 export default function HospitalDetailPage() {
   const params = useParams();

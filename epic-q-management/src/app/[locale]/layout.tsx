@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from 'next/navigation';
-import { AuthProvider } from '@/contexts/auth-context';
-import { ProjectProvider } from '@/contexts/project-context';
-import { MainLayout } from '@/components/layout/main-layout';
-import { LocaleWrapper } from '@/components/locale-wrapper';
-import { Toaster } from '@/components/ui/sonner';
-import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration';
+import { AuthProvider } from '../../contexts/auth-context';
+import { ProjectProvider } from '../../contexts/project-context';
+import { MainLayout } from '../../components/layout/main-layout';
+import { LocaleWrapper } from '../../components/locale-wrapper';
+import { Toaster } from '../../components/ui/sonner';
+import { ServiceWorkerRegistration } from '../../components/pwa/service-worker-registration';
 import '../globals.css';
 
 const geistSans = Geist({

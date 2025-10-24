@@ -1,4 +1,4 @@
-import { languageConfig, type Locale } from '@/i18n/config';
+import { languageConfig, type Locale } from '../i18n/config';
 
 // Utilidades de formateo para diferentes idiomas
 export class FormatUtils {

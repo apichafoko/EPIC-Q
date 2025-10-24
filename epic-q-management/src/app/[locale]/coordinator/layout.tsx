@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
-import { useTranslations } from '@/hooks/useTranslations';
-import { InstallPrompt } from '@/components/pwa/install-prompt';
-import { OfflineIndicator } from '@/components/pwa/offline-indicator';
+import { useAuth } from '../../../contexts/auth-context';
+import { useTranslations } from '../../../hooks/useTranslations';
+import { InstallPrompt } from '../../../components/pwa/install-prompt';
+import { OfflineIndicator } from '../../../components/pwa/offline-indicator';
 
 export default function CoordinatorLayout({
   children,

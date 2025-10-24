@@ -1,7 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/database';
-import { Hospital, HospitalFilters } from '@/types';
+import { prisma } from '../../lib/database';
+import { Hospital, HospitalFilters } from '../../types';
 
 export async function getHospitals(filters?: HospitalFilters, page: number = 1, limit: number = 25) {
     const where: any = {};

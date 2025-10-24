@@ -1,13 +1,13 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
-import { useProject } from '@/contexts/project-context';
+import { useAuth } from '../../../contexts/auth-context';
+import { useProject } from '../../../contexts/project-context';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useTranslations } from '../../../hooks/useTranslations';
+import { AuthGuard } from '../../../components/auth/auth-guard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 import { 
   Building2, 
   FileText, 
@@ -21,8 +21,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { CoordinatorStats } from '@/lib/services/coordinator-service';
-import { PWAInstallModal } from '@/components/pwa/pwa-install-modal';
+import { CoordinatorStats } from '../../../lib/services/coordinator-service';
+import { PWAInstallModal } from '../../../components/pwa/pwa-install-modal';
 
 export default function CoordinatorDashboard() {
   const { t } = useTranslations();

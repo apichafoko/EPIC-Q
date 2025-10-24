@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 import { User, LoginCredentials, LoginResponse } from './types';
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret-key';

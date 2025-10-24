@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
-import { Button } from '@/components/ui/button';
+import { Button } from '../components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../components/ui/dropdown-menu';
 import { Check, Globe } from 'lucide-react';
-import { languageConfig, type Locale } from '@/i18n/config';
+import { languageConfig, type Locale } from '../i18n/config';
 
 export function LanguageSelector() {
   const [isOpen, setIsOpen] = useState(false);

@@ -1,8 +1,8 @@
 'use client';
 
 import { Bell, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,14 +10,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SimpleLanguageSelector } from '@/components/simple-language-selector';
-import { NotificationBell } from '@/components/notifications/notification-bell';
-import { useTranslations } from '@/hooks/useTranslations';
-import { Logo } from '@/components/ui/logo';
-import { useAuth } from '@/contexts/auth-context';
-import { mockAlerts } from '@/lib/mock-data';
-import { PWAInstallButton } from '@/components/pwa/pwa-install-button';
+} from '../../components/ui/dropdown-menu';
+import { SimpleLanguageSelector } from '../../components/simple-language-selector';
+import { NotificationBell } from '../../components/notifications/notification-bell';
+import { useTranslations } from '../../hooks/useTranslations';
+import { Logo } from '../../components/ui/logo';
+import { useAuth } from '../../contexts/auth-context';
+import { mockAlerts } from '../../lib/mock-data';
+import { PWAInstallButton } from '../../components/pwa/pwa-install-button';
 
 interface HeaderProps {
   userId?: string;

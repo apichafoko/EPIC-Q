@@ -20,7 +20,7 @@ import {
   alertSeverities,
   templateCategories,
   statusConfig
-} from '@/types';
+} from '../types';
 
 // Función para generar fechas aleatorias (con seed para consistencia)
 const randomDate = (start: Date, end: Date, seed: number = 0): string => {

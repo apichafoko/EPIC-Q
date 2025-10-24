@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/database';
+import { prisma } from '../../lib/database';
 import { getLogoBase64, getEmailLogoUrl } from './email-logo';
 
 export interface EmailTemplate {

@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from '@/hooks/useTranslations';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTranslations } from '../../../../hooks/useTranslations';
+import { AuthGuard } from '../../../../components/auth/auth-guard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Textarea } from '../../../../components/ui/textarea';
+import { Badge } from '../../../../components/ui/badge';
+import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { Loader2, Mail, CheckCircle, XCircle, Send, Settings } from 'lucide-react';
 
 interface EmailConfig {
