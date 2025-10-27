@@ -1,8 +1,9 @@
 {
-  "builds": [
+  "redirects": [
     {
-      "src": "epic-q-management/package.json",
-      "use": "@vercel/next"
+      "source": "/",
+      "destination": "/es",
+      "permanent": false
     }
   ]
 }
