@@ -1,16 +1,18 @@
 import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
 
-const locales = ['es', 'pt', 'en'];
+export default getRequestConfig(async ({ requestLocale }) => {
+  // Obtener el locale del request
+  let locale = await requestLocale;
 
-export default getRequestConfig(async ({ locale }) => {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locale || !locales.includes(locale as any)) {
-    notFound();
+  console.log('📄 request.ts - Locale:', locale);
+
+  // Si no hay locale, usar el default
+  if (!locale) {
+    locale = 'es';
   }
 
   return {
-    locale: locale as string,
+    locale,
     messages: (await import(`../messages/${locale}.json`)).default
   };
 });

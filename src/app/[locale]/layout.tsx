@@ -1,10 +1,10 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Viewport, Metadata } from "next";
 import { notFound } from 'next/navigation';
+import { NextIntlClientProvider } from 'next-intl';
+import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from '../../contexts/auth-context';
 import { ProjectProvider } from '../../contexts/project-context';
 import { MainLayout } from '../../components/layout/main-layout';
-import { LocaleWrapper } from '../../components/locale-wrapper';
 import { Toaster } from '../../components/ui/sonner';
 import { ServiceWorkerRegistration } from '../../components/pwa/service-worker-registration';
 import '../globals.css';
@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "EPIC-Q - Sistema de Gestión",
-  description: "Sistema de gestión para el estudio EPIC-Q (Estudio Perioperatorio Integral de Cuidados Quirúrgicos en Argentina)",
+  description: "Sistema de gestión para el estudio EPIC-Q",
 };
 
 export function generateViewport(): Viewport {
@@ -35,6 +35,11 @@ export function generateViewport(): Viewport {
 }
 
 const locales = ['es', 'pt', 'en'];
+
+// Generar params estáticos para cada locale
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
@@ -61,17 +66,24 @@ export default async function LocaleLayout({
 
   console.log('  ✅ Locale válido, renderizando layout');
 
+  // Obtener mensajes para el locale
+  const messages = await import(`../../messages/${locale}.json`).then(m => m.default);
+
   return (
-    <AuthProvider>
-      <ProjectProvider>
-        <LocaleWrapper>
-          <MainLayout>
-            {children}
-          </MainLayout>
-          <Toaster />
-          <ServiceWorkerRegistration />
-        </LocaleWrapper>
-      </ProjectProvider>
-    </AuthProvider>
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <AuthProvider>
+            <ProjectProvider>
+              <MainLayout>
+                {children}
+              </MainLayout>
+              <Toaster />
+              <ServiceWorkerRegistration />
+            </ProjectProvider>
+          </AuthProvider>
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }

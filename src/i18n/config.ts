@@ -1,6 +1,3 @@
-import { notFound } from 'next/navigation';
-import { getRequestConfig } from 'next-intl/server';
-
 // Idiomas soportados
 export const locales = ['es', 'pt', 'en'] as const;
 export type Locale = (typeof locales)[number];
@@ -53,15 +50,4 @@ export function isValidLocale(locale: string): locale is Locale {
   return locales.includes(locale as Locale);
 }
 
-// Configuración de next-intl
-export default getRequestConfig(async ({ locale }) => {
-  // Validar que el locale sea válido
-  if (!locale || !isValidLocale(locale)) {
-    notFound();
-  }
-
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default
-  };
-});
+// Esta función ya está en request.ts

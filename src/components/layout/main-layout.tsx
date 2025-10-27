@@ -31,12 +31,23 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // Efecto para manejar la redirección al login
   useEffect(() => {
-    if (!isLoading && !user && !pathname.includes('/auth/')) {
+    // Evitar redirecciones durante el montaje inicial
+    if (typeof window === 'undefined') return;
+    
+    if (!isLoading && !user && !pathname.includes('/auth/') && !isRedirecting) {
       const locale = pathname.split('/')[1] || 'es';
-      setIsRedirecting(true);
-      router.push(`/${locale}/auth/login`);
+      const targetPath = `/${locale}/auth/login`;
+      
+      // Solo redirigir si no estamos ya en la ruta destino
+      if (pathname !== targetPath) {
+        setIsRedirecting(true);
+        // Usar setTimeout para evitar redirecciones durante el renderizado inicial
+        setTimeout(() => {
+          router.replace(targetPath);
+        }, 0);
+      }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Si estamos en una página de auth, no mostrar el layout principal
   if (pathname.includes('/auth/')) {
