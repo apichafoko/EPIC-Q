@@ -64,7 +64,7 @@ export default async function LocaleLayout({
   return (
     <AuthProvider>
       <ProjectProvider>
-        <LocaleWrapper locale={locale}>
+        <LocaleWrapper>
           <MainLayout>
             {children}
           </MainLayout>

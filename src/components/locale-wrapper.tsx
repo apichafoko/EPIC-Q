@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useLocale } from 'next-intl';
 
-interface LocaleWrapperProps {
-  locale: string;
-  children: React.ReactNode;
-}
-
-export function LocaleWrapper({ locale, children }: LocaleWrapperProps) {
+export function LocaleWrapper({ children }: { children: React.ReactNode }) {
+  const locale = useLocale();
+  
   useEffect(() => {
     // Actualizar el atributo lang del html
     document.documentElement.lang = locale;
