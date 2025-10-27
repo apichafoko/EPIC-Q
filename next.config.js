@@ -13,6 +13,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Evitar prerenderizar páginas de error que causan conflictos
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
   async headers() {
     return [
       {
