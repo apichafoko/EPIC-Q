@@ -17,6 +17,12 @@ const nextConfig = {
   generateBuildId: async () => {
     return 'build-' + Date.now();
   },
+  // Configuración experimental para evitar prerenderizado de páginas de error
+  experimental: {
+    skipMiddlewareUrlNormalize: true,
+  },
+  // Forzar rendering dinámico
+  skipTrailingSlashRedirect: true,
   async headers() {
     return [
       {
