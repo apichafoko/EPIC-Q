@@ -1,12 +1,16 @@
 const withNextIntl = require('next-intl/plugin')(
   './src/i18n/request.ts'
 );
-const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     domains: ['localhost'],
+  },
+  // Evitar errores de build en páginas de error
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
   },
   async headers() {
     return [
@@ -31,26 +35,14 @@ const nextConfig = {
   },
 };
 
-// Sentry configuration
-const sentryWebpackPluginOptions = {
-  // Additional config options for the Sentry webpack plugin. Keep in mind that
-  // the following options are set automatically, and overriding them is not
-  // recommended:
-  //   release, url, configFile, stripPrefix, urlPrefix, include, ignore
+// Exportar sin Sentry por ahora para evitar conflictos con Next.js 15
+module.exports = withNextIntl(nextConfig);
 
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
-
-  // Suppresses source map uploading logs during build
-  silent: true,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-};
-
-module.exports = withSentryConfig(withNextIntl(nextConfig), sentryWebpackPluginOptions);
+// Si necesitas Sentry, descomenta esto:
+// const { withSentryConfig } = require('@sentry/nextjs');
+// const sentryWebpackPluginOptions = {
+//   org: process.env.SENTRY_ORG,
+//   project: process.env.SENTRY_PROJECT,
+//   silent: true,
+// };
+// module.exports = withSentryConfig(withNextIntl(nextConfig), sentryWebpackPluginOptions);
