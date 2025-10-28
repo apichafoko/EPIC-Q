@@ -50,13 +50,11 @@ export async function PUT(
       }
     }
 
-    // Verificar que el período pertenece al hospital del coordinador
-    const existingPeriod = await prisma.recruitment_periods.findFirst({
-      where: {
-        id: periodId,
-        project_hospitals: {
-          hospital_id: authResult.user.hospitalId || ''
-        }
+    // Primero encontrar el período y su project_hospital_id
+    const existingPeriod = await prisma.recruitment_periods.findUnique({
+      where: { id: periodId },
+      include: {
+        project_hospitals: true
       }
     });
 
@@ -64,6 +62,22 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Período no encontrado' },
         { status: 404 }
+      );
+    }
+    
+    // Verificar que el coordinador está asociado a este proyecto
+    const coordinatorAccess = await prisma.project_coordinators.findFirst({
+      where: {
+        user_id: authResult.user.id,
+        project_id: existingPeriod.project_hospitals.project_id,
+        is_active: true
+      }
+    });
+
+    if (!coordinatorAccess) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para editar este período' },
+        { status: 403 }
       );
     }
 
@@ -138,13 +152,11 @@ export async function DELETE(
 
     const periodId = (await params).id;
 
-    // Verificar que el período pertenece al hospital del coordinador
-    const existingPeriod = await prisma.recruitment_periods.findFirst({
-      where: {
-        id: periodId,
-        project_hospitals: {
-          hospital_id: authResult.user.hospitalId || ''
-        }
+    // Primero encontrar el período y su project_hospital_id
+    const existingPeriod = await prisma.recruitment_periods.findUnique({
+      where: { id: periodId },
+      include: {
+        project_hospitals: true
       }
     });
 
@@ -152,6 +164,22 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Período no encontrado' },
         { status: 404 }
+      );
+    }
+    
+    // Verificar que el coordinador está asociado a este proyecto
+    const coordinatorAccess = await prisma.project_coordinators.findFirst({
+      where: {
+        user_id: authResult.user.id,
+        project_id: existingPeriod.project_hospitals.project_id,
+        is_active: true
+      }
+    });
+
+    if (!coordinatorAccess) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para eliminar este período' },
+        { status: 403 }
       );
     }
 

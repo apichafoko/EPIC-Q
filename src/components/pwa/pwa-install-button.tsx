@@ -15,22 +15,15 @@ export function PWAInstallButton({ userRole, className }: PWAInstallButtonProps)
   const { canInstall, isInstalled, isMobile, promptInstall } = usePWAInstall();
   const { t } = useTranslations();
 
-  console.log('🔍 PWA Install Button - canInstall:', canInstall, 'isInstalled:', isInstalled, 'isMobile:', isMobile, 'userRole:', userRole);
-
   // No mostrar si ya está instalada
   if (isInstalled) {
-    console.log('🚫 No mostrar botón PWA: ya está instalada');
     return null;
   }
 
   // Solo mostrar en móvil
   if (!isMobile) {
-    console.log('🚫 No mostrar botón PWA: no es dispositivo móvil');
     return null;
   }
-  
-  // Mostrar el botón en móvil (con o sin canInstall)
-  console.log('✅ Mostrar botón PWA: en móvil para', userRole);
 
   const handleInstall = async () => {
     try {

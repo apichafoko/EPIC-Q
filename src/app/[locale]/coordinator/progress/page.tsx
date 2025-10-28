@@ -28,21 +28,26 @@ import {
   Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS, ptBR } from 'date-fns/locale';
 import { LoadingButton } from '../../../../components/ui/loading-button';
 import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
 import { validatePeriodOverlap } from '../../../../lib/services/coordinator-service';
 
 export default function CoordinatorProgressPage() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const { currentProject } = useProject();
+  
+  // Mapear locale al locale de date-fns
+  const dateFnsLocale = locale === 'es' ? es : locale === 'pt' ? ptBR : enUS;
   const [progressData, setProgressData] = useState({
     ethicsSubmitted: false,
     ethicsSubmittedDate: null as Date | null,
     ethicsApproved: false,
     ethicsApprovedDate: null as Date | null,
     ethicsDocument: null as File | null,
+    ethicsDocumentUrl: null as string | null,
+    ethicsDocumentName: null as string | null,
     recruitmentStartDate: null as Date | null,
     recruitmentEndDate: null as Date | null,
     recruitmentPeriods: [] as Array<{
@@ -143,12 +148,23 @@ export default function CoordinatorProgressPage() {
         const data = await response.json();
         if (data.data && data.data.hospital && data.data.hospital.progress) {
           const progress = data.data.hospital.progress;
+          
+          // Extraer el nombre del archivo de la S3 key si existe
+          let ethicsDocumentName = null;
+          if (progress.ethics_document_s3_key) {
+            const filename = progress.ethics_document_s3_key.split('/').pop() || '';
+            // Remover el timestamp si existe al inicio del nombre
+            ethicsDocumentName = filename.replace(/^\d+-/, '');
+          }
+          
           setProgressData(prev => ({
             ...prev,
             ethicsSubmitted: progress.ethics_submitted || false,
             ethicsApproved: progress.ethics_approved || false,
             ethicsSubmittedDate: progress.ethics_submitted_date ? new Date(progress.ethics_submitted_date) : null,
             ethicsApprovedDate: progress.ethics_approved_date ? new Date(progress.ethics_approved_date) : null,
+            ethicsDocumentUrl: progress.ethics_document_url || null,
+            ethicsDocumentName: ethicsDocumentName || null,
           }));
         }
       } else {
@@ -186,10 +202,20 @@ export default function CoordinatorProgressPage() {
   };
 
   const handleCheckboxChange = (field: string, checked: boolean) => {
-    setProgressData(prev => ({
-      ...prev,
-      [field]: checked
-    }));
+    setProgressData(prev => {
+      const newData = { ...prev, [field]: checked };
+      
+      // Si se desmarca el checkbox, limpiar la fecha correspondiente
+      if (!checked) {
+        if (field === 'ethicsSubmitted') {
+          newData.ethicsSubmittedDate = null;
+        } else if (field === 'ethicsApproved') {
+          newData.ethicsApprovedDate = null;
+        }
+      }
+      
+      return newData;
+    });
   };
 
   const handleDateChange = (field: string, date: Date | undefined) => {
@@ -404,7 +430,7 @@ export default function CoordinatorProgressPage() {
   const confirmDeletePeriod = async () => {
     if (!periodToDelete) return;
     
-    await executeWithDeletingPeriod(async () => {
+    const success = await executeWithDeletingPeriod(async () => {
       const response = await fetch(`/api/coordinator/recruitment-periods/${periodToDelete}`, {
         method: 'DELETE',
         credentials: 'include'
@@ -417,14 +443,19 @@ export default function CoordinatorProgressPage() {
         setShowSuccessToast(true);
         toast.success('Período eliminado exitosamente');
         setTimeout(() => setShowSuccessToast(false), 3000);
+        return true;
       } else {
         console.error('Error deleting period:', data.error);
         toast.error('Error al eliminar el período: ' + (data.error || 'Error desconocido'));
+        return false;
       }
     });
     
-    setShowDeleteConfirmToast(false);
-    setPeriodToDelete(null);
+    // Solo cerrar el modal si la eliminación fue exitosa
+    if (success) {
+      setShowDeleteConfirmToast(false);
+      setPeriodToDelete(null);
+    }
   };
 
   const cancelDeletePeriod = () => {
@@ -439,39 +470,70 @@ export default function CoordinatorProgressPage() {
   };
 
   const saveEthicsInformation = async () => {
+    // Validar que si hay checkbox marcado, tenga fecha
+    if (progressData.ethicsSubmitted && !progressData.ethicsSubmittedDate) {
+      toast.error('Por favor selecciona la fecha de presentación al comité de ética');
+      return;
+    }
+
+    if (progressData.ethicsApproved && !progressData.ethicsApprovedDate) {
+      toast.error('Por favor selecciona la fecha de aprobación del comité de ética');
+      return;
+    }
+
+    // Validar que la fecha de aprobación no sea anterior a la fecha de presentación
+    if (progressData.ethicsApproved && progressData.ethicsApprovedDate && progressData.ethicsSubmittedDate) {
+      const approvalDate = new Date(progressData.ethicsApprovedDate);
+      const submissionDate = new Date(progressData.ethicsSubmittedDate);
+      approvalDate.setHours(0, 0, 0, 0);
+      submissionDate.setHours(0, 0, 0, 0);
+      
+      if (approvalDate < submissionDate) {
+        toast.error('La fecha de aprobación no puede ser anterior a la fecha de presentación');
+        return;
+      }
+    }
+
     await executeWithSavingEthics(async () => {
       if (!currentProject?.id) {
         toast.error('No hay proyecto seleccionado');
         return;
       }
 
+      // Crear FormData si hay un archivo
+      const formData = new FormData();
+      formData.append('ethicsSubmitted', String(progressData.ethicsSubmitted));
+      formData.append('ethicsApproved', String(progressData.ethicsApproved));
+      formData.append('ethicsSubmittedDate', progressData.ethicsSubmitted ? (progressData.ethicsSubmittedDate?.toISOString() || '') : '');
+      formData.append('ethicsApprovedDate', progressData.ethicsApproved ? (progressData.ethicsApprovedDate?.toISOString() || '') : '');
+      
+      // Agregar el archivo si existe
+      if (progressData.ethicsDocument) {
+        formData.append('ethicsDocument', progressData.ethicsDocument);
+      }
+
       const response = await fetch(`/api/coordinator/ethics?projectId=${currentProject.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'x-project-id': currentProject.id
         },
         credentials: 'include',
-        body: JSON.stringify({
-          ethicsSubmitted: progressData.ethicsSubmitted,
-          ethicsApproved: progressData.ethicsApproved,
-          ethicsSubmittedDate: progressData.ethicsSubmittedDate,
-          ethicsApprovedDate: progressData.ethicsApprovedDate,
-        }),
+        body: formData,
       });
-
-      console.log('🔍 Response status:', response.status);
-      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
       
       const data = await response.json();
-      console.log('🔍 Response data:', data);
 
       if (response.ok && data.success) {
         setShowSuccessToast(true);
         toast.success('Información de ética guardada exitosamente');
         setTimeout(() => setShowSuccessToast(false), 3000);
-        // Recargar la información de ética para mostrar los cambios
+        // Recargar los datos para obtener la URL del documento PDF
         await loadEthicsInformation();
+        // Limpiar el archivo seleccionado ya que se guardó
+        setProgressData(prev => ({
+          ...prev,
+          ethicsDocument: null
+        }));
       } else {
         console.error('Error saving ethics information:', {
           status: response.status,
@@ -712,7 +774,7 @@ export default function CoordinatorProgressPage() {
                     <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.ethicsSubmittedDate ? 
-                        format(progressData.ethicsSubmittedDate, 'PPP', { locale: es }) : 
+                        format(progressData.ethicsSubmittedDate, 'PPP', { locale: dateFnsLocale }) : 
                         'Seleccionar fecha'
                       }
                     </Button>
@@ -727,6 +789,7 @@ export default function CoordinatorProgressPage() {
                         today.setHours(23, 59, 59, 999);
                         return date > today;
                       }}
+                      locale={dateFnsLocale}
                       initialFocus
                     />
                   </PopoverContent>
@@ -758,30 +821,41 @@ export default function CoordinatorProgressPage() {
                       <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {progressData.ethicsApprovedDate ? 
-                          format(progressData.ethicsApprovedDate, 'PPP', { locale: es }) : 
+                          format(progressData.ethicsApprovedDate, 'PPP', { locale: dateFnsLocale }) : 
                           'Seleccionar fecha'
                         }
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={progressData.ethicsApprovedDate || undefined}
-                        onSelect={(date) => handleDateChange('ethicsApprovedDate', date)}
-                        disabled={(date) => {
-                          const today = new Date();
-                          today.setHours(23, 59, 59, 999);
-                          return date > today;
-                        }}
-                        initialFocus
-                      />
+                    <Calendar
+                      mode="single"
+                      selected={progressData.ethicsApprovedDate || undefined}
+                      onSelect={(date) => handleDateChange('ethicsApprovedDate', date)}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(23, 59, 59, 999);
+                        // Deshabilitar fechas futuras
+                        if (date > today) return true;
+                        // Deshabilitar fechas anteriores a la fecha de presentación
+                        if (progressData.ethicsSubmittedDate) {
+                          const submissionDate = new Date(progressData.ethicsSubmittedDate);
+                          submissionDate.setHours(0, 0, 0, 0);
+                          const checkDate = new Date(date);
+                          checkDate.setHours(0, 0, 0, 0);
+                          return checkDate < submissionDate;
+                        }
+                        return false;
+                      }}
+                      locale={dateFnsLocale}
+                      initialFocus
+                    />
                     </PopoverContent>
                   </Popover>
                 </div>
 
                 <div className="space-y-3">
                   <Label htmlFor="ethicsDocument">Documento de Aprobación (PDF)</Label>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap gap-2">
                     <Input
                       id="ethicsDocument"
                       type="file"
@@ -795,19 +869,34 @@ export default function CoordinatorProgressPage() {
                       className="flex items-center space-x-2"
                     >
                       <Upload className="h-4 w-4" />
-                      <span>Subir PDF</span>
+                      <span>{progressData.ethicsDocumentUrl ? 'Reemplazar PDF' : 'Subir PDF'}</span>
                     </Button>
-                    {progressData.ethicsDocument && (
+                    {(progressData.ethicsDocument || progressData.ethicsDocumentUrl) && (
                       <div className="flex items-center space-x-2 text-sm text-green-600">
                         <CheckCircle className="h-4 w-4" />
-                        <span>{progressData.ethicsDocument.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {/* Handle download */}}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <span>{progressData.ethicsDocument?.name || progressData.ethicsDocumentName || 'Documento PDF'}</span>
+                        {(progressData.ethicsDocumentUrl || progressData.ethicsDocument) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (progressData.ethicsDocument) {
+                                // Descargar el archivo nuevo seleccionado
+                                const url = URL.createObjectURL(progressData.ethicsDocument);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = progressData.ethicsDocument.name;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              } else if (progressData.ethicsDocumentUrl) {
+                                // Descargar el archivo existente desde S3
+                                window.open(progressData.ethicsDocumentUrl, '_blank');
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -822,6 +911,10 @@ export default function CoordinatorProgressPage() {
               onClick={saveEthicsInformation}
               loading={isSavingEthics}
               loadingText="Guardando..."
+              disabled={
+                (progressData.ethicsSubmitted && !progressData.ethicsSubmittedDate) ||
+                (progressData.ethicsApproved && !progressData.ethicsApprovedDate)
+              }
               className="flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />
@@ -858,7 +951,7 @@ export default function CoordinatorProgressPage() {
                     <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.recruitmentStartDate ? 
-                        format(progressData.recruitmentStartDate, 'PPP', { locale: es }) : 
+                        format(progressData.recruitmentStartDate, 'PPP', { locale: dateFnsLocale }) : 
                         'Seleccionar fecha'
                       }
                     </Button>
@@ -869,6 +962,7 @@ export default function CoordinatorProgressPage() {
                       selected={progressData.recruitmentStartDate || undefined}
                       onSelect={(date) => handleDateChange('recruitmentStartDate', date)}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      locale={dateFnsLocale}
                       initialFocus
                     />
                   </PopoverContent>
@@ -879,7 +973,7 @@ export default function CoordinatorProgressPage() {
                 <Label>Fecha de Fin</Label>
                 {progressData.recruitmentStartDate && (
                   <p className="text-sm text-gray-600">
-                    Debe ser posterior al {format(progressData.recruitmentStartDate, 'PPP', { locale: es })}
+                    Debe ser posterior al {format(progressData.recruitmentStartDate, 'PPP', { locale: dateFnsLocale })}
                   </p>
                 )}
                 <Popover open={showCalendar === 'recruitmentEnd'} onOpenChange={() => setShowCalendar(showCalendar === 'recruitmentEnd' ? null : 'recruitmentEnd')}>
@@ -891,7 +985,7 @@ export default function CoordinatorProgressPage() {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {progressData.recruitmentEndDate ? 
-                        format(progressData.recruitmentEndDate, 'PPP', { locale: es }) : 
+                        format(progressData.recruitmentEndDate, 'PPP', { locale: dateFnsLocale }) : 
                         progressData.recruitmentStartDate ? 'Seleccionar fecha' : 'Selecciona primero la fecha de inicio'
                       }
                     </Button>
@@ -910,6 +1004,7 @@ export default function CoordinatorProgressPage() {
                         }
                         return date < today;
                       }}
+                      locale={dateFnsLocale}
                       initialFocus
                     />
                   </PopoverContent>
@@ -1025,17 +1120,19 @@ export default function CoordinatorProgressPage() {
                       <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editingPeriod.startDate ? 
-                          format(editingPeriod.startDate, 'PPP', { locale: es }) : 
+                          format(editingPeriod.startDate, 'PPP', { locale: dateFnsLocale }) : 
                           'Seleccionar fecha'
                         }
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 overflow-visible z-[99999]">
                       <Calendar
                         mode="single"
                         selected={editingPeriod.startDate}
                         onSelect={(date) => handleDateChange('editStart', date)}
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        locale={dateFnsLocale}
+                        defaultMonth={editingPeriod.startDate || undefined}
                         initialFocus
                       />
                     </PopoverContent>
@@ -1049,12 +1146,12 @@ export default function CoordinatorProgressPage() {
                       <Button variant="outline" className="w-full justify-start text-left font-normal touch-target">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {editingPeriod.endDate ? 
-                          format(editingPeriod.endDate, 'PPP', { locale: es }) : 
+                          format(editingPeriod.endDate, 'PPP', { locale: dateFnsLocale }) : 
                           'Seleccionar fecha'
                         }
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 overflow-visible z-[99999]">
                       <Calendar
                         mode="single"
                         selected={editingPeriod.endDate}
@@ -1064,6 +1161,8 @@ export default function CoordinatorProgressPage() {
                           const startDate = editingPeriod.startDate;
                           return date < today || (startDate && date <= startDate);
                         }}
+                        locale={dateFnsLocale}
+                        defaultMonth={editingPeriod.endDate || undefined}
                         initialFocus
                       />
                     </PopoverContent>
@@ -1146,25 +1245,19 @@ export default function CoordinatorProgressPage() {
                   size="sm" 
                   variant="outline" 
                   onClick={cancelDeletePeriod}
-                  disabled={isLoading}
+                  disabled={isDeletingPeriod}
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <LoadingButton 
                   size="sm" 
                   variant="destructive" 
                   onClick={confirmDeletePeriod}
-                  disabled={isLoading}
+                  loading={isDeletingPeriod}
+                  disabled={isDeletingPeriod}
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                      Eliminando...
-                    </>
-                  ) : (
-                    'Eliminar'
-                  )}
-                </Button>
+                  Eliminar
+                </LoadingButton>
               </div>
             </Alert>
           </div>

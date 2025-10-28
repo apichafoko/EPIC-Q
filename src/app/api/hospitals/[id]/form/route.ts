@@ -217,9 +217,37 @@ export async function PUT(
 
     if (projectHospital) {
       try {
+        // Calcular el porcentaje de progreso basado en los campos completados
+        const requiredFields = [
+          { key: 'name', value: name },
+          { key: 'province', value: province },
+          { key: 'city', value: city },
+          { key: 'participated_lasos', value: participatedLasos },
+          { key: 'num_beds', value: numBeds },
+          { key: 'num_operating_rooms', value: numOperatingRooms },
+          { key: 'num_icu_beds', value: numIcuBeds },
+          { key: 'avg_weekly_surgeries', value: avgWeeklySurgeries },
+          { key: 'financing_type', value: financingType },
+          { key: 'has_preop_clinic', value: hasPreopClinic },
+          { key: 'coordinator_name', value: coordinatorFirstName && coordinatorLastName },
+          { key: 'coordinator_email', value: coordinatorEmail },
+          { key: 'coordinator_phone', value: coordinatorPhone },
+          { key: 'coordinator_position', value: coordinatorPosition }
+        ];
+
+        const completedFields = requiredFields.filter(field => {
+          if (typeof field.value === 'boolean') {
+            return field.value !== null && field.value !== undefined;
+          }
+          return field.value !== null && field.value !== undefined && field.value !== '';
+        });
+
+        const progressPercentage = Math.round((completedFields.length / requiredFields.length) * 100);
+
         await prisma.hospital_progress.upsert({
           where: { project_hospital_id: projectHospital.id },
           update: {
+            progress_percentage: progressPercentage,
             updated_at: new Date()
           },
           create: {
@@ -227,6 +255,7 @@ export async function PUT(
             hospital_id: hospitalId,
             project_id: projectHospital.project_id,
             project_hospital_id: projectHospital.id,
+            progress_percentage: progressPercentage,
             updated_at: new Date()
           }
         });

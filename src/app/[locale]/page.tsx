@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '../../contexts/auth-context';
 import { KPICard } from '../../components/dashboard/kpi-card';
 import { HospitalsByStatusChart } from '../../components/dashboard/hospitals-by-status-chart';
 import { StatusDistributionChart } from '../../components/dashboard/status-distribution-chart';
@@ -13,14 +15,59 @@ import {
   Activity, 
   BarChart3, 
   AlertTriangle,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
 export default function Dashboard() {
   console.log('📊 Dashboard ejecutándose');
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, isLoading } = useAuth();
   const { t } = useTranslations();
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasRedirected, setHasRedirected] = useState(false);
+
+  // Redirigir según el rol del usuario
+  useEffect(() => {
+    if (isLoading || hasRedirected || !user) return;
+    
+    const locale = pathname.split('/')[1];
+    
+    // Redirigir según el rol
+    if (user.role === 'admin') {
+      // Si ya está en admin, no redirigir
+      if (!pathname.includes('/admin')) {
+        setHasRedirected(true);
+        router.replace(`/${locale}/admin`);
+      }
+    } else if (user.role === 'coordinator') {
+      // Si ya está en coordinator, no redirigir
+      if (!pathname.includes('/coordinator')) {
+        setHasRedirected(true);
+        router.replace(`/${locale}/coordinator`);
+      }
+    } else {
+      // Otro rol o sin rol, ir a login
+      setHasRedirected(true);
+      router.replace(`/${locale}/auth/login`);
+    }
+  }, [user, isLoading, pathname, router, hasRedirected]);
+
+  // Mostrar loading mientras se verifica autenticación o se redirige
+  if (isLoading || hasRedirected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">
+            {isLoading ? 'Verificando autenticación...' : 'Redirigiendo...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const loadKPIs = async () => {

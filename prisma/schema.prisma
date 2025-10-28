@@ -165,6 +165,8 @@ model hospital_progress {
   ethics_approved_date  DateTime?
   ethics_submitted      Boolean?
   ethics_submitted_date DateTime?
+  ethics_document_url   String?
+  ethics_document_s3_key String?
   hospitals             hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
   project_hospitals     project_hospitals? @relation(fields: [project_hospital_id], references: [id])
 }

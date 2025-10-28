@@ -46,14 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      console.log('Checking auth...');
       const response = await fetch('/api/auth/me', {
         credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Auth response data:', data);
         if (data.success) {
           setUser(data.user);
           // Mostrar modal de cambio de contraseña si es temporal y no se ha mostrado antes
@@ -61,11 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setShowChangePasswordModal(true);
             setHasShownPasswordModal(true);
           }
-        }
-      } else {
-        // 401 es esperado cuando no hay usuario autenticado
-        if (response.status !== 401) {
-          console.log('Auth failed, status:', response.status);
         }
       }
     } catch (error) {

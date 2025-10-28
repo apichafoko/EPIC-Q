@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   // Intentar obtener el locale de la cookie, query param, o header Accept-Language
   const localeCookie = request.cookies.get('NEXT_LOCALE')?.value;
   const localeParam = searchParams.get('locale');
+  const startUrlParam = searchParams.get('startUrl');
   const acceptLanguage = request.headers.get('accept-language') || '';
   
   // Determinar el locale a usar
@@ -23,11 +24,14 @@ export async function GET(request: NextRequest) {
     locale = 'es';
   }
   
+  // Determinar start_url
+  const startUrl = startUrlParam || `/${locale}/`;
+  
   const manifest = {
     name: "EPIC-Q Management System",
     short_name: "EPIC-Q",
     description: "Sistema de gestión para el Estudio Perioperatorio Integral de Cuidados Quirúrgicos",
-    start_url: `/${locale}/`,
+    start_url: startUrl,
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#2563eb",
