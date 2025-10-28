@@ -87,15 +87,21 @@ export default function HospitalFormPage() {
     }
     
     // Usar datos del hospital desde coordinatorInfo
-    const hospitalName = (currentProject as any).coordinatorInfo?.hospital?.name || currentProject.name;
-    const hospital = {
-      name: hospitalName,
-      // Agregar otros campos necesarios si están disponibles
-    };
-    setHospitalData(hospital);
+    const hospitalDataFromProject = (currentProject as any).coordinatorInfo?.hospital;
+    const hospitalName = hospitalDataFromProject?.name || currentProject.name;
+    const hospitalId = hospitalDataFromProject?.id;
     
     console.log('✅ Hospital name resolvido:', hospitalName);
-    console.log('✅ CurrentProject data:', currentProject);
+    console.log('✅ Hospital ID:', hospitalId);
+    console.log('✅ Hospital data desde coordinatorInfo:', hospitalDataFromProject);
+    
+    // Si tenemos datos completos del hospital en coordinatorInfo, usarlos
+    const hospital = hospitalDataFromProject || {
+      name: hospitalName,
+      id: hospitalId
+    };
+    
+    setHospitalData(hospital);
     
     // Determinar si los campos de provincia y ciudad deben ser editables
     const hasLocationData = false; // Por ahora, siempre editable
@@ -120,9 +126,9 @@ export default function HospitalFormPage() {
           ...prev,
           // Datos básicos
           name: hospital.name || "",
-          province: "", // No disponible en el tipo Project
-          city: "", // No disponible en el tipo Project
-          participatedLasos: false, // No disponible en el tipo Project
+          province: hospital.province || "",
+          city: hospital.city || "",
+          participatedLasos: hospital.lasos_participation || false,
           // Marcar si los campos de ubicación son editables
           isLocationEditable: !hasLocationData,
           

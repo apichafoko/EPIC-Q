@@ -14,18 +14,31 @@ export function PWAInstallButton({ userRole, className }: PWAInstallButtonProps)
   const { canInstall, isInstalled, isMobile, promptInstall } = usePWAInstall();
   const { t } = useTranslations();
 
-  // No mostrar si ya está instalada o no se puede instalar
-  if (isInstalled || !canInstall) {
+  console.log('🔍 PWA Install Button - canInstall:', canInstall, 'isInstalled:', isInstalled, 'isMobile:', isMobile, 'userRole:', userRole);
+
+  // No mostrar si ya está instalada
+  if (isInstalled) {
+    console.log('🚫 No mostrar botón PWA: ya está instalada');
     return null;
   }
 
   // Para admin: solo mostrar en móvil
   if (userRole === 'admin' && !isMobile) {
+    console.log('🚫 No mostrar botón PWA: admin en desktop');
     return null;
   }
 
-  // Para coordinator: mostrar siempre
-  if (userRole === 'coordinator' && !canInstall) {
+  // Para coordinator: siempre mostrar si está en móvil o si canInstall es true
+  if (userRole === 'coordinator') {
+    if (!isMobile && !canInstall) {
+      console.log('🚫 No mostrar botón PWA: coordinator en desktop sin canInstall');
+      return null;
+    }
+  }
+  
+  // Si no hay canInstall pero estamos en móvil, mostrar de todos modos
+  if (!canInstall && !isMobile) {
+    console.log('🚫 No mostrar botón PWA: no se puede instalar y no es móvil');
     return null;
   }
 
