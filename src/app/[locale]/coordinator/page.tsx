@@ -235,7 +235,7 @@ export default function CoordinatorDashboard() {
                 ? 'border-red-200 bg-red-50' 
                 : 'border-yellow-200 bg-yellow-50'
           }`}>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
               <div className="flex items-start space-x-4">
                 <div className={`p-3 rounded-full ${
                   stats.hospitalFormStatus.isComplete 
@@ -327,7 +327,7 @@ export default function CoordinatorDashboard() {
               </div>
               
               {/* Action Buttons */}
-              <div className="ml-4 mt-4 flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3">
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 <Button 
                   size="lg" 
                   className={`${
@@ -335,7 +335,7 @@ export default function CoordinatorDashboard() {
                       ? 'bg-green-600 hover:bg-green-700' 
                       : stats.hospitalFormStatus.isUrgent 
                         ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
-                        : 'bg-yellow PeckOpen-700'
+                        : 'bg-yellow-600 hover:bg-yellow-700'
                   } text-white font-bold px-6 py-3 w-full md:w-auto`}
                   onClick={() => router.push(`/${user?.preferredLanguage || 'es'}/coordinator/hospital-form`)}
                 >
@@ -350,7 +350,7 @@ export default function CoordinatorDashboard() {
                   <Button 
                     size="lg" 
                     variant="outline"
-                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold px-6 py-3"
+                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold px-6 py-3 w-full md:w-auto"
                     onClick={handleHideHospitalForm}
                   >
                     Ocultar
@@ -369,7 +369,7 @@ export default function CoordinatorDashboard() {
               ? 'border-green-200 bg-green-50' 
               : 'border-blue-200 bg-blue-50'
           }`}>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-0">
               <div className="flex items-start space-x-4">
                 <div className={`p-3 rounded-full ${
                   isProgressComplete() 
@@ -450,11 +450,11 @@ export default function CoordinatorDashboard() {
               </div>
               
               {/* Action Buttons */}
-              <div className="ml-4 flex space-x-3">
+              <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
                 {isProgressComplete() ? (
                   <Button 
                     size="lg" 
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 w-full md:w-auto"
                     onClick={() => router.push(`/${user?.preferredLanguage || 'es'}/coordinator/progress`)}
                   >
                     Ver Ética y Períodos
@@ -463,7 +463,7 @@ export default function CoordinatorDashboard() {
                 ) : (
                   <Button 
                     size="lg" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 w-full md:w-auto"
                     onClick={() => router.push(`/${user?.preferredLanguage || 'es'}/coordinator/progress`)}
                   >
                     Ir a Ética y Períodos
@@ -476,7 +476,7 @@ export default function CoordinatorDashboard() {
                   <Button 
                     size="lg" 
                     variant="outline"
-                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold px-6 py-3"
+                    className="border-green-600 text-green-600 hover:bg-green-50 font-bold px-6 py-3 w-full md:w-auto"
                     onClick={handleHideNextSteps}
                   >
                     Ocultar
