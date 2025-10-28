@@ -81,7 +81,7 @@ export async function DELETE(
       );
     }
 
-    // Usar el servicio de cascada para analizar las acciones necesarias
+    // Verificar la información de cascada para mostrar al usuario
     const cascadeResult = await CascadeService.deleteCoordinatorWithCascade(userId);
 
     if (!cascadeResult.success) {
@@ -94,19 +94,10 @@ export async function DELETE(
       );
     }
 
-    // Si hay acciones de cascada, devolver información para confirmación
-    if (cascadeResult.actions && cascadeResult.actions.length > 0) {
-      return NextResponse.json({
-        requiresConfirmation: true,
-        message: cascadeResult.message,
-        warnings: cascadeResult.warnings,
-        actions: cascadeResult.actions,
-        userId: userId
-      });
-    }
-
-    // Si no hay acciones de cascada, proceder con la eliminación
+    // Ejecutar la eliminación (con todas las acciones de cascada necesarias)
+    console.log('Ejecutando eliminación del usuario:', userId);
     const deleteResult = await CascadeService.executeCoordinatorDeletion(userId);
+    console.log('Resultado de la eliminación:', deleteResult);
 
     if (!deleteResult.success) {
       return NextResponse.json(

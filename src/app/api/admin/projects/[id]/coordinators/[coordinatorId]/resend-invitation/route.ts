@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth, AuthContext } from '../../../../../../../../lib/auth/middleware';
 import { prisma } from '../../../../../../../../lib/database';
 import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { projectInvitationService } from '../../../../../../../../lib/notifications/project-invitation-service';
 
 export async function POST(
@@ -62,6 +63,21 @@ export async function POST(
         }
       });
 
+      // Generar nueva contraseña temporal si el usuario tiene contraseña temporal
+      let tempPassword = undefined;
+      if (projectCoordinator.users.isTemporaryPassword) {
+        tempPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(tempPassword, 12);
+        
+        await prisma.users.update({
+          where: { id: projectCoordinator.users.id },
+          data: {
+            password: hashedPassword,
+            isTemporaryPassword: true
+          }
+        });
+      }
+
       // Enviar email de invitación
       await projectInvitationService.sendProjectInvitation({
         projectName: project.name,
@@ -71,7 +87,8 @@ export async function POST(
         invitationToken: newInvitationToken,
         requiredPeriods: 2, // Valor por defecto
         projectDescription: project.description || '',
-        adminName: context.user.name
+        adminName: context.user.name,
+        temporaryPassword: tempPassword || 'Ya tienes una cuenta activa'
       });
 
       return NextResponse.json({

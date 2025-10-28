@@ -26,18 +26,19 @@ class ProjectInvitationService {
     try {
       const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/auth/login`;
       
-      // Usar el template profesional de bienvenida
-      const template = await EmailTemplateService.getTemplateByName('bienvenida_email_completo');
+      // Usar el template específico para coordinadores
+      const template = await EmailTemplateService.getTemplateByName('coordinator_invitation');
       
       if (template) {
         const variables = {
           userName: data.coordinatorName,
           userEmail: data.coordinatorEmail,
-          userRole: 'Coordinador',
+          projectName: data.projectName || 'Proyecto EPIC-Q',
           hospitalName: data.hospitalName,
-          temporaryPassword: data.temporaryPassword || 'Se generará automáticamente al crear la cuenta',
-          loginUrl: loginUrl,
-          systemName: 'EPIC-Q Management System'
+          requiredPeriods: 2, // Default value, could be passed as parameter
+          projectDescription: 'Estudio Perioperatorio Integral de Cuidados Quirúrgicos',
+          invitationLink: loginUrl,
+          temporaryPassword: data.temporaryPassword || 'Se generará automáticamente al crear la cuenta'
         };
         
         const processed = EmailTemplateService.processTemplate(template, variables);

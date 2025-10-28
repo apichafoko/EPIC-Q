@@ -186,7 +186,7 @@ export class EmailTemplateService {
   /**
    * Procesar template con variables
    */
-  static processTemplate(template: EmailTemplate, variables: TemplateVariables): {
+  static processTemplate(template: any, variables: TemplateVariables): {
     subject: string;
     body: string;
   } {
@@ -196,8 +196,12 @@ export class EmailTemplateService {
       logoUrl: getEmailLogoUrl() || getLogoBase64()
     };
     
-    let processedSubject = template.subject || 'Invitación al sistema EPIC-Q';
-    let processedBody = template.body || '';
+    // Los templates en BD usan email_subject y email_body, pero EmailTemplate usa subject y body
+    const templateSubject = (template as any).email_subject || template.subject || 'Invitación al sistema EPIC-Q';
+    const templateBody = (template as any).email_body || template.body || '';
+    
+    let processedSubject = templateSubject;
+    let processedBody = templateBody;
 
     // Reemplazar variables en el subject
     Object.keys(enhancedVariables).forEach(key => {

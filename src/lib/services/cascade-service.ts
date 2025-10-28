@@ -354,9 +354,13 @@ export class CascadeService {
               hospitals: true,
               projects: true
             }
-          }
+          },
+          created_resources: true
         }
       });
+
+      console.log('Usuario a eliminar:', user?.id, 'Nombre:', user?.name);
+      console.log('Recursos creados:', user?.created_resources?.length || 0);
 
       if (!user) {
         return {
@@ -368,9 +372,10 @@ export class CascadeService {
       const actions: any[] = [];
 
       // Ejecutar eliminación en transacción
-      await prisma.$transaction(async (tx) => {
+      console.log('Iniciando transacción de eliminación para usuario:', userId);
+      const result = await prisma.$transaction(async (tx) => {
         // 1. Desasignar de todos los hospitales
-        await tx.project_coordinators.updateMany({
+        const unassignResult = await tx.project_coordinators.updateMany({
           where: {
             user_id: userId,
             is_active: true
@@ -380,19 +385,25 @@ export class CascadeService {
 
         actions.push({
           type: 'unassign',
-          description: `Coordinador desasignado de ${user.project_coordinators.length} hospital(es)`
+          description: `Coordinador desasignado de ${unassignResult.count} hospital(es)`
         });
 
         // 2. Eliminar el usuario
-        await tx.users.delete({
+        console.log('Intentando eliminar usuario:', userId);
+        const deletedUser = await tx.users.delete({
           where: { id: userId }
         });
+        console.log('Usuario eliminado exitosamente:', deletedUser?.id);
 
         actions.push({
           type: 'delete',
-          description: `Usuario ${user.name} eliminado`
+          description: `Usuario ${deletedUser.name} eliminado`
         });
+
+        return { unassignCount: unassignResult.count, deletedUser };
       });
+
+      console.log('Eliminación completada:', result);
 
       return {
         success: true,

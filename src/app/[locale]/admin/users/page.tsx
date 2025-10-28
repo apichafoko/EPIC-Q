@@ -243,15 +243,24 @@ export default function UsersPage() {
         });
         // Recargar la lista de usuarios
         loadUsers();
+        // Solo cerrar el modal si fue exitoso
+        setShowDeleteModal(false);
+        setUserToDelete(null);
       } else {
-        toast.error('Error al eliminar el usuario', {
-          description: data.details || data.error || 'Inténtalo de nuevo más tarde'
-        });
+        // Verificar si necesita confirmación de cascada
+        if (data.requiresConfirmation) {
+          setShowDeleteModal(false);
+          toast.info('Se requieren acciones adicionales', {
+            description: data.message || 'Hay efectos en cascada que deben confirmarse'
+          });
+          console.log('Acciones en cascada:', data);
+        } else {
+          toast.error('Error al eliminar el usuario', {
+            description: data.details || data.error || 'Inténtalo de nuevo más tarde'
+          });
+        }
       }
     });
-    
-    setShowDeleteModal(false);
-    setUserToDelete(null);
   };
 
   const handleReactivateUser = (user: User) => {
@@ -754,11 +763,11 @@ export default function UsersPage() {
                 <Trash2 className="w-6 h-6 text-red-600" />
               </div>
             </div>
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2 text-center">
                 {t('users.confirmDeactivate.title')}
               </h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-gray-500 mb-4 text-center">
                 {t('users.confirmDeactivate.message', { name: userToDeactivate.name || userToDeactivate.email })}
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
@@ -769,7 +778,7 @@ export default function UsersPage() {
                   {t('users.confirmDeactivate.infoDesc')}
                 </p>
               </div>
-              <div className="flex space-x-3 justify-center">
+              <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -781,10 +790,11 @@ export default function UsersPage() {
                   {t('users.confirmDeactivate.cancel')}
                 </Button>
                 <LoadingButton
-                  variant="destructive"
+                  variant="default"
                   onClick={confirmDeactivateUser}
                   loading={isDeactivating}
                   loadingText={t('users.confirmDeactivate.deactivating')}
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {t('users.confirmDeactivate.confirm')}
                 </LoadingButton>
@@ -818,7 +828,7 @@ export default function UsersPage() {
                   {t('users.confirmDelete.warningDesc')}
                 </p>
               </div>
-              <div className="flex space-x-3 justify-center">
+              <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -830,10 +840,11 @@ export default function UsersPage() {
                   {t('users.confirmDelete.cancel')}
                 </Button>
                 <LoadingButton
-                  variant="destructive"
+                  variant="default"
                   onClick={confirmDeleteUser}
                   loading={isDeleting}
                   loadingText={t('users.confirmDelete.deleting')}
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {t('users.confirmDelete.confirm')}
                 </LoadingButton>
@@ -867,7 +878,7 @@ export default function UsersPage() {
                   {t('users.confirmReactivate.infoDesc')}
                 </p>
               </div>
-              <div className="flex space-x-3 justify-center">
+              <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -880,7 +891,7 @@ export default function UsersPage() {
                 </Button>
                 <LoadingButton
                   variant="default"
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={confirmReactivateUser}
                   loading={isReactivating}
                   loadingText={t('users.confirmReactivate.reactivating')}
@@ -917,7 +928,7 @@ export default function UsersPage() {
                   Los usuarios no podrán acceder al sistema, pero pueden ser reactivados posteriormente.
                 </p>
               </div>
-              <div className="flex space-x-3 justify-center">
+              <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="outline"
                   onClick={() => setShowBulkDeactivateModal(false)}
@@ -926,10 +937,11 @@ export default function UsersPage() {
                   Cancelar
                 </Button>
                 <LoadingButton
-                  variant="destructive"
+                  variant="default"
                   onClick={confirmBulkDeactivate}
                   loading={isBulkDeactivating}
                   loadingText="Desactivando..."
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   Desactivar {selectedUsers.length} Usuario{selectedUsers.length !== 1 ? 's' : ''}
                 </LoadingButton>
@@ -963,7 +975,7 @@ export default function UsersPage() {
                   Se borrará toda la información de los usuarios de la base de datos. Esta acción no se puede deshacer.
                 </p>
               </div>
-              <div className="flex space-x-3 justify-center">
+              <div className="flex gap-3 justify-end items-center">
                 <Button
                   variant="outline"
                   onClick={() => setShowBulkDeleteModal(false)}
@@ -972,10 +984,11 @@ export default function UsersPage() {
                   Cancelar
                 </Button>
                 <LoadingButton
-                  variant="destructive"
+                  variant="default"
                   onClick={confirmBulkDelete}
                   loading={isBulkDeleting}
                   loadingText="Eliminando..."
+                  className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   Eliminar {selectedUsers.length} Usuario{selectedUsers.length !== 1 ? 's' : ''}
                 </LoadingButton>
@@ -1007,15 +1020,26 @@ function EditUserModal({
     isActive: user.isActive
   });
   const [loading, setLoading] = useState(false);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [hospitals, setHospitals] = useState<Array<{id: string, name: string, city: string, province: string}>>([]);
 
   useEffect(() => {
     // Cargar hospitales si es coordinador
     if (formData.role === 'coordinator') {
+      setLoadingHospitals(true);
       fetch('/api/hospitals')
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch hospitals');
+          }
+          return res.json();
+        })
         .then(data => setHospitals(data.hospitals || []))
-        .catch(console.error);
+        .catch(error => {
+          console.error('Error loading hospitals:', error);
+          toast.error('Error al cargar los hospitales');
+        })
+        .finally(() => setLoadingHospitals(false));
     }
   }, [formData.role]);
 
@@ -1047,7 +1071,7 @@ function EditUserModal({
   };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
+    <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-[10000]">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl border border-gray-200">
         <h2 className="text-xl font-bold mb-4">Editar Usuario</h2>
         
@@ -1058,7 +1082,7 @@ function EditUserModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded-lg px-3 py-2"
               required
             />
           </div>
@@ -1069,7 +1093,7 @@ function EditUserModal({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded-lg px-3 py-2"
               required
             />
           </div>
@@ -1079,7 +1103,7 @@ function EditUserModal({
             <select
               value={formData.role}
               onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as "admin" | "coordinator", hospital_id: '' }))}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded-lg px-3 py-2"
             >
               <option value="admin">Administrador</option>
               <option value="coordinator">Coordinador</option>
@@ -1092,10 +1116,11 @@ function EditUserModal({
               <select
                 value={formData.hospital_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, hospital_id: e.target.value }))}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded-lg px-3 py-2"
                 required
+                disabled={loadingHospitals}
               >
-                <option value="">Seleccionar hospital</option>
+                <option value="">{loadingHospitals ? 'Cargando hospitales...' : 'Seleccionar hospital'}</option>
                 {hospitals.map(hospital => (
                   <option key={hospital.id} value={hospital.id}>
                     {hospital.name} - {hospital.city}, {hospital.province}
@@ -1120,14 +1145,14 @@ function EditUserModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-50"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? 'Guardando...' : 'Guardar'}
             </button>

@@ -112,7 +112,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         ) : (
           <HeaderComponent userId={userId} />
         )}
-        <main className="flex-1 overflow-y-auto mobile-scroll">
+        <main className="flex-1 overflow-y-auto overflow-x-visible mobile-scroll">
           {children}
         </main>
       </div>
