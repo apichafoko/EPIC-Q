@@ -24,14 +24,14 @@ export const metadata: Metadata = {
   description: "Sistema de gestión para el estudio EPIC-Q",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+      { url: '/logo-official.svg', type: 'image/svg+xml' },
+      { url: '/icons/android-chrome-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icons/android-chrome-512x512.svg', sizes: '512x512', type: 'image/svg+xml' }
     ],
     apple: [
       { url: '/icons/apple-touch-icon.svg', type: 'image/svg+xml' }
     ],
-    shortcut: '/favicon.svg'
+    shortcut: '/logo-official.svg'
   },
   manifest: '/manifest.json'
 };
@@ -62,35 +62,32 @@ export default async function LocaleLayout({
   children,
   params
 }: LocaleLayoutProps) {
-  // Esperar los parámetros
   const { locale } = await params;
   
-  // Log para debugging
-  console.log('🏗️ LocaleLayout ejecutándose:');
-  console.log('  - Locale recibido:', locale);
-  console.log('  - Locales válidos:', locales);
-  
-  // Validar que el locale sea válido
-  if (!locales.includes(locale as 'es' | 'pt' | 'en')) {
-    console.log('  ❌ Locale inválido, llamando notFound()');
+  // Validar locale
+  if (!locales.includes(locale)) {
     notFound();
   }
 
-  console.log('  ✅ Locale válido, renderizando layout');
-
-  // Obtener mensajes para el locale
-  const messages = await import(`../../messages/${locale}.json`).then(m => m.default);
+  // Importar mensajes de traducción
+  let messages;
+  try {
+    messages = (await import(`../../messages/${locale}.json`)).default;
+  } catch (error) {
+    console.error(`Error loading messages for locale ${locale}:`, error);
+    notFound();
+  }
 
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
             <ProjectProvider>
               <MainLayout>
                 {children}
               </MainLayout>
-              <Toaster />
+              <Toaster position="top-right" />
               <ServiceWorkerRegistration />
             </ProjectProvider>
           </AuthProvider>

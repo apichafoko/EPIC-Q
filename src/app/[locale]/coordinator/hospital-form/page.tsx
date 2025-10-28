@@ -413,6 +413,7 @@ export default function HospitalFormPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        setIsSaved(true);
         setShowSuccessToast(true);
         toast.success('Formulario completado exitosamente');
         
