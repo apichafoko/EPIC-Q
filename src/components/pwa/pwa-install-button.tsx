@@ -23,19 +23,13 @@ export function PWAInstallButton({ userRole, className }: PWAInstallButtonProps)
     return null;
   }
 
-  // Para admin: solo mostrar en móvil
-  if (userRole === 'admin' && !isMobile) {
-    console.log('🚫 No mostrar botón PWA: admin en desktop');
-    return null;
-  }
-
-  // Para coordinator: solo mostrar en móvil
-  if (userRole === 'coordinator' && !isMobile) {
-    console.log('🚫 No mostrar botón PWA: coordinator en desktop');
+  // Solo mostrar en móvil
+  if (!isMobile) {
+    console.log('🚫 No mostrar botón PWA: no es dispositivo móvil');
     return null;
   }
   
-  // Ahora estamos en móvil - mostrar el botón
+  // Mostrar el botón en móvil (con o sin canInstall)
   console.log('✅ Mostrar botón PWA: en móvil para', userRole);
 
   const handleInstall = async () => {

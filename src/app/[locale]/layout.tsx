@@ -7,6 +7,7 @@ import { ProjectProvider } from '../../contexts/project-context';
 import { MainLayout } from '../../components/layout/main-layout';
 import { Toaster } from '../../components/ui/sonner';
 import { ServiceWorkerRegistration } from '../../components/pwa/service-worker-registration';
+import { PWAManifestRegistrator } from '../../components/pwa/pwa-manifest-registrator';
 import '../globals.css';
 
 const geistSans = Geist({
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
     ],
     shortcut: '/logo-official.svg'
   },
-  manifest: '/manifest.json'
+  manifest: '/api/manifest'
 };
 
 export function generateViewport(): Viewport {
@@ -84,6 +85,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
             <ProjectProvider>
+              <PWAManifestRegistrator />
               <MainLayout>
                 {children}
               </MainLayout>

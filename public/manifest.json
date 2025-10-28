@@ -2,7 +2,7 @@
   "name": "EPIC-Q Management System",
   "short_name": "EPIC-Q",
   "description": "Sistema de gestión para el Estudio Perioperatorio Integral de Cuidados Quirúrgicos",
-  "start_url": "/",
+  "start_url": "/es/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
