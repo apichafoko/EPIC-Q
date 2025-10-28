@@ -187,6 +187,14 @@ export interface Project {
   status: 'active' | 'completed' | 'archived';
   created_at: string;
   updated_at: string;
+  // Información específica cuando se ve desde el coordinador
+  coordinatorInfo?: {
+    hospital: Hospital | null;
+    role: string;
+    invited_at: string;
+    accepted_at?: string | null;
+    required_periods: number;
+  };
 }
 
 export interface ProjectHospital {

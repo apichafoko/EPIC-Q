@@ -86,12 +86,16 @@ export default function HospitalFormPage() {
       console.log('⚠️ No hay hospital_details, pero continuando con datos básicos');
     }
     
-    // Usar datos básicos del proyecto como hospital
+    // Usar datos del hospital desde coordinatorInfo
+    const hospitalName = (currentProject as any).coordinatorInfo?.hospital?.name || currentProject.name;
     const hospital = {
-      name: currentProject.name,
+      name: hospitalName,
       // Agregar otros campos necesarios si están disponibles
     };
     setHospitalData(hospital);
+    
+    console.log('✅ Hospital name resolvido:', hospitalName);
+    console.log('✅ CurrentProject data:', currentProject);
     
     // Determinar si los campos de provincia y ciudad deben ser editables
     const hasLocationData = false; // Por ahora, siempre editable

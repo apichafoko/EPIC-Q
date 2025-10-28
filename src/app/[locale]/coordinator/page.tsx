@@ -327,7 +327,7 @@ export default function CoordinatorDashboard() {
               </div>
               
               {/* Action Buttons */}
-              <div className="ml-4 flex space-x-3">
+              <div className="ml-4 mt-4 flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3">
                 <Button 
                   size="lg" 
                   className={`${
@@ -335,8 +335,8 @@ export default function CoordinatorDashboard() {
                       ? 'bg-green-600 hover:bg-green-700' 
                       : stats.hospitalFormStatus.isUrgent 
                         ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
-                        : 'bg-yellow-600 hover:bg-yellow-700'
-                  } text-white font-bold px-6 py-3`}
+                        : 'bg-yellow PeckOpen-700'
+                  } text-white font-bold px-6 py-3 w-full md:w-auto`}
                   onClick={() => router.push(`/${user?.preferredLanguage || 'es'}/coordinator/hospital-form`)}
                 >
                   {stats.hospitalFormStatus.isComplete 
