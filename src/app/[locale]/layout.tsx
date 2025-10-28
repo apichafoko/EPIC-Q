@@ -22,6 +22,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "EPIC-Q - Sistema de Gestión",
   description: "Sistema de gestión para el estudio EPIC-Q",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.svg'
+  },
+  manifest: '/manifest.json'
 };
 
 export function generateViewport(): Viewport {

@@ -113,21 +113,28 @@ export default function ProjectInfoPage() {
     }
   };
 
-  // Función para verificar si una URL está próxima a expirar (menos de 1 hora)
+  // Función para verificar si una URL está próxima a expirar o expirada
   const isUrlNearExpiry = (url: string): boolean => {
     try {
-      if (url.includes('X-Amz-Expires=')) {
-        const expiresMatch = url.match(/X-Amz-Expires=(\d+)/);
-        if (expiresMatch) {
-          const expiresIn = parseInt(expiresMatch[1]);
-          // Si expira en menos de 1 hora (3600 segundos), regenerar
-          return expiresIn < 3600;
-        }
+      // Parsear la URL para obtener los parámetros
+      const urlObj = new URL(url);
+      const expiresParam = urlObj.searchParams.get('Expires');
+      
+      if (expiresParam) {
+        const expiresTimestamp = parseInt(expiresParam);
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        const timeRemaining = expiresTimestamp - currentTimestamp;
+        
+        // Regenerar si queda menos de 1 hora o si ya expiró
+        return timeRemaining < 3600;
       }
-      return false;
+      
+      // Si no tiene parámetro Expires pero tiene s3_key, regenerar por si acaso
+      return url.includes('amazonaws.com');
     } catch (error) {
       console.error('Error checking URL expiry:', error);
-      return false;
+      // En caso de error, asumir que necesita regenerarse si es una URL de S3
+      return url.includes('amazonaws.com');
     }
   };
 

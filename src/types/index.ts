@@ -6,9 +6,13 @@ export interface Hospital {
   province: string;
   city: string;
   status: 'active' | 'inactive';
-  participated_lasos: boolean;
+  participated_lasos?: boolean;
+  lasos_participation?: boolean;
   // Removed required_periods - periods are project-specific
-  progress_percentage: number;
+  progress_percentage?: number;
+  // Hospital details y contacts
+  hospital_details?: HospitalDetails[];
+  hospital_contacts?: Contact[];
   // New project-related fields
   active_projects?: number;
   historical_projects?: number;

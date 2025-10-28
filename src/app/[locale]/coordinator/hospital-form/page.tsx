@@ -24,6 +24,7 @@ export default function HospitalFormPage() {
   const { currentProject, loadProjects } = useProject();
   const { t } = useTranslations();
   const router = useRouter();
+  
   const [isSaved, setIsSaved] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [hospitalData, setHospitalData] = useState<any>(null);
@@ -65,35 +66,23 @@ export default function HospitalFormPage() {
   const totalSteps = 3;
   const progress = (currentStep / totalSteps) * 100;
 
-  // Debug: Log formData changes
-  console.log('🔄 Render - formData.name:', formData.name);
-  console.log('🔄 Render - currentProject:', currentProject?.name);
+  // Debug: Log formData changes (comentado para reducir logs)
+  // console.log('🔄 Render - formData.name:', formData.name);
+  // console.log('🔄 Render - currentProject:', currentProject?.name);
+  // console.log('🔄 Render - coordinator data:', {
+  //   firstName: formData.coordinatorFirstName,
+  //   lastName: formData.coordinatorLastName,
+  //   email: formData.coordinatorEmail
+  // });
 
   // Load hospital data from current project
   useEffect(() => {
-    console.log('🔄 useEffect ejecutándose, currentProject:', currentProject);
-    console.log('🔄 currentProject?.name:', currentProject?.name);
-    
-    if (!currentProject) {
-      console.log('❌ No hay hospital en currentProject');
-      return;
-    }
-    
-    console.log('✅ Hospital encontrado:', currentProject.name);
-    console.log('✅ Hospital name:', currentProject.name);
-    
-    if (!currentProject) {
-      console.log('⚠️ No hay hospital_details, pero continuando con datos básicos');
-    }
+    if (!currentProject) return;
     
     // Usar datos del hospital desde coordinatorInfo
     const hospitalDataFromProject = (currentProject as any).coordinatorInfo?.hospital;
     const hospitalName = hospitalDataFromProject?.name || currentProject.name;
     const hospitalId = hospitalDataFromProject?.id;
-    
-    console.log('✅ Hospital name resolvido:', hospitalName);
-    console.log('✅ Hospital ID:', hospitalId);
-    console.log('✅ Hospital data desde coordinatorInfo:', hospitalDataFromProject);
     
     // Si tenemos datos completos del hospital en coordinatorInfo, usarlos
     const hospital = hospitalDataFromProject || {
@@ -106,73 +95,62 @@ export default function HospitalFormPage() {
     // Determinar si los campos de provincia y ciudad deben ser editables
     const hasLocationData = false; // Por ahora, siempre editable
     
-    // Obtener datos estructurales del hospital (usar datos por defecto)
-    const hospitalDetails = null; // No disponible en el tipo Project
-    const coordinatorContact = null; // No disponible en el tipo Project
+    // Obtener hospital_details si ya existen (es un objeto, no un array)
+    const hospitalDetails = hospitalDataFromProject?.hospital_details;
     
-    console.log('🔄 Precargando datos del formulario:', {
-      hospital: hospital,
-      hospitalName: hospital.name,
-      hospitalDetails: hospitalDetails,
-      coordinatorContact: coordinatorContact,
-      financingType: null, // No disponible en el tipo Project
-      hasPreopClinic: null // No disponible en el tipo Project
+    // Actualizar formData directamente, sin setTimeout
+    setFormData(prev => {
+      // Preservar datos del coordinador si ya existen
+      const coordinatorData = prev.coordinatorFirstName || prev.coordinatorLastName || prev.coordinatorEmail 
+        ? {
+            coordinatorFirstName: prev.coordinatorFirstName,
+            coordinatorLastName: prev.coordinatorLastName,
+            coordinatorEmail: prev.coordinatorEmail
+          }
+        : {};
+      
+      const newFormData = {
+        ...prev,
+        // Datos básicos
+        name: hospital.name || "",
+        province: hospital.province || "",
+        city: hospital.city || "",
+        participatedLasos: hospital.lasos_participation || false,
+        // Marcar si los campos de ubicación son editables
+        isLocationEditable: !hasLocationData,
+        
+        // Datos estructurales (usar valores guardados si existen, sino valores por defecto)
+        numBeds: hospitalDetails?.num_beds?.toString() || prev.numBeds || "",
+        numOperatingRooms: hospitalDetails?.num_operating_rooms?.toString() || prev.numOperatingRooms || "",
+        numIcuBeds: hospitalDetails?.num_icu_beds?.toString() || prev.numIcuBeds || "",
+        avgWeeklySurgeries: hospitalDetails?.avg_weekly_surgeries?.toString() || prev.avgWeeklySurgeries || "",
+        financingType: hospitalDetails?.financing_type || prev.financingType || "public",
+        hasPreopClinic: hospitalDetails?.has_preop_clinic || prev.hasPreopClinic || "",
+        
+        // Características del hospital (checkboxes) - usar valores guardados si existen
+        hasResidencyProgram: hospitalDetails?.has_residency_program ?? prev.hasResidencyProgram ?? false,
+        hasEthicsCommittee: hospitalDetails?.has_ethics_committee ?? prev.hasEthicsCommittee ?? false,
+        hasRapidResponseTeam: hospitalDetails?.has_rapid_response_team ?? prev.hasRapidResponseTeam ?? false,
+        universityAffiliated: hospitalDetails?.university_affiliated ?? prev.universityAffiliated ?? false,
+        
+        // Notas adicionales
+        notes: hospitalDetails?.notes || prev.notes || "",
+        
+        // Datos del coordinador (preservar si ya existen, sino usar valores por defecto)
+        coordinatorFirstName: coordinatorData.coordinatorFirstName || "",
+        coordinatorLastName: coordinatorData.coordinatorLastName || "",
+        coordinatorEmail: coordinatorData.coordinatorEmail || "",
+        coordinatorPhone: prev.coordinatorPhone || "",
+        coordinatorPosition: prev.coordinatorPosition || ""
+      };
+      
+      return newFormData;
     });
-    
-    // Usar un setTimeout para asegurar que el estado se actualice correctamente
-    setTimeout(() => {
-      setFormData(prev => {
-        const newFormData = {
-          ...prev,
-          // Datos básicos
-          name: hospital.name || "",
-          province: hospital.province || "",
-          city: hospital.city || "",
-          participatedLasos: hospital.lasos_participation || false,
-          // Marcar si los campos de ubicación son editables
-          isLocationEditable: !hasLocationData,
-          
-          // Datos estructurales (usar valores por defecto)
-          numBeds: "",
-          numOperatingRooms: "",
-          numIcuBeds: "",
-          avgWeeklySurgeries: "",
-          financingType: "public",
-          hasPreopClinic: "",
-          
-          // Características del hospital (checkboxes)
-          hasResidencyProgram: false,
-          hasEthicsCommittee: false,
-          hasRapidResponseTeam: false,
-          universityAffiliated: false,
-          
-          // Notas adicionales
-          notes: "",
-          
-          // Datos del coordinador (usar valores por defecto)
-          coordinatorFirstName: "",
-          coordinatorLastName: "",
-          coordinatorEmail: "",
-          coordinatorPhone: "",
-          coordinatorPosition: ""
-        };
-        
-        console.log('✅ FormData actualizado:', {
-          name: newFormData.name,
-          province: newFormData.province,
-          city: newFormData.city,
-          financingType: newFormData.financingType,
-          hasPreopClinic: newFormData.hasPreopClinic
-        });
-        
-        return newFormData;
-      });
-    }, 100);
-  }, [currentProject, loadProjects]);
+  }, [currentProject]);
 
   // Precargar información del coordinador desde el usuario actual
   useEffect(() => {
-    if (!user) return;
+    if (!user || !user.name || !user.email) return;
     
     // Separar el nombre completo en nombre y apellido
     const fullName = user.name || "";
@@ -180,12 +158,20 @@ export default function HospitalFormPage() {
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || "";
     
-    setFormData(prev => ({
-      ...prev,
-      coordinatorFirstName: firstName,
-      coordinatorLastName: lastName,
-      coordinatorEmail: user.email || ""
-    }));
+    if (firstName || lastName || user.email) {
+      setFormData(prev => {
+        // Solo actualizar si los campos están vacíos para evitar renders innecesarios
+        if (prev.coordinatorFirstName || prev.coordinatorLastName || prev.coordinatorEmail) {
+          return prev;
+        }
+        return {
+          ...prev,
+          coordinatorFirstName: firstName,
+          coordinatorLastName: lastName,
+          coordinatorEmail: user.email || ""
+        };
+      });
+    }
   }, [user]);
 
   const handleInputChange = (field: string, value: string | number | boolean) => {
@@ -284,13 +270,22 @@ export default function HospitalFormPage() {
       return;
     }
 
+    // Obtener el hospitalId del hospital en lugar del projectId
+    const hospitalId = (currentProject as any).coordinatorInfo?.hospital?.id || hospitalData?.id;
+    
+    if (!hospitalId) {
+      toast.error('No se pudo identificar el hospital');
+      return;
+    }
+    
     console.log('Saving form data:', {
       projectId: currentProject.id,
+      hospitalId: hospitalId,
       formData: formData
     });
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${currentProject.id}/form`, {
+      const response = await fetch(`/api/hospitals/${hospitalId}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -391,13 +386,22 @@ export default function HospitalFormPage() {
       return;
     }
 
+    // Obtener el hospitalId del hospital en lugar del projectId
+    const hospitalId = (currentProject as any).coordinatorInfo?.hospital?.id || hospitalData?.id;
+    
+    if (!hospitalId) {
+      toast.error('No se pudo identificar el hospital');
+      return;
+    }
+    
     console.log('Finishing form with data:', {
-      hospitalId: currentProject.id,
+      projectId: currentProject.id,
+      hospitalId: hospitalId,
       formData: formData
     });
 
     await executeWithSaving(async () => {
-      const response = await fetch(`/api/hospitals/${currentProject.id}/form`, {
+      const response = await fetch(`/api/hospitals/${hospitalId}/form`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Download } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useTranslations } from '../../hooks/useTranslations';
+import { toast } from 'sonner';
 
 interface PWAInstallButtonProps {
   userRole: 'admin' | 'coordinator';
@@ -28,25 +29,29 @@ export function PWAInstallButton({ userRole, className }: PWAInstallButtonProps)
     return null;
   }
 
-  // Para coordinator: siempre mostrar si está en móvil o si canInstall es true
-  if (userRole === 'coordinator') {
-    if (!isMobile && !canInstall) {
-      console.log('🚫 No mostrar botón PWA: coordinator en desktop sin canInstall');
-      return null;
-    }
-  }
-  
-  // Si no hay canInstall pero estamos en móvil, mostrar de todos modos
-  if (!canInstall && !isMobile) {
-    console.log('🚫 No mostrar botón PWA: no se puede instalar y no es móvil');
+  // Para coordinator: solo mostrar en móvil
+  if (userRole === 'coordinator' && !isMobile) {
+    console.log('🚫 No mostrar botón PWA: coordinator en desktop');
     return null;
   }
+  
+  // Ahora estamos en móvil - mostrar el botón
+  console.log('✅ Mostrar botón PWA: en móvil para', userRole);
 
   const handleInstall = async () => {
     try {
-      await promptInstall();
+      if (canInstall) {
+        await promptInstall();
+      } else {
+        // Si no hay canInstall, mostrar instrucciones con toast
+        toast.info('Para instalar EPIC-Q:', {
+          description: 'En Android: Toca el menú (⋮) > "Agregar a pantalla de inicio" | En iOS: Toca el botón de compartir > "Agregar a pantalla de inicio"',
+          duration: 6000
+        });
+      }
     } catch (error) {
       console.error('Error al instalar la PWA:', error);
+      toast.error('No se pudo instalar la aplicación');
     }
   };
 

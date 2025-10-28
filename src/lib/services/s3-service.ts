@@ -2,16 +2,16 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.EPIC_AWS_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.EPIC_AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.EPIC_AWS_SECRET_ACCESS_KEY!,
   },
 });
 
 export async function uploadFile(file: Buffer, key: string, contentType: string) {
   const command = new PutObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Bucket: process.env.EPIC_AWS_S3_BUCKET_NAME!,
     Key: key,
     Body: file,
     ContentType: contentType,
@@ -24,7 +24,7 @@ export async function uploadFile(file: Buffer, key: string, contentType: string)
 
 export async function deleteFile(key: string) {
   const command = new DeleteObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Bucket: process.env.EPIC_AWS_S3_BUCKET_NAME!,
     Key: key,
   });
   
@@ -33,7 +33,7 @@ export async function deleteFile(key: string) {
 
 export async function getSignedFileUrl(key: string, expiresIn: number = 3600) {
   const command = new GetObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Bucket: process.env.EPIC_AWS_S3_BUCKET_NAME!,
     Key: key,
   });
   

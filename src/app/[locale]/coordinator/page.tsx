@@ -345,8 +345,8 @@ export default function CoordinatorDashboard() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 
-                {/* Botón de ocultar - solo cuando esté completo y ambos cards estén completos */}
-                {stats.hospitalFormStatus.isComplete && canShowHideButton() && (
+                {/* Botón de ocultar - solo cuando el formulario del hospital esté completo */}
+                {stats.hospitalFormStatus.isComplete && (
                   <Button 
                     size="lg" 
                     variant="outline"
