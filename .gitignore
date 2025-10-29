@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+.env*
+credenciales.txt
+# Backup temporal - remover después de verificar push
+EPIC-Q-backup.git/
