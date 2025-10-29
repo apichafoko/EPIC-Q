@@ -108,7 +108,7 @@ export function ProvinceChoropleth({
               ],
             }}
             regionStyle={{
-              initial: { fill: "#f3f4f6" },
+              initial: { fill: "#e5e7eb", stroke: "#9ca3af", strokeWidth: 1, strokeOpacity: 0.6 },
               hover: { fill: "#16a34a" },
             }}
             onRegionTipShow={(_, el, code) => {

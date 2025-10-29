@@ -47,6 +47,31 @@ interface Project {
   updated_at: string;
   project_hospitals: ProjectHospital[];
   project_coordinators: ProjectCoordinator[];
+  summary?: {
+    hospitalsTotal: number;
+    coordinatorsTotal: number;
+    invitation: { pending: number; accepted: number };
+    ethics: { pending: number; submitted: number; approved: number };
+    form: { pending: number; partial: number; complete: number };
+    byProvince: Array<{
+      province?: string;
+      hospitals?: number;
+      totalHospitals?: number;
+      ethicsApproved: number;
+      formComplete: number;
+      totalCasesLoaded: number;
+      activeLoading: number;
+      completedPeriods: number;
+    }>;
+    upcomingPeriods: Array<{
+      id?: string;
+      hospitalId?: string;
+      hospitalName?: string;
+      startDate: Date | string;
+      endDate: Date | string | null;
+      periodNumber: number;
+    }>;
+  };
   _count: {
     project_hospitals: number;
     project_coordinators: number;
@@ -72,6 +97,9 @@ interface ProjectCoordinator {
     id: string;
     name: string;
     email: string;
+    isTemporaryPassword?: boolean;
+    lastLogin?: string;
+    created_at?: string;
   };
   hospital: {
     id: string;
@@ -605,9 +633,13 @@ export default function ProjectDetailPage() {
                          pc.user.email.toLowerCase().includes(coordinatorSearchTerm.toLowerCase()) ||
                          pc.hospital.name.toLowerCase().includes(coordinatorSearchTerm.toLowerCase());
     
+    const invitedAt = pc.invited_at ? new Date(pc.invited_at) : null;
+    const userLastLogin = pc.user?.lastLogin ? new Date(pc.user.lastLogin) : null;
+    const loggedAfterInvite = !pc.accepted_at && !!userLastLogin && !!invitedAt && userLastLogin.getTime() >= invitedAt.getTime();
+    const isAccepted = !!pc.accepted_at || loggedAfterInvite;
     const matchesStatus = coordinatorStatusFilter === 'all' || 
-                         (coordinatorStatusFilter === 'accepted' && pc.accepted_at) ||
-                         (coordinatorStatusFilter === 'pending' && !pc.accepted_at);
+                         (coordinatorStatusFilter === 'accepted' && isAccepted) ||
+                         (coordinatorStatusFilter === 'pending' && !isAccepted);
     
     return matchesSearch && matchesStatus;
   });
@@ -628,13 +660,13 @@ export default function ProjectDetailPage() {
 
   // Export CSV for Overview summary
   const exportOverviewCsv = () => {
-    const s: any = {};
+    const s: any = (project as any)?.summary || {};
     const rows: string[][] = [];
     rows.push(['Métrica','Valor']);
     rows.push(['Hospitales', String(s.hospitalsTotal || 0)]);
     rows.push(['Coordinadores', String(s.coordinatorsTotal || 0)]);
-    rows.push(['Invitación Pendiente', String(s.invitation?.pending || 0)]);
-    rows.push(['Invitación Aceptada', String(s.invitation?.accepted || 0)]);
+    rows.push(['Acceso Pendiente', String(s.invitation?.pending || 0)]);
+    rows.push(['Acceso Aceptado', String(s.invitation?.accepted || 0)]);
     rows.push(['Ética Pendiente', String(s.ethics?.pending || 0)]);
     rows.push(['Ética Presentado', String(s.ethics?.submitted || 0)]);
     rows.push(['Ética Aprobado', String(s.ethics?.approved || 0)]);
@@ -656,7 +688,7 @@ export default function ProjectDetailPage() {
 
   // Export CSV for upcoming periods (60d)
   const exportUpcomingCsv = () => {
-    const s: any = {}; // Using an empty object as fallback
+    const s: any = (project as any)?.summary || {};
     const upcoming: any[] = s.upcomingPeriods || [];
     const rows: string[][] = [['Hospital','Período','Inicio','Fin']];
     upcoming.forEach((u: any) => {
@@ -672,6 +704,37 @@ export default function ProjectDetailPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `periodos_proximos_${project?.name || 'proyecto'}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export CSV for province summary
+  const exportProvinceCsv = () => {
+    const byProv: any[] = (project as any)?.summary?.byProvince || [];
+    const rows: string[][] = [[
+      'Provincia',
+      'Hospitales',
+      'Ética Aprobado',
+      'Formulario Completo',
+      'Casos Cargados',
+      'Cargando Activamente',
+      'Períodos Completados'
+    ]];
+    byProv.forEach((p: any) => {
+      rows.push([
+        p.province || 'Desconocida',
+        String(p.hospitals ?? p.totalHospitals ?? 0),
+        String(p.ethicsApproved ?? 0),
+        String(p.formComplete ?? 0),
+        String(p.totalCasesLoaded ?? 0),
+        String(p.activeLoading ?? 0),
+        String(p.completedPeriods ?? 0),
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `provincias_${project?.name || 'proyecto'}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -898,7 +961,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
         <div className="flex items-start justify-between">
@@ -1166,9 +1229,8 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Overview KPIs - Made smaller */}
-          {/* Temporarily disabled due to missing project.summary property
-          {false && (
+          {/* Overview KPIs */}
+          {project.summary && (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 px-4">
               <Card className="p-3">
                 <div className="text-xs text-gray-500 mb-1">Hospitales</div>
@@ -1177,7 +1239,9 @@ export default function ProjectDetailPage() {
               <Card className="p-3">
                 <div className="text-xs text-gray-500 mb-1">Coordinadores</div>
                 <div className="text-xl font-bold">{project.summary.coordinatorsTotal}</div>
-                <div className="text-xs text-gray-600">Pendiente: {project.summary.invitation?.pending} · Aceptado: {project.summary.invitation?.accepted}</div>
+                <div className="text-xs text-gray-600" title="Acceso: aceptado si el usuario aceptó o inició sesión después de la invitación; pendiente si aún no inició sesión; los usuarios nuevos pueden figurar como 'No requerido'">
+                  Acceso pendiente: {project.summary.invitation?.pending} · Acceso aceptado: {project.summary.invitation?.accepted}
+                </div>
               </Card>
               <Card className="p-3">
                 <div className="text-xs text-gray-500 mb-1">Ética</div>
@@ -1204,7 +1268,6 @@ export default function ProjectDetailPage() {
               </Card>
             </div>
           )}
-          */}
 
           {/* Visualizations */}
           <div className="space-y-6 px-4">
@@ -1258,16 +1321,17 @@ export default function ProjectDetailPage() {
                 </div>
               )}
 
-              {/* Temporarily disabled sections due to missing project.summary property */}
-              {project && false && (
+              {/* Secciones adicionales usando summary */}
+              {project && project.summary && (
                 <>
                   {/* Coordinadores - tablero compacto */}
                   {project?.project_coordinators && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <Label className="text-sm">Coordinadores</Label>
-                        {/* @ts-expect-error - project.summary is not defined in the Project interface */}
-                        <div className="text-xs text-gray-500">Pendientes: {project.summary?.invitation?.pending} · Aceptados: {project.summary?.invitation?.accepted}</div>
+                        <div className="text-xs text-gray-500" title="Acceso: aceptado si el usuario aceptó o inició sesión después de la invitación; pendiente si aún no inició sesión">
+                          Acceso pendiente: {project.summary?.invitation?.pending} · Acceso aceptado: {project.summary?.invitation?.accepted}
+                        </div>
                       </div>
                       <div className="overflow-auto border rounded">
                         <Table>
@@ -1276,7 +1340,7 @@ export default function ProjectDetailPage() {
                               <TableHead>Nombre</TableHead>
                               <TableHead>Email</TableHead>
                               <TableHead>Hospital</TableHead>
-                              <TableHead>Invitación</TableHead>
+                              <TableHead>Acceso</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1286,9 +1350,18 @@ export default function ProjectDetailPage() {
                                 <TableCell>{pc.user?.email || '-'}</TableCell>
                                 <TableCell>{pc.hospital?.name || '-'}</TableCell>
                                 <TableCell>
-                                  <Badge variant={pc.accepted_at? 'default':'secondary'}>
-                                    {pc.accepted_at? 'Aceptada':'Pendiente'}
-                                  </Badge>
+                                  {(() => {
+                                    const invitedAt = pc.invited_at ? new Date(pc.invited_at) : null;
+                                    const userLastLogin = pc.user?.lastLogin ? new Date(pc.user.lastLogin) : null;
+                                    const loggedAfterInvite = !pc.accepted_at && !!userLastLogin && !!invitedAt && userLastLogin.getTime() >= invitedAt.getTime();
+                                    if (pc.accepted_at || loggedAfterInvite) {
+                                      return <Badge variant="default" title="Tiene acceso: aceptó invitación o inició sesión después de ser invitado">Aceptado</Badge>;
+                                    }
+                                    if ((pc as any)?.user?.isTemporaryPassword) {
+                                      return <Badge variant="outline" title="Usuario nuevo: no se requiere invitación inicial">No requerido</Badge>;
+                                    }
+                                    return <Badge variant="secondary" title="Pendiente: aún no inició sesión después de la invitación">Pendiente</Badge>;
+                                  })()}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -1298,11 +1371,55 @@ export default function ProjectDetailPage() {
                     </div>
                   )}
                   {/* Provincias / Distribución rápida */}
-                  {project && false && (
+                  {project?.summary?.byProvince && (
                     <ProvinceChoropleth
-                      data={{}}
+                      data={project.summary.byProvince as any}
                       title="Distribución por provincia"
                     />
+                  )}
+
+                  {project?.summary?.byProvince && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-sm font-semibold">Detalle por provincia</CardTitle>
+                            <CardDescription>Métricas resumidas por provincia</CardDescription>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={exportProvinceCsv}>Exportar CSV</Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="overflow-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Provincia</TableHead>
+                                <TableHead className="text-right">Hospitales</TableHead>
+                                <TableHead className="text-right">Ética Aprobado</TableHead>
+                                <TableHead className="text-right">Formulario Completo</TableHead>
+                                <TableHead className="text-right">Casos Cargados</TableHead>
+                                <TableHead className="text-right">Cargando Act.</TableHead>
+                                <TableHead className="text-right">Períodos Compl.</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {(project.summary.byProvince as any[]).map((p: any, idx: number) => (
+                                <TableRow key={idx}>
+                                  <TableCell>{p.province || 'Desconocida'}</TableCell>
+                                  <TableCell className="text-right">{p.hospitals ?? p.totalHospitals ?? 0}</TableCell>
+                                  <TableCell className="text-right">{p.ethicsApproved ?? 0}</TableCell>
+                                  <TableCell className="text-right">{p.formComplete ?? 0}</TableCell>
+                                  <TableCell className="text-right">{p.totalCasesLoaded ?? 0}</TableCell>
+                                  <TableCell className="text-right">{p.activeLoading ?? 0}</TableCell>
+                                  <TableCell className="text-right">{p.completedPeriods ?? 0}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
 
                   {/* Próximos períodos (60 días) */}
@@ -1841,9 +1958,9 @@ export default function ProjectDetailPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Hospital</TableHead>
                     <TableHead>Rol</TableHead>
-                    <TableHead>Invitación</TableHead>
-                    <TableHead>Fecha de Invitación</TableHead>
-                    <TableHead className="w-[50px]">Acciones</TableHead>
+                    <TableHead>Acceso</TableHead>
+                    <TableHead>Fecha de invitación</TableHead>
+                    <TableHead className="w-[60px] text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1863,16 +1980,24 @@ export default function ProjectDetailPage() {
                           <Badge variant="outline">{pc.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant={pc.accepted_at ? "default" : "secondary"}
-                          >
-                            {pc.accepted_at ? 'Aceptado' : 'Pendiente'}
-                          </Badge>
+                          {(() => {
+                            const invitedAt = pc.invited_at ? new Date(pc.invited_at) : null;
+                            const userLastLogin = pc.user?.lastLogin ? new Date(pc.user.lastLogin) : null;
+                            const loggedAfterInvite = !pc.accepted_at && !!userLastLogin && !!invitedAt && userLastLogin.getTime() >= invitedAt.getTime();
+                            if (pc.accepted_at || loggedAfterInvite) {
+                              return <Badge variant="default" title="Tiene acceso: aceptó invitación o inició sesión después de ser invitado">Aceptado</Badge>;
+                            }
+                            if ((pc as any)?.user?.isTemporaryPassword) {
+                              return <Badge variant="outline" title="Usuario nuevo: no se requiere invitación inicial">No requerido</Badge>;
+                            }
+                            return <Badge variant="secondary" title="Pendiente: aún no inició sesión después de la invitación">Pendiente</Badge>;
+                          })()}
                         </TableCell>
-                        <TableCell>
-                          {new Date(pc.invited_at).toLocaleDateString()}
+                        <TableCell title={(pc as any)?.user?.isTemporaryPassword ? 'Usuario nuevo: invitación no requerida' : undefined}>
+                          {pc.invited_at ? new Date(pc.invited_at).toLocaleDateString() : '—'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-[60px] text-right">
+                          <div className="flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -1906,6 +2031,7 @@ export default function ProjectDetailPage() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
