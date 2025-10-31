@@ -8,9 +8,11 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
 import { Badge } from '../../../../components/ui/badge';
-import { Loader2, Save, Settings, AlertTriangle, Bell, Mail, Users } from 'lucide-react';
+import { Loader2, Save, Settings, AlertTriangle, Bell, Mail, Users, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLoadingState } from '../../../../hooks/useLoadingState';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../../components/ui/dialog';
+import { Textarea } from '../../../../components/ui/textarea';
 
 interface AlertConfiguration {
   id: string;
@@ -19,13 +21,23 @@ interface AlertConfiguration {
   notify_admin: boolean;
   notify_coordinator: boolean;
   auto_send_email: boolean;
-  threshold_value: number;
+  threshold_value: number | null;
   email_template_id?: string;
 }
 
 export default function AlertConfigurationsPage() {
   const [configurations, setConfigurations] = useState<AlertConfiguration[]>([]);
   const { isLoading, startLoading, stopLoading } = useLoadingState();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newConfig, setNewConfig] = useState({
+    alert_type: '',
+    enabled: true,
+    notify_admin: true,
+    notify_coordinator: true,
+    auto_send_email: false,
+    threshold_value: null as number | null,
+    email_template_id: ''
+  });
 
   useEffect(() => {
     loadConfigurations();
@@ -54,30 +66,104 @@ export default function AlertConfigurationsPage() {
 
   const updateConfiguration = async (id: string, updates: Partial<AlertConfiguration>) => {
     try {
+      const config = configurations.find(c => c.id === id);
+      if (!config) {
+        throw new Error('Configuración no encontrada');
+      }
+
       const response = await fetch('/api/alerts/configurations', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ id, ...updates })
+        body: JSON.stringify({ alertType: config.alert_type, ...updates })
       });
 
       if (!response.ok) {
-        throw new Error('Error al actualizar configuración');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar configuración');
       }
 
       // Actualizar estado local
       setConfigurations(prev => 
-        prev.map(config => 
-          config.id === id ? { ...config, ...updates } : config
+        prev.map(c => 
+          c.id === id ? { ...c, ...updates } : c
         )
       );
 
       toast.success('Configuración actualizada');
     } catch (error) {
       console.error('Error updating configuration:', error);
-      toast.error('Error al actualizar configuración');
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar configuración');
+    }
+  };
+
+  const createConfiguration = async () => {
+    if (!newConfig.alert_type.trim()) {
+      toast.error('El tipo de alerta es requerido');
+      return;
+    }
+
+    try {
+      startLoading();
+      const response = await fetch('/api/alerts/configurations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          alert_type: newConfig.alert_type.trim(),
+          enabled: newConfig.enabled,
+          notify_admin: newConfig.notify_admin,
+          notify_coordinator: newConfig.notify_coordinator,
+          auto_send_email: newConfig.auto_send_email,
+          threshold_value: newConfig.threshold_value,
+          email_template_id: newConfig.email_template_id || null,
+        })
+      });
+
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('Error parseando respuesta JSON:', jsonError);
+          throw new Error('Error al procesar la respuesta del servidor');
+        }
+      } else {
+        const text = await response.text();
+        console.error('Respuesta no JSON del servidor:', text);
+        throw new Error(`Error del servidor: ${text || 'Respuesta inválida'}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      toast.success(data?.message || 'Configuración creada exitosamente');
+      setShowCreateDialog(false);
+      setNewConfig({
+        alert_type: '',
+        enabled: true,
+        notify_admin: true,
+        notify_coordinator: true,
+        auto_send_email: false,
+        threshold_value: null,
+        email_template_id: ''
+      });
+      loadConfigurations();
+    } catch (error) {
+      console.error('Error creating configuration:', error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Error al crear configuración. Por favor, intente nuevamente.');
+      }
+    } finally {
+      stopLoading();
     }
   };
 
@@ -126,6 +212,10 @@ export default function AlertConfigurationsPage() {
             Configura los tipos de alertas y sus notificaciones
           </p>
         </div>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Crear Nueva Configuración
+        </Button>
       </div>
 
       <div className="grid gap-6">
@@ -236,19 +326,32 @@ export default function AlertConfigurationsPage() {
 
               {/* Umbral */}
               <div className="space-y-2">
-                <Label htmlFor={`threshold-${config.id}`}>Umbral</Label>
+                <Label htmlFor={`threshold-${config.id}`}>Umbral (días desde invitación)</Label>
                 <Input
                   id={`threshold-${config.id}`}
                   type="number"
-                  value={config.threshold_value}
+                  value={config.threshold_value ?? ''}
                   onChange={(e) => 
-                    updateConfiguration(config.id, { threshold_value: parseInt(e.target.value) || 0 })
+                    updateConfiguration(config.id, { 
+                      threshold_value: e.target.value ? parseInt(e.target.value) : null 
+                    })
                   }
                   disabled={!config.enabled}
-                  placeholder="Valor umbral"
+                  placeholder="Ej: 60"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Valor umbral para generar esta alerta (días, porcentaje, etc.)
+                  {config.alert_type === 'missing_documentation' 
+                    ? 'Días desde la invitación del coordinador antes de generar la alerta (ej: 60 días)'
+                    : config.alert_type === 'ethics_approval_pending'
+                    ? 'Días desde la presentación de ética antes de generar la alerta (ej: 30 días)'
+                    : config.alert_type === 'upcoming_recruitment_period'
+                    ? 'Días antes del período de reclutamiento para generar la alerta (ej: 60 días)'
+                    : config.alert_type === 'no_activity_30_days'
+                    ? 'Días sin actividad antes de generar la alerta (ej: 30 días)'
+                    : config.alert_type === 'low_completion_rate'
+                    ? 'Porcentaje mínimo de completitud (ej: 65%)'
+                    : 'Valor umbral para generar esta alerta (días, porcentaje, etc.)'
+                  }
                 </p>
               </div>
             </CardContent>
@@ -268,6 +371,133 @@ export default function AlertConfigurationsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Dialog para crear nueva configuración */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Crear Nueva Configuración de Alerta</DialogTitle>
+            <DialogDescription>
+              Crea una nueva configuración para un tipo de alerta automática
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-alert-type">Tipo de Alerta *</Label>
+              <Input
+                id="new-alert-type"
+                value={newConfig.alert_type}
+                onChange={(e) => setNewConfig({ ...newConfig, alert_type: e.target.value })}
+                placeholder="Ej: ethics_approval_pending, missing_documentation, etc."
+              />
+              <p className="text-sm text-muted-foreground">
+                Nombre único del tipo de alerta (puede ser un tipo existente o personalizado)
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="new-enabled">Habilitar alerta</Label>
+                <p className="text-sm text-muted-foreground">
+                  Activar o desactivar este tipo de alerta
+                </p>
+              </div>
+              <Switch
+                id="new-enabled"
+                checked={newConfig.enabled}
+                onCheckedChange={(checked) => setNewConfig({ ...newConfig, enabled: checked })}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium">Notificaciones</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="new-notify-admin" className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4" />
+                      <span>Notificar Admin</span>
+                    </Label>
+                  </div>
+                  <Switch
+                    id="new-notify-admin"
+                    checked={newConfig.notify_admin}
+                    onCheckedChange={(checked) => setNewConfig({ ...newConfig, notify_admin: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="new-notify-coordinator" className="flex items-center space-x-2">
+                      <Users className="h-4 w-4" />
+                      <span>Notificar Coordinador</span>
+                    </Label>
+                  </div>
+                  <Switch
+                    id="new-notify-coordinator"
+                    checked={newConfig.notify_coordinator}
+                    onCheckedChange={(checked) => setNewConfig({ ...newConfig, notify_coordinator: checked })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="new-auto-email" className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4" />
+                    <span>Email Automático</span>
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enviar email automáticamente cuando se genere la alerta
+                  </p>
+                </div>
+                <Switch
+                  id="new-auto-email"
+                  checked={newConfig.auto_send_email}
+                  onCheckedChange={(checked) => setNewConfig({ ...newConfig, auto_send_email: checked })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-threshold">Valor Umbral (Opcional)</Label>
+              <Input
+                id="new-threshold"
+                type="number"
+                value={newConfig.threshold_value || ''}
+                onChange={(e) => setNewConfig({ 
+                  ...newConfig, 
+                  threshold_value: e.target.value ? parseInt(e.target.value) : null 
+                })}
+                placeholder="Ej: 60 (días desde invitación para missing_documentation)"
+              />
+              <p className="text-sm text-muted-foreground">
+                Para "missing_documentation": días desde la invitación del coordinador antes de generar la alerta.
+                Para otros tipos: días, porcentaje u otro valor según el tipo de alerta.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={isLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={createConfiguration} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Crear Configuración
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

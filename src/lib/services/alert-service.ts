@@ -265,6 +265,78 @@ export async function updateAlertConfiguration(alertType: string, config: {
 }
 
 /**
+ * Crea una nueva configuración de alerta
+ */
+export async function createAlertConfiguration(config: {
+  alert_type: string;
+  enabled?: boolean;
+  notify_admin?: boolean;
+  notify_coordinator?: boolean;
+  auto_send_email?: boolean;
+  threshold_value?: number;
+  email_template_id?: string;
+}) {
+  try {
+    if (!config.alert_type || config.alert_type.trim() === '') {
+      return {
+        success: false,
+        error: 'El tipo de alerta es requerido'
+      };
+    }
+
+    // Verificar si ya existe
+    const existing = await prisma.alert_configurations.findUnique({
+      where: { alert_type: config.alert_type }
+    });
+
+    if (existing) {
+      return {
+        success: false,
+        error: `Ya existe una configuración para el tipo de alerta: ${config.alert_type}`
+      };
+    }
+
+    const newConfig = await prisma.alert_configurations.create({
+      data: {
+        alert_type: config.alert_type.trim(),
+        enabled: config.enabled ?? true,
+        notify_admin: config.notify_admin ?? true,
+        notify_coordinator: config.notify_coordinator ?? true,
+        auto_send_email: config.auto_send_email ?? false,
+        threshold_value: config.threshold_value ?? null,
+        email_template_id: config.email_template_id ?? null,
+      }
+    });
+
+    return { success: true, config: newConfig };
+  } catch (error: any) {
+    console.error('Error creando configuración de alerta:', error);
+    
+    // Manejar errores específicos de Prisma
+    if (error?.code === 'P2002') {
+      // Unique constraint violation
+      return {
+        success: false,
+        error: `Ya existe una configuración para el tipo de alerta: ${config.alert_type}`
+      };
+    }
+    
+    if (error?.code === 'P2003') {
+      // Foreign key constraint violation
+      return {
+        success: false,
+        error: 'Error de referencia: el email_template_id no existe'
+      };
+    }
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error desconocido al crear la configuración'
+    };
+  }
+}
+
+/**
  * Obtiene todas las configuraciones de alertas
  */
 export async function getAllAlertConfigurations() {

@@ -123,6 +123,8 @@ export async function generateEthicsApprovalAlerts(): Promise<AlertGenerationRes
 
 /**
  * Genera alertas para documentación faltante
+ * Se dispara cuando han pasado más días que threshold_value desde la invitación del coordinador
+ * y aún falta documentación (ethics_submitted o ethics_approved = false)
  */
 export async function generateMissingDocumentationAlerts(): Promise<AlertGenerationResult> {
   const result: AlertGenerationResult = {
@@ -141,6 +143,12 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
       console.log('⚠️ Alertas de documentación faltante deshabilitadas');
       return result;
     }
+
+    const thresholdDays = config.threshold_value ?? 0; // Si no hay umbral, usar 0 días (dispara inmediatamente)
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() - thresholdDays);
+
+    console.log(`🔍 Buscando hospitales con documentación faltante (umbral: ${thresholdDays} días desde invitación)`);
 
     // Buscar hospitales con documentación incompleta
     const hospitalsWithMissingDocs = await prisma.hospitals.findMany({
@@ -161,12 +169,41 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
           include: {
             projects: true
           }
+        },
+        project_coordinators: {
+          where: {
+            is_active: true
+          },
+          orderBy: {
+            invited_at: 'asc' // Obtener la primera invitación (más antigua)
+          },
+          take: 1
         }
       }
     });
 
     for (const hospital of hospitalsWithMissingDocs) {
       try {
+        // Verificar si hay un coordinador invitado para este hospital
+        const coordinator = hospital.project_coordinators[0];
+        
+        if (!coordinator) {
+          // Si no hay coordinador invitado, no generar alerta
+          result.skipped++;
+          continue;
+        }
+
+        // Verificar si han pasado suficientes días desde la invitación
+        const invitedAt = new Date(coordinator.invited_at);
+        if (invitedAt > thresholdDate) {
+          // No han pasado suficientes días desde la invitación
+          const daysSinceInvite = Math.floor((new Date().getTime() - invitedAt.getTime()) / (1000 * 60 * 60 * 24));
+          console.log(`⏳ Hospital ${hospital.id}: Solo han pasado ${daysSinceInvite} días desde la invitación (umbral: ${thresholdDays} días)`);
+          result.skipped++;
+          continue;
+        }
+
+        // Verificar si ya existe una alerta activa
         const existingAlert = await prisma.alerts.findFirst({
           where: {
             hospital_id: hospital.id,
@@ -189,24 +226,36 @@ export async function generateMissingDocumentationAlerts(): Promise<AlertGenerat
           missingDocs.push('Aprobación de Ética');
         }
 
+        // Si no hay documentación faltante, saltar
+        if (missingDocs.length === 0) {
+          result.skipped++;
+          continue;
+        }
+
+        const daysSinceInvite = Math.floor((new Date().getTime() - invitedAt.getTime()) / (1000 * 60 * 60 * 24));
+        
         const alert = await prisma.alerts.create({
           data: {
             id: `alert_${Date.now()}_${hospital.id}`,
             hospital_id: hospital.id,
-            project_id: hospital.project_hospitals[0]?.project_id || null,
+            project_id: hospital.project_hospitals[0]?.project_id || coordinator.project_id,
             type: 'missing_documentation',
             title: 'Documentación Faltante',
-            message: `El hospital ${hospital.name} tiene documentación faltante: ${missingDocs.join(', ')}.`,
+            message: `El hospital ${hospital.name} tiene documentación faltante desde hace ${daysSinceInvite} días (desde la invitación): ${missingDocs.join(', ')}.`,
             severity: 'medium',
             metadata: {
               hospital_name: hospital.name,
               missing_documents: missingDocs,
               ethics_submitted: progress?.ethics_submitted,
-              ethics_approved: progress?.ethics_approved
+              ethics_approved: progress?.ethics_approved,
+              days_since_invitation: daysSinceInvite,
+              threshold_days: thresholdDays,
+              invited_at: invitedAt.toISOString()
             }
           }
         });
 
+        console.log(`✅ Alerta creada para hospital ${hospital.name}: ${daysSinceInvite} días desde invitación`);
         result.generated++;
 
         if (config.auto_send_email) {

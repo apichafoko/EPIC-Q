@@ -39,6 +39,12 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
     include: {
       hospitals: {
         select: { name: true, city: true, province: true }
+      },
+      projects: {
+        select: { name: true }
+      },
+      sender: {
+        select: { name: true, email: true }
       }
     },
     skip: (page - 1) * limit,
@@ -49,15 +55,16 @@ export async function getCommunications(filters?: CommunicationFilters, page: nu
   const formattedCommunications: Communication[] = communications.map((c) => ({
     id: c.id,
     hospital_id: c.hospital_id || 'unknown',
-    hospital_name: c.hospitals?.name || 'Hospital no encontrado',
+    hospital_name: c.hospitals?.name || undefined,
+    project_name: c.projects?.name || undefined,
     type: c.type || undefined,
     subject: c.subject || undefined,
     content: c.body || undefined, // Usar 'body' en lugar de 'content'
     sent_at: c.sent_at.toISOString(), // Usar 'sent_at' en lugar de 'created_at'
     read_at: null, // Campo no existe en el esquema
     user_id: c.user_id || undefined, // Usar 'user_id' en lugar de 'sent_by'
-    user_name: 'Usuario desconocido', // Campo no disponible
-    priority: 'normal', // Campo no existe en el esquema
+    user_name: c.sender?.name || 'Admin',
+    priority: 'normal', // Campo no existe en el esquema, usar valor por defecto
     status: 'sent', // Campo no existe en el esquema, usar valor por defecto
     attachments: [], // Campo no existe en el esquema
   }));
@@ -195,14 +202,50 @@ export async function sendCommunication(params: SendCommunicationParams) {
  */
 async function sendEmailChannel(communication: any) {
   try {
-    // Aquí integrarías con el servicio de email existente
-    // Por ahora solo actualizamos el status
+    // Obtener el usuario destinatario para obtener su email
+    const user = await prisma.users.findUnique({
+      where: { id: communication.user_id },
+      select: { email: true, name: true }
+    });
+
+    if (!user?.email) {
+      throw new Error(`Usuario ${communication.user_id} no tiene email`);
+    }
+
+    // Importar el servicio de email
+    const { sendEmail } = await import('../notifications/email-service');
+    
+    // Enviar el email
+    await sendEmail({
+      to: user.email,
+      subject: communication.subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0;">EPIC-Q</h1>
+            <p style="margin: 5px 0 0 0;">Sistema de Gestión</p>
+          </div>
+          <div style="background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+            <h2 style="color: #1f2937; margin-top: 0;">${communication.subject}</h2>
+            <div style="color: #4b5563; line-height: 1.6; white-space: pre-wrap;">
+              ${communication.body.replace(/\n/g, '<br>')}
+            </div>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px;">
+              Este es un mensaje automático del sistema EPIC-Q. No respondas a este correo.
+            </p>
+          </div>
+        </div>
+      `
+    });
+
+    // Actualizar estado a 'sent'
     await prisma.communications.update({
       where: { id: communication.id },
       data: { email_status: 'sent' }
     });
 
-    console.log(`📧 Email enviado para comunicación ${communication.id}`);
+    console.log(`📧 Email enviado para comunicación ${communication.id} a ${user.email}`);
   } catch (error) {
     console.error(`❌ Error enviando email para comunicación ${communication.id}:`, error);
     await prisma.communications.update({
@@ -248,6 +291,7 @@ async function sendPushChannel(communication: any) {
       body: JSON.stringify({
         title: communication.subject,
         message: communication.body,
+        targetUserId: communication.user_id,
         data: {
           communicationId: communication.id,
           type: communication.type,

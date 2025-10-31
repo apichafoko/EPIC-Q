@@ -36,6 +36,29 @@ model activity_logs {
   users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model audit_logs {
+  id          String   @id @default(cuid())
+  user_id     String?
+  user_name   String?
+  action      String   // create, update, delete, view, login, logout, etc.
+  resource    String   // hospitals, projects, users, alerts, etc.
+  resource_id String?
+  details     Json?    // Additional context data
+  ip_address  String?
+  user_agent  String?
+  status      String?  // success, error, warning
+  error_message String?
+  metadata    Json?
+  created_at  DateTime @default(now())
+  users       users?   @relation("AuditUser", fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([resource, resource_id])
+  @@index([action])
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
 model alerts {
   id             String           @id
   hospital_id    String
@@ -330,6 +353,8 @@ model users {
   sessions                 sessions[]
   user_settings            user_settings?
   hospitals                hospitals?                 @relation(fields: [hospitalId], references: [id])
+  push_subscriptions       push_subscriptions[]
+  audit_logs               audit_logs[]              @relation("AuditUser")
 }
 
 model case_load_statistics {
@@ -399,4 +424,18 @@ model project_resources {
 
   @@index([project_id])
   @@map("project_resources")
+}
+
+model push_subscriptions {
+  id          String   @id @default(cuid())
+  endpoint    String   @unique
+  p256dh_key  String
+  auth_key    String
+  user_id     String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  users       users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
 }

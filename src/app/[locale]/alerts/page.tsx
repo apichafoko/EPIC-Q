@@ -15,13 +15,21 @@ import {
   Check,
   AlertCircle,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Edit
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Alert } from '../../../types';
 import { toast } from 'sonner';
 import { useLoadingState } from '../../../hooks/useLoadingState';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Switch } from '../../../components/ui/switch';
 
 // Definir el tipo AlertFilters
 interface AlertFilters {
@@ -50,6 +58,10 @@ export default function AlertsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [alertTypes, setAlertTypes] = useState<string[]>([]);
   const [resolvingAlert, setResolvingAlert] = useState<string | null>(null);
+  const [configurations, setConfigurations] = useState<any[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const params = useParams();
 
   const { isLoading, executeWithLoading } = useLoadingState();
 
@@ -99,6 +111,39 @@ export default function AlertsPage() {
 
     const data = await response.json();
     return data.types || [];
+  };
+
+  const fetchConfigurations = async () => {
+    try {
+      setLoadingConfigs(true);
+      const response = await fetch('/api/alerts/configurations', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cargar configuraciones');
+      }
+
+      const data = await response.json();
+      return data.configurations || [];
+    } catch (error) {
+      console.error('Error loading configurations:', error);
+      toast.error('Error al cargar configuraciones');
+      return [];
+    } finally {
+      setLoadingConfigs(false);
+    }
+  };
+
+  const getAlertTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      'ethics_approval_pending': 'Aprobación de Ética Pendiente',
+      'missing_documentation': 'Documentación Faltante',
+      'upcoming_recruitment_period': 'Período de Reclutamiento Próximo',
+      'no_activity_30_days': 'Sin Actividad (30 días)',
+      'low_completion_rate': 'Tasa de Completitud Baja'
+    };
+    return labels[type] || type;
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -323,11 +368,17 @@ export default function AlertsPage() {
         {[
           { id: 'active', label: 'Activas', count: stats.active },
           { id: 'resolved', label: 'Resueltas', count: stats.resolved },
-          { id: 'all', label: 'Todas', count: stats.total }
+          { id: 'all', label: 'Todas', count: stats.total },
+          { id: 'configurations', label: 'Configuraciones', count: configurations.length }
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id === 'configurations') {
+                fetchConfigurations().then(setConfigurations);
+              }
+            }}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -339,52 +390,150 @@ export default function AlertsPage() {
         ))}
       </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de alerta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                {alertTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {getTypeLabel(type)}
-                  </SelectItem>
+      {/* Filtros - Solo mostrar si no es tab de configuraciones */}
+      {activeTab !== 'configurations' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de alerta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
+                  {alertTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {getTypeLabel(type)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.severity} onValueChange={(value) => setFilters(prev => ({ ...prev, severity: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Severidad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las severidades</SelectItem>
+                  {severities.map((severity) => (
+                    <SelectItem key={severity} value={severity}>
+                      <div className="flex items-center space-x-2">
+                        {getSeverityIcon(severity)}
+                        <span>{getSeverityLabel(severity)}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button variant="outline" onClick={() => setFilters({ search: '', severity: 'all', status: 'active', hospital_id: 'all', type: 'all' })}>
+                <Filter className="h-4 w-4 mr-2" />
+                Limpiar
+              </Button>
+
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sección de Configuraciones */}
+      {activeTab === 'configurations' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Configuraciones de Alertas Automáticas</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gestiona los tipos de alertas automáticas del sistema
+                </p>
+              </div>
+              <Link href={`/${params.locale}/admin/alert-configurations`}>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Nueva
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingConfigs ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            ) : configurations.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo de Alerta</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Notificar Admin</TableHead>
+                      <TableHead>Notificar Coordinador</TableHead>
+                      <TableHead>Email Automático</TableHead>
+                      <TableHead>Umbral</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {configurations.map((config) => (
+                      <TableRow key={config.id}>
+                        <TableCell className="font-medium">
+                          {getAlertTypeLabel(config.alert_type)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={config.enabled ? "default" : "secondary"}>
+                            {config.enabled ? "Activo" : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {config.notify_admin ? '✓' : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {config.notify_coordinator ? '✓' : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {config.auto_send_email ? '✓' : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {config.threshold_value ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/${params.locale}/admin/alert-configurations`}>
+                            <Button size="sm" variant="outline">
+                              <Edit className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No hay configuraciones</h3>
+                <p className="text-muted-foreground mb-4">
+                  Crea tu primera configuración de alerta automática
+                </p>
+                <Link href={`/${params.locale}/admin/alert-configurations`}>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Configuración
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-            <Select value={filters.severity} onValueChange={(value) => setFilters(prev => ({ ...prev, severity: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Severidad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las severidades</SelectItem>
-                {severities.map((severity) => (
-                  <SelectItem key={severity} value={severity}>
-                    <div className="flex items-center space-x-2">
-                      {getSeverityIcon(severity)}
-                      <span>{getSeverityLabel(severity)}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" onClick={() => setFilters({ search: '', severity: 'all', status: 'active', hospital_id: 'all', type: 'all' })}>
-              <Filter className="h-4 w-4 mr-2" />
-              Limpiar
-            </Button>
-
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Alertas */}
-      <div className="space-y-4">
+      {/* Lista de Alertas - Solo mostrar si no es tab de configuraciones */}
+      {activeTab !== 'configurations' && (
+        <div className="space-y-4">
         {loading ? (
           // Loading skeleton
           Array.from({ length: 3 }).map((_, index) => (
@@ -480,9 +629,11 @@ export default function AlertsPage() {
           </Card>
         )}
       </div>
+      )}
 
-      {/* Distribución por Severidad */}
-      <Card>
+      {/* Distribución por Severidad - Solo mostrar si no es tab de configuraciones */}
+      {activeTab !== 'configurations' && (
+        <Card>
         <CardHeader>
           <CardTitle>Distribución por Severidad</CardTitle>
         </CardHeader>
@@ -507,6 +658,7 @@ export default function AlertsPage() {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

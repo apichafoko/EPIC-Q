@@ -114,6 +114,24 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
   };
 
   const completionStatus = getCompletionStatus();
+  const [unread, setUnread] = useState(0);
+
+  const fetchUnread = async () => {
+    try {
+      const resp = await fetch('/api/notifications?limit=1', { credentials: 'include' });
+      if (resp.ok) {
+        const data = await resp.json();
+        setUnread(data.unreadCount || 0);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchUnread();
+    const handler = () => fetchUnread();
+    window.addEventListener('notifications:update', handler);
+    return () => window.removeEventListener('notifications:update', handler);
+  }, []);
 
   const navigation = [
     { 
@@ -156,16 +174,10 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
       isComplete: completionStatus.progress
     },
     { 
-      name: t('common.communications'), 
-      href: `/${locale}/coordinator/communications`, 
+      name: 'Bandeja de Entrada', 
+      href: `/${locale}/coordinator/inbox`, 
       icon: Mail,
-      isComplete: false // Communications no tiene estado de completitud
-    },
-    { 
-      name: t('common.notifications'), 
-      href: `/${locale}/coordinator/notifications`, 
-      icon: Bell,
-      isComplete: false // Notifications no tiene estado de completitud
+      isComplete: false 
     },
     { 
       name: t('common.redcapUsers'), 
@@ -279,7 +291,21 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
                   )}
                   aria-hidden="true"
                 />
-                <span className="flex-1">{item.name}</span>
+                <span className="flex-1 flex items-center justify-between">
+                  {item.name}
+                  {item.href.endsWith('/coordinator/inbox') && unread > 0 && (
+                    <span
+                      className={cn(
+                        'ml-2 inline-flex items-center justify-center text-[10px] font-semibold',
+                        unread > 9
+                          ? (isActive ? 'bg-white text-blue-600 px-1.5 py-0.5 rounded-full' : 'bg-red-600 text-white px-1.5 py-0.5 rounded-full')
+                          : (isActive ? 'bg-white text-blue-600 w-5 h-5 rounded-full' : 'bg-red-600 text-white w-5 h-5 rounded-full')
+                      )}
+                    >
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </span>
                 {item.isComplete && (
                   <CheckCircle 
                     className={cn(

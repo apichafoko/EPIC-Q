@@ -291,7 +291,7 @@ export default function CommunicationsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Tipo</TableHead>
-              <TableHead>Hospital</TableHead>
+              <TableHead>Proyecto</TableHead>
               <TableHead>Asunto</TableHead>
               <TableHead>Enviado por</TableHead>
               <TableHead>Estado</TableHead>
@@ -323,7 +323,7 @@ export default function CommunicationsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm font-medium">{comm.hospital_name}</div>
+                    <div className="text-sm font-medium">{comm.project_name || comm.hospital_name || '—'}</div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium truncate max-w-xs">

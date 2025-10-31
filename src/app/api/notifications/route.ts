@@ -70,55 +70,56 @@ export async function GET(request: NextRequest) {
       });
 
       // Combinar y formatear todas las notificaciones
+      const systemNotifs = notifications.map(notif => ({
+        id: notif.id,
+        type: 'notification',
+        title: notif.title,
+        message: notif.message,
+        data: null,
+        read: notif.isRead,
+        created_at: notif.created_at,
+        source: 'system'
+      }));
+
+      const commNotifs = unreadCommunications.map(comm => ({
+        id: comm.id,
+        type: comm.type,
+        title: comm.subject,
+        message: comm.body,
+        data: {
+          communicationId: comm.id,
+          type: comm.type,
+          hospital_name: comm.hospitals?.name,
+          project_name: comm.projects?.name,
+          sender_name: comm.sender?.name
+        },
+        read: false,
+        created_at: comm.sent_at || comm.created_at,
+        source: 'communication'
+      }));
+
+      const alertNotifs = activeAlerts.map(alert => ({
+        id: alert.id,
+        type: 'alert',
+        title: alert.title,
+        message: alert.message,
+        data: {
+          alertId: alert.id,
+          type: alert.type,
+          severity: alert.severity,
+          hospital_name: alert.hospitals?.name,
+          project_name: alert.projects?.name,
+          metadata: alert.metadata
+        },
+        read: true, // no cuentan para el badge
+        created_at: alert.created_at,
+        source: 'alert'
+      }));
+
       const allNotifications = [
-        // Notificaciones del sistema
-        ...notifications.map(notif => ({
-          id: notif.id,
-          type: 'notification',
-          title: notif.title,
-          message: notif.message,
-          data: null, // notifications model doesn't have a data field
-          read: notif.isRead,
-          created_at: notif.created_at,
-          source: 'system'
-        })),
-        
-        // Comunicaciones no leídas
-        ...unreadCommunications.map(comm => ({
-          id: comm.id,
-          type: 'communication',
-          title: comm.subject,
-          message: comm.body,
-          data: {
-            communicationId: comm.id,
-            type: comm.type,
-            hospital_name: comm.hospitals?.name,
-            project_name: comm.projects?.name,
-            sender_name: comm.sender?.name
-          },
-          read: false,
-          created_at: comm.created_at,
-          source: 'communication'
-        })),
-        
-        // Alertas activas
-        ...activeAlerts.map(alert => ({
-          id: alert.id,
-          type: 'alert',
-          title: alert.title,
-          message: alert.message,
-          data: {
-            alertId: alert.id,
-            type: alert.type,
-            severity: alert.severity,
-            hospital_name: alert.hospitals?.name,
-            project_name: alert.projects?.name,
-            metadata: alert.metadata
-          },
-          read: false,
-          created_at: alert.created_at,
-          source: 'alert'
-        }))
+        ...systemNotifs,
+        ...commNotifs,
+        ...alertNotifs
       ];
 
       // Ordenar por fecha de creación (más recientes primero)
@@ -129,8 +130,12 @@ export async function GET(request: NextRequest) {
       // Limitar resultados
       const limitedNotifications = allNotifications.slice(0, limit);
 
-      // Contar total de no leídas
-      const unreadCount = allNotifications.filter(n => !n.read).length;
+      // Contar total de no leídas (solo comunicaciones + sistema) de forma independiente al límite
+      const [systemUnreadTotal, commUnreadTotal] = await Promise.all([
+        prisma.notifications.count({ where: { userId: user.id, isRead: false } }),
+        prisma.communications.count({ where: { user_id: user.id, read_at: null } })
+      ]);
+      const unreadCount = systemUnreadTotal + commUnreadTotal;
 
       return NextResponse.json({
         success: true,

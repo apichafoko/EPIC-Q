@@ -15,7 +15,8 @@ import {
   Settings,
   Users,
   Bug,
-  FolderOpen
+  FolderOpen,
+  Sliders
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -31,6 +32,7 @@ export function Sidebar() {
     { name: t('common.templates'), href: `/${locale}/templates`, icon: FileText },
     { name: t('common.reports'), href: `/${locale}/reports`, icon: TrendingUp },
     { name: t('common.alerts'), href: `/${locale}/alerts`, icon: AlertTriangle },
+    { name: 'Configuración de Alertas', href: `/${locale}/admin/alert-configurations`, icon: Sliders },
     { name: 'Debug Email', href: `/${locale}/admin/email-debug`, icon: Bug },
     { name: t('common.settings'), href: `/${locale}/settings`, icon: Settings },
   ];

@@ -18,13 +18,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and message are required' }, { status: 400 });
     }
 
-    // Obtener todas las suscripciones push activas
-    const subscriptions = await prisma.push_subscriptions.findMany({
-      where: {
-        // Si se especifica un usuario, podrías filtrar por usuario aquí
-        // Por ahora enviamos a todos
+    // Obtener suscripciones push activas (filtrar por usuario si se especifica)
+    let subscriptions: Array<{ endpoint: string; p256dh_key: string; auth_key: string }>; 
+    try {
+      // Intentar usar el cliente Prisma generado
+      const model = (prisma as any).push_subscriptions;
+      if (model && typeof model.findMany === 'function') {
+        subscriptions = await model.findMany({
+          where: targetUserId ? { user_id: targetUserId } : {}
+        });
+      } else {
+        // Fallback: consulta raw por si el cliente aún no tiene el modelo (hot reload)
+        const whereClause = targetUserId ? 'WHERE user_id = $1' : '';
+        const params = targetUserId ? [targetUserId] : [] as any[];
+        const rows = await (prisma as any).$queryRawUnsafe(
+          `SELECT endpoint, p256dh_key, auth_key FROM "push_subscriptions" ${whereClause}`,
+          ...params
+        );
+        subscriptions = Array.isArray(rows) ? rows : [];
       }
-    });
+    } catch (err) {
+      console.error('Failed to load push subscriptions:', err);
+      subscriptions = [];
+    }
 
     if (subscriptions.length === 0) {
       return NextResponse.json({

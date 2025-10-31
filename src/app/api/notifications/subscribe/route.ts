@@ -18,7 +18,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verificar autenticación básica (puedes usar tu middleware de auth aquí)
+    // Verificar autenticación y obtener usuario
+    const { SimpleAuthService } = await import('../../../../lib/auth/simple-auth-service');
+    const user = await SimpleAuthService.verifyToken(token);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { subscription } = body;
 
@@ -26,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid subscription data' }, { status: 400 });
     }
 
-    // Guardar suscripción en la base de datos
+    // Guardar suscripción en la base de datos con user_id
     const pushSubscription = await prisma.push_subscriptions.upsert({
       where: {
         endpoint: subscription.endpoint
@@ -34,12 +41,14 @@ export async function POST(request: NextRequest) {
       update: {
         p256dh_key: subscription.keys.p256dh,
         auth_key: subscription.keys.auth,
+        user_id: user.id,
         updated_at: new Date()
       },
       create: {
         endpoint: subscription.endpoint,
         p256dh_key: subscription.keys.p256dh,
         auth_key: subscription.keys.auth,
+        user_id: user.id,
         user_agent: request.headers.get('user-agent') || '',
         created_at: new Date(),
         updated_at: new Date()

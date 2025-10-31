@@ -9,6 +9,15 @@ interface EmailOptions {
   text?: string;
 }
 
+const getAppBaseUrl = () => {
+  return (
+    process.env.PWA_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    'http://localhost:3000'
+  ).replace(/\/$/, '');
+};
+
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
 
@@ -116,7 +125,8 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, resetToken: string, userName?: string) {
-    const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`;
+    const baseUrl = getAppBaseUrl();
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
     
     // Intentar usar template si está disponible
     const template = await EmailTemplateService.getTemplateByName('password_reset');
@@ -194,10 +204,11 @@ class EmailService {
   }
 
   async sendInvitationEmail(email: string, invitationToken: string, hospitalName: string, userName?: string, userRole?: string, temporaryPassword?: string) {
-    const loginUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/es/auth/login`;
+    const baseUrl = getAppBaseUrl();
+    const loginUrl = `${baseUrl}/es/auth/login`;
     
-      // Intentar usar template específico para coordinadores si está disponible
-      const template = await EmailTemplateService.getTemplateByName('coordinator_invitation');
+    // Intentar usar template específico para coordinadores si está disponible
+    const template = await EmailTemplateService.getTemplateByName('coordinator_invitation');
     
     if (template) {
       const variables: TemplateVariables = {
@@ -262,22 +273,12 @@ class EmailService {
           </div>
         </div>
       `,
-      text: `
-        Invitación al sistema EPIC-Q
-        
-        ¡Bienvenido! Has sido invitado a participar como coordinador del hospital ${hospitalName} 
-        en el Estudio Perioperatorio Integral de Cuidados Quirúrgicos (EPIC-Q).
-        
-        Configura tu cuenta haciendo clic en el siguiente enlace:
-        ${loginUrl}
-        
-        Una vez que configures tu contraseña, podrás acceder al sistema.
-      `,
     });
   }
 
   async sendWelcomeEmail(email: string, userName: string, userRole: string, hospitalName: string, temporaryPassword: string) {
-    const loginUrl = `${process.env.NEXTAUTH_URL}/auth/login`;
+    const baseUrl = getAppBaseUrl();
+    const loginUrl = `${baseUrl}/auth/login`;
 
     // Usar el template bienvenida_email_completo que tiene el diseño profesional
     const template = await EmailTemplateService.getTemplateByName('bienvenida_email_completo');
@@ -289,7 +290,7 @@ class EmailService {
         userRole: userRole,
         hospitalName: hospitalName,
         temporaryPassword: temporaryPassword,
-        loginUrl: loginUrl, // Cambiar de invitationLink a loginUrl para coincidir con el template
+        loginUrl: loginUrl,
         systemName: 'EPIC-Q Management System'
       };
 

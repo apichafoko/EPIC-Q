@@ -85,9 +85,9 @@ function Calendar({
           defaultClassNames.caption_label
         ),
         table: "w-full border-collapse table-fixed",
-        weekdays: cn("flex gap-1 mb-2", defaultClassNames.weekdays),
+        weekdays: cn("flex gap-2 mb-2", defaultClassNames.weekdays),
         weekday: cn(
-          "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] select-none flex items-center justify-center p-0 min-w-0",
+          "text-muted-foreground rounded-md font-normal text-[0.8rem] select-none flex items-center justify-center p-0 w-(--cell-size)",
           defaultClassNames.weekday
         ),
         week: cn("flex w-full mt-2 gap-1", defaultClassNames.week),

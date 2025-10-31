@@ -33,32 +33,51 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
   const [body, setBody] = useState('');
   const [channels, setChannels] = useState<string[]>(['email', 'in_app']);
   const [showPreview, setShowPreview] = useState(false);
+  const [sendTo, setSendTo] = useState<'users' | 'hospital' | 'project'>('users');
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [hospitals, setHospitals] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>('');
   
   const { isLoading, executeWithLoading } = useLoadingState();
 
-  // Cargar coordinadores disponibles
+  // Cargar coordinadores disponibles y catálogos
   useEffect(() => {
-    const fetchCoordinators = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/admin/users?role=coordinator');
-        if (response.ok) {
-          const data = await response.json();
+        const [coordsRes, projectsRes, hospitalsRes] = await Promise.all([
+          fetch('/api/admin/users?role=coordinator'),
+          fetch('/api/admin/projects?limit=200'),
+          fetch('/api/hospitals?limit=200')
+        ]);
+        if (coordsRes.ok) {
+          const data = await coordsRes.json();
           setCoordinators(data.users || []);
         }
+        if (projectsRes.ok) {
+          const data = await projectsRes.json();
+          const list = (data.projects || data.items || []).map((p: any) => ({ id: p.id, name: p.name }))
+          setProjects(list);
+        }
+        if (hospitalsRes.ok) {
+          const data = await hospitalsRes.json();
+          const list = (data.hospitals || data.items || []).map((h: any) => ({ id: h.id, name: h.name }))
+          setHospitals(list);
+        }
       } catch (error) {
-        console.error('Error cargando coordinadores:', error);
-        toast.error('Error cargando coordinadores');
+        console.error('Error cargando datos:', error);
+        toast.error('Error cargando datos');
       }
     };
 
-    fetchCoordinators();
+    fetchData();
   }, [toast]);
 
   // Filtrar coordinadores por término de búsqueda
   const filteredCoordinators = coordinators.filter(coord =>
-    coord.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    coord.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    coord.hospital_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (coord.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (coord.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ((coord as any).hospital_name ? String((coord as any).hospital_name) : '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleChannelToggle = (channel: string) => {
@@ -91,14 +110,27 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
       return;
     }
 
-    if (selectedCoordinators.length === 0) {
-      toast.error('Selecciona al menos un coordinador');
-      return;
-    }
-
     if (channels.length === 0) {
       toast.error('Selecciona al menos un canal de comunicación');
       return;
+    }
+
+    // Validaciones según destino
+    if (sendTo === 'users') {
+      if (selectedCoordinators.length === 0) {
+        toast.error('Selecciona al menos un coordinador');
+        return;
+      }
+    } else if (sendTo === 'project') {
+      if (!selectedProjectId) {
+        toast.error('Selecciona un proyecto');
+        return;
+      }
+    } else if (sendTo === 'hospital') {
+      if (!selectedHospitalId) {
+        toast.error('Selecciona un hospital');
+        return;
+      }
     }
 
     await executeWithLoading(async () => {
@@ -109,7 +141,10 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            recipientIds: selectedCoordinators,
+            sendTo,
+            recipientIds: sendTo === 'users' ? selectedCoordinators : [],
+            projectId: sendTo === 'project' ? selectedProjectId : undefined,
+            hospitalId: sendTo === 'hospital' ? selectedHospitalId : undefined,
             subject: subject.trim(),
             body: body.trim(),
             channels
@@ -150,7 +185,60 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
         </CardHeader>
 
         <CardContent className="space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Destinatarios (modo) */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Enviar a</Label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" name="sendTo" value="users" checked={sendTo==='users'} onChange={()=>setSendTo('users')} />
+                Individualmente
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" name="sendTo" value="hospital" checked={sendTo==='hospital'} onChange={()=>setSendTo('hospital')} />
+                Todo el hospital
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" name="sendTo" value="project" checked={sendTo==='project'} onChange={()=>setSendTo('project')} />
+                Todo el proyecto
+              </label>
+            </div>
+
+            {/* Selectores de hospital/proyecto */}
+            {sendTo === 'hospital' && (
+              <div className="max-w-md">
+                <Label className="text-sm">Hospital</Label>
+                <Select value={selectedHospitalId} onValueChange={setSelectedHospitalId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un hospital" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hospitals.map(h => (
+                      <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {sendTo === 'project' && (
+              <div className="max-w-md">
+                <Label className="text-sm">Proyecto</Label>
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un proyecto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
           {/* Selección de Coordinadores */}
+          {sendTo === 'users' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">Destinatarios</Label>
@@ -185,7 +273,7 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{coord.name}</p>
                       <p className="text-sm text-gray-500">{coord.email}</p>
-                      <p className="text-xs text-gray-400">{coord.hospital_name}</p>
+                      <p className="text-xs text-gray-400">{(coord as any).hospital_name || '—'}</p>
                     </div>
                   </div>
                 ))}
@@ -206,6 +294,7 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
               )}
             </div>
           </div>
+          )}
 
           {/* Canales de Comunicación */}
           <div className="space-y-3">
@@ -316,7 +405,7 @@ export default function CommunicationComposer({ onClose, onSuccess }: Communicat
             </Button>
             <Button
               onClick={handleSend}
-              disabled={isLoading || !subject.trim() || !body.trim() || selectedCoordinators.length === 0}
+              disabled={isLoading || !subject.trim() || !body.trim() || (sendTo === 'users' ? selectedCoordinators.length === 0 : !selectedProjectId && !selectedHospitalId)}
             >
               <Send className="h-4 w-4 mr-2" />
               {isLoading ? 'Enviando...' : 'Enviar Comunicación'}

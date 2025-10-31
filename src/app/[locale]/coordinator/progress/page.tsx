@@ -235,23 +235,34 @@ export default function CoordinatorProgressPage() {
       if (field === 'editStart' || field === 'editEnd') {
         // Manejar fechas del modal de edición
         if (editingPeriod) {
-          setEditingPeriod(prev => ({
-            ...prev!,
-            [field === 'editStart' ? 'startDate' : 'endDate']: date
-          }));
+          setEditingPeriod(prev => {
+            const next = { ...prev!, [field === 'editStart' ? 'startDate' : 'endDate']: date } as typeof editingPeriod;
+            if (field === 'editStart') {
+              // Si no hay endDate o es anterior/igual a start, setear al día siguiente
+              if (!next.endDate || next.endDate <= date) {
+                const d = new Date(date);
+                d.setDate(d.getDate() + 1);
+                next.endDate = d;
+              }
+            }
+            return next;
+          });
         }
       } else {
         // Manejar fechas del formulario principal
         setProgressData(prev => {
-          const newData = {
+          const newData: any = {
             ...prev,
             [field]: date
           };
 
-          // Si se selecciona fecha de inicio de reclutamiento, 
-          // limpiar fecha de fin para forzar nueva selección
           if (field === 'recruitmentStartDate') {
-            newData.recruitmentEndDate = null;
+            // Setear fin automáticamente al día siguiente si está vacío o no es posterior
+            const next = new Date(date);
+            next.setDate(next.getDate() + 1);
+            if (!prev.recruitmentEndDate || prev.recruitmentEndDate <= date) {
+              newData.recruitmentEndDate = next;
+            }
           }
 
           return newData;
@@ -1005,6 +1016,17 @@ export default function CoordinatorProgressPage() {
                         return date < today;
                       }}
                       locale={dateFnsLocale}
+                      defaultMonth={
+                        progressData.recruitmentEndDate 
+                          ? progressData.recruitmentEndDate 
+                          : progressData.recruitmentStartDate
+                          ? (() => {
+                              const nextDay = new Date(progressData.recruitmentStartDate);
+                              nextDay.setDate(nextDay.getDate() + 1);
+                              return nextDay;
+                            })()
+                          : undefined
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -1162,7 +1184,15 @@ export default function CoordinatorProgressPage() {
                           return date < today || (startDate && date <= startDate);
                         }}
                         locale={dateFnsLocale}
-                        defaultMonth={editingPeriod.endDate || undefined}
+                        defaultMonth={
+                          editingPeriod.endDate 
+                            ? editingPeriod.endDate 
+                            : (() => {
+                                const nextDay = new Date(editingPeriod.startDate);
+                                nextDay.setDate(nextDay.getDate() + 1);
+                                return nextDay;
+                              })()
+                        }
                         initialFocus
                       />
                     </PopoverContent>

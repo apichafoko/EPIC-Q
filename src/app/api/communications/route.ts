@@ -81,16 +81,9 @@ export async function POST(request: NextRequest) {
       body: messageBody, 
       channels = ['email', 'in_app'],
       hospitalId,
-      projectId
+      projectId,
+      sendTo = 'users' // 'users' | 'hospital' | 'project'
     } = body;
-
-    // Validaciones
-    if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'recipientIds es requerido y debe ser un array no vacío' },
-        { status: 400 }
-      );
-    }
 
     if (!subject || !messageBody) {
       return NextResponse.json(
@@ -114,8 +107,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolver destinatarios según modo
+    let resolvedRecipientIds: string[] = [];
+
+    if (sendTo === 'hospital') {
+      if (!hospitalId) {
+        return NextResponse.json(
+          { success: false, error: 'hospitalId es requerido cuando sendTo=hospital' },
+          { status: 400 }
+        );
+      }
+      const { prisma } = await import('../../../lib/database');
+      const coords = await prisma.project_coordinators.findMany({
+        where: { hospital_id: hospitalId, is_active: true },
+        select: { user_id: true }
+      });
+      resolvedRecipientIds = coords.map(c => c.user_id);
+    } else if (sendTo === 'project') {
+      if (!projectId) {
+        return NextResponse.json(
+          { success: false, error: 'projectId es requerido cuando sendTo=project' },
+          { status: 400 }
+        );
+      }
+      const { prisma } = await import('../../../lib/database');
+      const coords = await prisma.project_coordinators.findMany({
+        where: { project_id: projectId, is_active: true },
+        select: { user_id: true }
+      });
+      resolvedRecipientIds = coords.map(c => c.user_id);
+    } else {
+      // users
+      if (!recipientIds || !Array.isArray(recipientIds) || recipientIds.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'recipientIds es requerido y debe ser un array no vacío cuando sendTo=users' },
+          { status: 400 }
+        );
+      }
+      resolvedRecipientIds = recipientIds;
+    }
+
+    // Quitar duplicados por las dudas
+    resolvedRecipientIds = Array.from(new Set(resolvedRecipientIds));
+    if (resolvedRecipientIds.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No se encontraron destinatarios para esta comunicación' },
+        { status: 400 }
+      );
+    }
+
     const result = await sendCommunication({
-      recipientIds,
+      recipientIds: resolvedRecipientIds,
       subject,
       body: messageBody,
       type: 'manual',
