@@ -8,8 +8,9 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription } from '../../components/ui/modal';
-import { FileText, Video, Link as LinkIcon, Upload, Trash2, Edit, Youtube, RefreshCw } from 'lucide-react';
+import { FileText, Video, Link as LinkIcon, Upload, Trash2, Youtube, RefreshCw, BookOpen, ExternalLink, Eye, History, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Resource {
   id: string;
@@ -17,11 +18,15 @@ interface Resource {
   description?: string;
   type: string;
   url: string;
+  s3_key?: string;
   file_size?: number;
   created_at: string;
 }
 
 export function ProjectResourcesManager({ projectId }: { projectId: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = pathname?.split('/')[1] || 'es';
   const [resources, setResources] = useState<Resource[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,11 +159,75 @@ export function ProjectResourcesManager({ projectId }: { projectId: string }) {
     return `${mb.toFixed(2)} MB`;
   };
 
+  const handleViewInDocumentationCenter = () => {
+    router.push(`/${locale}/resources?projectId=${projectId}`);
+  };
+
+  const handlePreviewResource = (resource: Resource) => {
+    router.push(`/${locale}/resources?preview=${resource.id}`);
+  };
+
+  const handleViewVersions = (resourceId: string) => {
+    router.push(`/${locale}/resources?resourceId=${resourceId}&view=versions`);
+  };
+
+  const getFreshUrl = async (resourceId: string, originalUrl: string, hasS3Key?: boolean): Promise<string> => {
+    try {
+      // Si la URL parece ser de S3 o el recurso tiene s3_key, obtener una URL firmada fresca
+      if (hasS3Key || originalUrl.includes('amazonaws.com')) {
+        const response = await fetch(`/api/resources/${resourceId}/signed-url?expiresIn=3600`);
+        const result = await response.json();
+        if (result.success && result.data.url) {
+          return result.data.url;
+        }
+      }
+      return originalUrl;
+    } catch (error) {
+      console.error('Error getting fresh URL:', error);
+      return originalUrl; // Fallback a URL original
+    }
+  };
+
+  const handleOpenResource = async (resource: Resource) => {
+    try {
+      const freshUrl = await getFreshUrl(resource.id, resource.url, !!resource.s3_key);
+      window.open(freshUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening resource:', error);
+      window.open(resource.url, '_blank'); // Fallback
+    }
+  };
+
+  const handleDownloadResource = async (resource: Resource) => {
+    try {
+      const freshUrl = await getFreshUrl(resource.id, resource.url, !!resource.s3_key);
+      const link = document.createElement('a');
+      link.href = freshUrl;
+      link.download = resource.title;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading resource:', error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Recursos y Documentación</CardTitle>
+          <div className="flex items-center space-x-3">
+            <CardTitle>Recursos y Documentación</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleViewInDocumentationCenter}
+              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Abrir en Centro de Documentación
+            </Button>
+          </div>
           <Button onClick={() => setShowModal(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Agregar Recurso
@@ -188,10 +257,34 @@ export function ProjectResourcesManager({ projectId }: { projectId: string }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(resource.url, '_blank')}
+                    onClick={() => handlePreviewResource(resource)}
+                    title="Vista previa"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewVersions(resource.id)}
+                    title="Ver versiones"
+                  >
+                    <History className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleOpenResource(resource)}
                     title="Abrir recurso"
                   >
-                    <LinkIcon className="h-4 w-4" />
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownloadResource(resource)}
+                    title="Descargar recurso"
+                  >
+                    <Download className="h-4 w-4" />
                   </Button>
                   {resource.url && (
                     <Button

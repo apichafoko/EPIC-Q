@@ -57,10 +57,10 @@ export function MainLayout({ children }: MainLayoutProps) {
   // Mostrar loading mientras se verifica la autenticación o se redirige
   if (isLoading || isRedirecting) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {isLoading ? 'Verificando autenticación...' : 'Redirigiendo al login...'}
           </p>
         </div>
@@ -71,10 +71,10 @@ export function MainLayout({ children }: MainLayoutProps) {
   // Si no hay usuario autenticado, mostrar loading (la redirección se maneja en useEffect)
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Redirigiendo al login...</p>
+          <p className="text-muted-foreground">Redirigiendo al login...</p>
         </div>
       </div>
     );
@@ -86,7 +86,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const HeaderComponent = isCoordinator ? CoordinatorHeader : Header;
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       {/* Sidebar con control móvil */}
       {isCoordinator ? (
         <CoordinatorSidebar 

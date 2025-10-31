@@ -37,20 +37,20 @@ model activity_logs {
 }
 
 model audit_logs {
-  id          String   @id @default(cuid())
-  user_id     String?
-  user_name   String?
-  action      String   // create, update, delete, view, login, logout, etc.
-  resource    String   // hospitals, projects, users, alerts, etc.
-  resource_id String?
-  details     Json?    // Additional context data
-  ip_address  String?
-  user_agent  String?
-  status      String?  // success, error, warning
+  id            String   @id @default(cuid())
+  user_id       String?
+  user_name     String?
+  action        String
+  resource      String
+  resource_id   String?
+  details       Json?
+  ip_address    String?
+  user_agent    String?
+  status        String?
   error_message String?
-  metadata    Json?
-  created_at  DateTime @default(now())
-  users       users?   @relation("AuditUser", fields: [user_id], references: [id], onDelete: SetNull)
+  metadata      Json?
+  created_at    DateTime @default(now())
+  users         users?   @relation("AuditUser", fields: [user_id], references: [id])
 
   @@index([user_id])
   @@index([resource, resource_id])
@@ -175,23 +175,23 @@ model hospital_details {
 }
 
 model hospital_progress {
-  id                    String             @id
-  hospital_id           String
-  project_id            String
-  status                String             @default("pending")
-  progress_percentage   Int                @default(0)
-  notes                 String?
-  created_at            DateTime           @default(now())
-  updated_at            DateTime           @default(now())
-  project_hospital_id   String?            @unique
-  ethics_approved       Boolean?
-  ethics_approved_date  DateTime?
-  ethics_submitted      Boolean?
-  ethics_submitted_date DateTime?
-  ethics_document_url   String?
+  id                     String             @id
+  hospital_id            String
+  project_id             String
+  status                 String             @default("pending")
+  progress_percentage    Int                @default(0)
+  notes                  String?
+  created_at             DateTime           @default(now())
+  updated_at             DateTime           @default(now())
+  project_hospital_id    String?            @unique
+  ethics_approved        Boolean?
+  ethics_approved_date   DateTime?
+  ethics_submitted       Boolean?
+  ethics_submitted_date  DateTime?
   ethics_document_s3_key String?
-  hospitals             hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
-  project_hospitals     project_hospitals? @relation(fields: [project_hospital_id], references: [id])
+  ethics_document_url    String?
+  hospitals              hospitals          @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  project_hospitals      project_hospitals? @relation(fields: [project_hospital_id], references: [id])
 }
 
 model hospitals {
@@ -324,37 +324,40 @@ model user_settings {
 }
 
 model users {
-  id                       String                     @id
-  email                    String                     @unique
-  name                     String?
-  password                 String
-  role                     String                     @default("coordinator")
-  hospitalId               String?
-  emailVerified            DateTime?
-  resetToken               String?
-  resetTokenExpiry         DateTime?
-  lastLogin                DateTime?
-  isActive                 Boolean                    @default(true)
-  isTemporaryPassword      Boolean                    @default(false)
-  preferredLanguage        String                     @default("es")
-  timezone                 String?
-  country                  String?
-  created_at               DateTime                   @default(now())
-  updated_at               DateTime                   @default(now())
-  accounts                 accounts[]
-  activity_logs            activity_logs[]
-  resolved_alerts          alerts[]                   @relation("AlertResolver")
-  sent_communications      communications[]           @relation("CommunicationSender")
-  received_communications  communications[]           @relation("CommunicationRecipient")
-  notification_preferences notification_preferences[]
-  notifications            notifications[]
-  project_coordinators     project_coordinators[]
-  created_resources        project_resources[]
-  sessions                 sessions[]
-  user_settings            user_settings?
-  hospitals                hospitals?                 @relation(fields: [hospitalId], references: [id])
-  push_subscriptions       push_subscriptions[]
-  audit_logs               audit_logs[]              @relation("AuditUser")
+  id                        String                     @id
+  email                     String                     @unique
+  name                      String?
+  password                  String
+  role                      String                     @default("coordinator")
+  hospitalId                String?
+  emailVerified             DateTime?
+  resetToken                String?
+  resetTokenExpiry          DateTime?
+  lastLogin                 DateTime?
+  isActive                  Boolean                    @default(true)
+  isTemporaryPassword       Boolean                    @default(false)
+  preferredLanguage         String                     @default("es")
+  timezone                  String?
+  country                   String?
+  created_at                DateTime                   @default(now())
+  updated_at                DateTime                   @default(now())
+  accounts                  accounts[]
+  activity_logs             activity_logs[]
+  resolved_alerts           alerts[]                   @relation("AlertResolver")
+  audit_logs                audit_logs[]               @relation("AuditUser")
+  sent_communications       communications[]           @relation("CommunicationSender")
+  received_communications   communications[]           @relation("CommunicationRecipient")
+  notification_preferences  notification_preferences[]
+  notifications             notifications[]
+  project_coordinators      project_coordinators[]
+  created_resources         project_resources[]
+  push_subscriptions        push_subscriptions[]
+  resource_access_logs      resource_access_logs[]     @relation("ResourceAccessUser")
+  resource_versions         resource_versions[]
+  created_scheduled_reports scheduled_reports[]        @relation("ReportCreator")
+  sessions                  sessions[]
+  user_settings             user_settings?
+  hospitals                 hospitals?                 @relation(fields: [hospitalId], references: [id])
 }
 
 model case_load_statistics {
@@ -405,37 +408,147 @@ model notification_preferences {
 }
 
 model project_resources {
-  id          String   @id @default(cuid())
-  project_id  String
-  title       String
-  description String?
-  type        String
-  url         String
-  s3_key      String?
-  file_size   Int?
-  mime_type   String?
-  order       Int      @default(0)
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  created_by  String
-  creator     users    @relation(fields: [created_by], references: [id], onDelete: Cascade)
-  project     projects @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  id                 String                 @id @default(cuid())
+  project_id         String
+  title              String
+  description        String?
+  type               String
+  url                String
+  s3_key             String?
+  file_size          Int?
+  mime_type          String?
+  order              Int                    @default(0)
+  is_active          Boolean                @default(true)
+  created_at         DateTime               @default(now())
+  updated_at         DateTime               @updatedAt
+  created_by         String
+  category           String?
+  tags               String[]               @default([])
+  searchable_content String?
+  current_version    Int?                   @default(1)
+  is_latest          Boolean?               @default(true)
+  creator            users                  @relation(fields: [created_by], references: [id], onDelete: Cascade)
+  project            projects               @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  access_logs        resource_access_logs[]
+  versions           resource_versions[]
 
   @@index([project_id])
+  @@index([category])
+  @@index([is_active])
+  @@index([created_at])
   @@map("project_resources")
 }
 
-model push_subscriptions {
-  id          String   @id @default(cuid())
-  endpoint    String   @unique
-  p256dh_key  String
-  auth_key    String
+model resource_versions {
+  id             String            @id @default(cuid())
+  resource_id    String
+  version_number Int
+  title          String
+  description    String?
+  url            String
+  s3_key         String?
+  file_size      Int?
+  mime_type      String?
+  change_notes   String?
+  created_by     String
+  created_at     DateTime          @default(now())
+  creator        users             @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resource       project_resources @relation(fields: [resource_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([resource_id, version_number], map: "resource_versions_unique_version")
+  @@index([resource_id])
+  @@index([created_at])
+  @@map("resource_versions")
+}
+
+model resource_access_logs {
+  id          String            @id @default(cuid())
+  resource_id String
   user_id     String?
+  access_type String            @default("view")
+  ip_address  String?
   user_agent  String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now())
-  users       users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  accessed_at DateTime          @default(now())
+  resource    project_resources @relation(fields: [resource_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        users?            @relation("ResourceAccessUser", fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([resource_id])
+  @@index([user_id])
+  @@index([accessed_at])
+  @@index([access_type])
+  @@map("resource_access_logs")
+}
+
+model push_subscriptions {
+  id         String   @id @default(cuid())
+  endpoint   String   @unique
+  p256dh_key String
+  auth_key   String
+  user_id    String?
+  user_agent String?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  users      users?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("push_subscriptions")
+}
+
+model scheduled_reports {
+  id             String           @id @default(cuid())
+  name           String
+  description    String?
+  report_type    String
+  frequency      String
+  format         String           @default("pdf")
+  recipients     String[]
+  filters        Json?
+  template_id    String?
+  is_active      Boolean          @default(true)
+  last_run_at    DateTime?
+  next_run_at    DateTime
+  created_by     String
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  report_history report_history[]
+  creator        users            @relation("ReportCreator", fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([is_active, next_run_at])
+  @@index([created_by])
+  @@map("scheduled_reports")
+}
+
+model report_history {
+  id                  String            @id @default(cuid())
+  scheduled_report_id String
+  status              String            @default("pending")
+  generated_at        DateTime          @default(now())
+  file_url            String?
+  file_size           Int?
+  error_message       String?
+  recipients_count    Int               @default(0)
+  scheduled_reports   scheduled_reports @relation(fields: [scheduled_report_id], references: [id], onDelete: Cascade)
+
+  @@index([scheduled_report_id])
+  @@index([generated_at])
+  @@map("report_history")
+}
+
+model security_logs {
+  id         String   @id @default(cuid())
+  event_type String
+  severity   String
+  user_id    String?
+  user_name  String?
+  ip_address String?
+  user_agent String?
+  details    Json
+  metadata   Json?
+  created_at DateTime @default(now())
+
+  @@index([event_type])
+  @@index([severity])
+  @@index([user_id])
+  @@index([ip_address])
+  @@index([created_at])
+  @@map("security_logs")
 }

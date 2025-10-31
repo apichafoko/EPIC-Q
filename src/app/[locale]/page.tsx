@@ -21,6 +21,7 @@ import {
 
 export default function Dashboard() {
   console.log('📊 Dashboard ejecutándose');
+  // TODOS los hooks deben ejecutarse siempre en el mismo orden
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
@@ -55,20 +56,7 @@ export default function Dashboard() {
     }
   }, [user, isLoading, pathname, router, hasRedirected]);
 
-  // Mostrar loading mientras se verifica autenticación o se redirige
-  if (isLoading || hasRedirected) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">
-            {isLoading ? 'Verificando autenticación...' : 'Redirigiendo...'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Cargar KPIs - debe ejecutarse siempre
   useEffect(() => {
     const loadKPIs = async () => {
       try {
@@ -92,6 +80,21 @@ export default function Dashboard() {
 
     loadKPIs();
   }, []);
+
+  // Render condicional - después de TODOS los hooks
+  // Mostrar loading mientras se verifica autenticación o se redirige
+  if (isLoading || hasRedirected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">
+            {isLoading ? 'Verificando autenticación...' : 'Redirigiendo...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

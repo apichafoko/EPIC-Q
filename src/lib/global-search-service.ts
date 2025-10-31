@@ -1,11 +1,15 @@
 export interface SearchResult {
   id: string;
-  type: 'project' | 'hospital' | 'coordinator' | 'user';
+  type: 'project' | 'hospital' | 'coordinator' | 'user' | 'alert' | 'communication';
   title: string;
   description: string;
   url: string;
   metadata: Record<string, any>;
   score: number;
+  highlighted?: {
+    title?: string;
+    description?: string;
+  };
 }
 
 export interface SearchFilters {
@@ -82,10 +86,18 @@ export class GlobalSearchService {
 
   static clearSearchHistory(): void {
     this.searchHistory = [];
-    localStorage.removeItem('search_history');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.removeItem('search_history');
+      } catch (error) {
+        console.error('Error limpiando historial:', error);
+      }
+    }
   }
 
   private static addToHistory(query: string): void {
+    if (!query || query.trim().length === 0) return;
+    
     // Remover duplicados
     this.searchHistory = this.searchHistory.filter(q => q !== query);
     
@@ -95,11 +107,21 @@ export class GlobalSearchService {
     // Limitar a 10 elementos
     this.searchHistory = this.searchHistory.slice(0, 10);
     
-    // Guardar en localStorage
-    localStorage.setItem('search_history', JSON.stringify(this.searchHistory));
+    // Guardar en localStorage (solo en cliente)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem('search_history', JSON.stringify(this.searchHistory));
+      } catch (error) {
+        console.error('Error guardando historial:', error);
+      }
+    }
   }
 
   static loadSearchHistory(): void {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+    
     try {
       const saved = localStorage.getItem('search_history');
       if (saved) {
@@ -107,19 +129,41 @@ export class GlobalSearchService {
       }
     } catch (error) {
       console.error('Error cargando historial de búsqueda:', error);
+      this.searchHistory = [];
     }
   }
 
-  static getSuggestions(query: string): string[] {
+  static async getSuggestions(query: string): Promise<string[]> {
     if (!query || query.length < 1) {
       return this.searchHistory.slice(0, 5);
     }
 
-    const suggestions = this.searchHistory.filter(term => 
+    // Combinar historial con sugerencias inteligentes
+    const historySuggestions = this.searchHistory.filter(term => 
       term.toLowerCase().includes(query.toLowerCase())
     );
 
-    return suggestions.slice(0, 5);
+    // Intentar obtener sugerencias del servidor
+    try {
+      const response = await fetch('/api/search/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: query.trim() })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const serverSuggestions = data.suggestions || [];
+        // Combinar y remover duplicados
+        const combined = [...new Set([...serverSuggestions, ...historySuggestions])];
+        return combined.slice(0, 8);
+      }
+    } catch (error) {
+      console.error('Error obteniendo sugerencias:', error);
+    }
+
+    return historySuggestions.slice(0, 5);
   }
 
   static formatSearchResult(result: SearchResult, query?: string): {
@@ -127,11 +171,13 @@ export class GlobalSearchService {
     typeLabel: string;
     highlight: string;
   } {
-    const typeConfig = {
+    const typeConfig: Record<string, { icon: string; label: string }> = {
       project: { icon: '📁', label: 'Proyecto' },
       hospital: { icon: '🏥', label: 'Hospital' },
       coordinator: { icon: '👤', label: 'Coordinador' },
-      user: { icon: '👥', label: 'Usuario' }
+      user: { icon: '👥', label: 'Usuario' },
+      alert: { icon: '⚠️', label: 'Alerta' },
+      communication: { icon: '📧', label: 'Comunicación' }
     };
 
     const config = typeConfig[result.type] || { icon: '📄', label: 'Elemento' };
@@ -139,9 +185,10 @@ export class GlobalSearchService {
     return {
       icon: config.icon,
       typeLabel: config.label,
-      highlight: this.highlightQuery(result.title, query || '')
+      highlight: result.highlighted?.title || this.highlightQuery(result.title, query || '')
     };
   }
+
 
   private static highlightQuery(text: string, query: string): string {
     if (!query) return text;

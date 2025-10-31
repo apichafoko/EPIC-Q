@@ -1,0 +1,44 @@
+# Configuración de Netlify para EPIC-Q
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Funciones de Netlify
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Headers de seguridad
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Headers para API routes
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Redirects para Next.js
+# Nota: Next.js en Netlify requiere configuración especial
+# Si usas @netlify/plugin-nextjs, esto se maneja automáticamente
+# Si no, necesitarás configurar las rutas manualmente
+
+# Configuración de cron jobs (se configuran en Netlify UI o con netlify-cli)
+# Para configurar cron jobs en Netlify:
+# 1. Ve a Site settings > Functions > Scheduled functions
+# 2. O usa: netlify functions:schedule cron-reports "0 9 * * *" (diario a las 9 AM)
+

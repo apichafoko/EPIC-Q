@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { AdvancedFilters } from '../../../../components/ui/advanced-filters';
 import { Pagination } from '../../../../components/ui/pagination';
-import { AuditService, AuditLog } from '../../../../lib/audit-service';
+import { AuditLog } from '../../../../lib/audit-service';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
@@ -49,6 +49,16 @@ export default function AuditDashboard() {
   const [dateFilter, setDateFilter] = useState('all');
   const [itemsPerPage] = useState(20);
 
+  const formatDateTime = (input: Date | string | undefined | null) => {
+    try {
+      const date = input instanceof Date ? input : input ? new Date(input) : null;
+      if (!date || isNaN(date.getTime())) return '-';
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: es });
+    } catch {
+      return '-';
+    }
+  };
+
   useEffect(() => {
     loadAuditData();
   }, []);
@@ -56,9 +66,42 @@ export default function AuditDashboard() {
   const loadAuditData = async () => {
     setIsLoading(true);
     try {
-      const allLogs = AuditService.getLogs();
-      setLogs(allLogs);
-      calculateStats(allLogs);
+      // Llamar a la API route en lugar de usar el servicio directamente
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '1000', // Obtener muchos logs para estadísticas
+      });
+
+      const response = await fetch(`/api/audit?${params}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cargar logs de auditoría');
+      }
+
+      const result = await response.json();
+      if (result.success && result.data.logs) {
+        // Convertir a formato AuditLog
+        const allLogs: AuditLog[] = result.data.logs.map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          userName: log.user_name || log.user_id || 'N/A',
+          action: log.action,
+          resource: log.resource,
+          resourceId: log.resource_id,
+          details: log.details,
+          ipAddress: log.ip_address,
+          userAgent: log.user_agent,
+          status: log.status,
+          errorMessage: log.error_message,
+          metadata: log.metadata,
+          timestamp: new Date(log.created_at),
+        }));
+
+        setLogs(allLogs);
+        calculateStats(allLogs);
+      }
     } catch (error) {
       console.error('Error cargando datos de auditoría:', error);
     } finally {
@@ -74,10 +117,11 @@ export default function AuditDashboard() {
       new Date(log.timestamp) >= today
     ).length;
 
-    const uniqueUsers = new Set(auditLogs.map(log => log.userId)).size;
+    const uniqueUsers = new Set(auditLogs.map(log => log.userId).filter(Boolean)).size;
 
     const userActionCounts = auditLogs.reduce((acc, log) => {
-      acc[log.userName] = (acc[log.userName] || 0) + 1;
+      const key = log.userName && log.userName !== 'N/A' ? log.userName : (log.userId || 'Desconocido');
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -201,7 +245,7 @@ export default function AuditDashboard() {
         log.action,
         log.resource,
         log.resourceId,
-        format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: es }),
+        formatDateTime(log.timestamp),
         log.ipAddress || 'N/A',
         log.details ? JSON.stringify(log.details) : ''
       ])
@@ -401,7 +445,7 @@ export default function AuditDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        {formatDateTime(log.timestamp)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
                         {log.ipAddress || 'N/A'}

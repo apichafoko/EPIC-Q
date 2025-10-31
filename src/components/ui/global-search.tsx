@@ -20,7 +20,7 @@ export function GlobalSearch({
   className = "",
   onResultClick
 }: GlobalSearchProps) {
-  const router = useRouter();
+  // Hooks deben estar siempre en el mismo orden
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -28,13 +28,20 @@ export function GlobalSearch({
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [shortcutKey, setShortcutKey] = useState('Ctrl+K');
   
+  const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar historial al montar
+  // Cargar historial al montar y determinar shortcut key (solo en cliente)
   useEffect(() => {
-    GlobalSearchService.loadSearchHistory();
+    if (typeof window !== 'undefined') {
+      GlobalSearchService.loadSearchHistory();
+      // Determinar shortcut key una vez en el cliente
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      setShortcutKey(isMac ? '⌘K' : 'Ctrl+K');
+    }
   }, []);
 
   // Búsqueda con debounce
@@ -71,12 +78,49 @@ export function GlobalSearch({
 
   // Sugerencias cuando no hay query
   useEffect(() => {
-    if (!query) {
-      setSuggestions(GlobalSearchService.getSuggestions(''));
-    } else {
-      setSuggestions(GlobalSearchService.getSuggestions(query));
-    }
+    let isMounted = true;
+    
+    const loadSuggestions = async () => {
+      try {
+        const sugg = await GlobalSearchService.getSuggestions(query || '');
+        if (isMounted) {
+          setSuggestions(sugg);
+        }
+      } catch (error) {
+        console.error('Error cargando sugerencias:', error);
+        if (isMounted) {
+          // Fallback a historial local si falla la API
+          setSuggestions(GlobalSearchService.getSearchHistory().slice(0, 5));
+        }
+      }
+    };
+    
+    loadSuggestions();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [query]);
+
+  // Atajo de teclado Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K o Cmd+K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen(true);
+        inputRef.current?.focus();
+      }
+      // Escape para cerrar
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   // Cerrar al hacer click fuera
   useEffect(() => {
@@ -146,9 +190,12 @@ export function GlobalSearch({
               {typeLabel}
             </Badge>
           </div>
-          <p className="text-xs text-gray-500 truncate mt-1">
-            {result.description}
-          </p>
+          <p 
+            className="text-xs text-gray-500 truncate mt-1"
+            dangerouslySetInnerHTML={{ 
+              __html: result.highlighted?.description || result.description 
+            }}
+          />
         </div>
       </div>
     );
@@ -175,6 +222,7 @@ export function GlobalSearch({
               size="sm"
               onClick={handleClear}
               className="h-6 w-6 p-0"
+              aria-label="Limpiar búsqueda"
             >
               <X className="h-3 w-3" />
             </Button>
@@ -184,17 +232,23 @@ export function GlobalSearch({
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
             className="h-6 w-6 p-0"
+            aria-label="Filtros"
           >
             <Filter className="h-3 w-3" />
           </Button>
+          {!query && (
+            <kbd className="hidden sm:inline-flex h-6 px-1.5 items-center gap-1 rounded border bg-background font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span>{shortcutKey}</span>
+            </kbd>
+          )}
         </div>
       </div>
 
       {isOpen && (
-        <Card className="absolute z-50 w-full mt-1 max-h-96 overflow-hidden shadow-lg">
+        <Card className="absolute z-50 w-full mt-1 max-h-96 overflow-hidden shadow-lg bg-card text-foreground">
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-muted-foreground">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-sm">Buscando...</p>
               </div>
@@ -203,28 +257,28 @@ export function GlobalSearch({
                 {results.map(formatResult)}
               </div>
             ) : query ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-muted-foreground">
                 <p className="text-sm">No se encontraron resultados para "{query}"</p>
               </div>
             ) : suggestions.length > 0 ? (
               <div className="p-2">
-                <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
+                <div className="flex items-center space-x-2 text-xs text-muted-foreground mb-2">
                   <Clock className="h-3 w-3" />
                   <span>Búsquedas recientes</span>
                 </div>
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-2 p-2 hover:bg-gray-50 cursor-pointer rounded"
+                    className="flex items-center space-x-2 p-2 hover:bg-accent cursor-pointer rounded"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <Clock className="h-3 w-3 text-gray-400" />
-                    <span className="text-sm text-gray-700">{suggestion}</span>
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-sm text-foreground">{suggestion}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-muted-foreground">
                 <p className="text-sm">Escribe para buscar en todos los proyectos</p>
               </div>
             )}

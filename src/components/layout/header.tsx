@@ -1,6 +1,7 @@
 'use client';
 
-import { Bell, User } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, User, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import {
@@ -13,11 +14,13 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { SimpleLanguageSelector } from '../../components/simple-language-selector';
 import { NotificationBell } from '../../components/notifications/notification-bell';
+import { ThemeSelector } from '../../components/ui/theme-selector';
 import { useTranslations } from '../../hooks/useTranslations';
 import { Logo } from '../../components/ui/logo';
 import { useAuth } from '../../contexts/auth-context';
 import { mockAlerts } from '../../lib/mock-data';
 import { PWAInstallButton } from '../../components/pwa/pwa-install-button';
+import { GlobalSearch } from '../../components/ui/global-search';
 
 interface HeaderProps {
   userId?: string;
@@ -27,23 +30,43 @@ export function Header({ userId }: HeaderProps) {
   const { t, locale } = useTranslations();
   const { logout } = useAuth();
   const activeAlerts = mockAlerts.filter(alert => !alert.is_resolved).length;
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleSignOut = () => {
     logout();
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+    <header className="bg-background border-b border-border px-6 py-4">
+      <div className="flex items-center justify-between gap-4">
             {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Logo size="sm" showText={false} />
               <span>/</span>
               <span className="text-gray-900">{t('common.dashboard')}</span>
             </div>
 
+        {/* Global Search - Visible en desktop */}
+        <div className="hidden md:flex flex-1 max-w-md mx-4">
+          <GlobalSearch 
+            placeholder={t('common.search') || 'Buscar hospitales, proyectos, usuarios...'} 
+            className="w-full"
+          />
+        </div>
+
         {/* Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 text-foreground">
+          {/* Botón de búsqueda en móvil */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSearch(!showSearch)}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+
           {/* PWA Install Button (Admin - only mobile) */}
           <PWAInstallButton userRole="admin" />
 
@@ -96,6 +119,9 @@ export function Header({ userId }: HeaderProps) {
             </DropdownMenu>
           )}
 
+          {/* Theme Selector */}
+          <ThemeSelector />
+
           {/* Language Selector */}
           <SimpleLanguageSelector />
 
@@ -122,10 +148,21 @@ export function Header({ userId }: HeaderProps) {
                   <DropdownMenuItem onClick={handleSignOut}>
                     {t('common.logout')}
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </header>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  </div>
+
+  {/* Search overlay en móvil */}
+  {showSearch && (
+    <div className="md:hidden mt-2 px-6 pb-2">
+      <GlobalSearch 
+        placeholder={t('common.search') || 'Buscar hospitales, proyectos, usuarios...'} 
+        className="w-full"
+        onResultClick={() => setShowSearch(false)}
+      />
+    </div>
+  )}
+</header>
   );
 }

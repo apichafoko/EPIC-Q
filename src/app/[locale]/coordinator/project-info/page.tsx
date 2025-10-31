@@ -63,43 +63,61 @@ export default function ProjectInfoPage() {
     }
   };
 
+  // Función para obtener URL fresca (siempre para recursos S3)
+  const getFreshUrl = async (resourceId: string, originalUrl: string): Promise<string> => {
+    try {
+      // Si la URL parece ser de S3 (amazonaws.com), obtener una URL firmada fresca
+      if (originalUrl.includes('amazonaws.com')) {
+        // Intentar usar el endpoint genérico primero
+        let response = await fetch(`/api/resources/${resourceId}/signed-url?expiresIn=3600`).catch(() => null);
+        
+        // Si falla, intentar el endpoint específico del coordinador
+        if (!response || !response.ok) {
+          response = await fetch(`/api/coordinator/project-info/resources/${resourceId}/signed-url`);
+        }
+        
+        if (response && response.ok) {
+          const result = await response.json();
+          if (result.success && (result.data.url || result.data.signedUrl)) {
+            return result.data.url || result.data.signedUrl;
+          }
+        }
+      }
+      return originalUrl;
+    } catch (error) {
+      console.error('Error getting fresh URL:', error);
+      return originalUrl; // Fallback a URL original
+    }
+  };
+
   // Función principal para manejar la descarga/apertura de recursos
   const handleResourceAction = async (resource: Resource) => {
     try {
-      // Si es un archivo (tiene s3_key), verificar si la URL está próxima a expirar
-      if (resource.s3_key && isUrlNearExpiry(resource.url)) {
-        // Marcar como refrescando
-        setRefreshingResources(prev => new Set(prev).add(resource.id));
-        
-        // Regenerar URL automáticamente
-        const newUrl = await refreshResourceUrl(resource.id);
-        
-        if (newUrl) {
-          // Actualizar la URL en el estado
-          setProjectInfo((prev: any) => ({
-            ...prev,
-            resources: prev.resources.map((r: Resource) => 
-              r.id === resource.id ? { ...r, url: newUrl } : r
-            )
-          }));
-          
-          // Abrir la nueva URL
-          window.open(newUrl, '_blank');
-          toast.success('Enlace actualizado y abierto');
-        } else {
-          toast.error('Error al actualizar enlace de descarga');
-        }
-        
-        // Quitar del estado de refrescando
-        setRefreshingResources(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(resource.id);
-          return newSet;
-        });
-      } else {
-        // Para enlaces externos o URLs que no están próximas a expirar, abrir directamente
-        window.open(resource.url, '_blank');
+      // Marcar como refrescando
+      setRefreshingResources(prev => new Set(prev).add(resource.id));
+      
+      // Obtener URL fresca (siempre para recursos S3)
+      const freshUrl = await getFreshUrl(resource.id, resource.url);
+      
+      // Abrir la URL fresca
+      window.open(freshUrl, '_blank');
+      
+      // Si la URL cambió, actualizar el estado
+      if (freshUrl !== resource.url) {
+        setProjectInfo((prev: any) => ({
+          ...prev,
+          resources: prev.resources.map((r: Resource) => 
+            r.id === resource.id ? { ...r, url: freshUrl } : r
+          )
+        }));
       }
+      
+      // Quitar del estado de refrescando
+      setRefreshingResources(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(resource.id);
+        return newSet;
+      });
     } catch (error) {
       console.error('Error handling resource action:', error);
       toast.error('Error al abrir el recurso');

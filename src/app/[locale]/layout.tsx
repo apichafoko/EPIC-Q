@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from '../../contexts/auth-context';
 import { ProjectProvider } from '../../contexts/project-context';
+import { ThemeProvider } from '../../providers/theme-provider';
 import { MainLayout } from '../../components/layout/main-layout';
 import { Toaster } from '../../components/ui/sonner';
 import { ServiceWorkerRegistration } from '../../components/pwa/service-worker-registration';
@@ -82,18 +83,26 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <AuthProvider>
-            <ProjectProvider>
-              <PWAManifestRegistrator />
-              <MainLayout>
-                {children}
-              </MainLayout>
-              <Toaster position="top-right" />
-              <ServiceWorkerRegistration />
-            </ProjectProvider>
-          </AuthProvider>
-        </NextIntlClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+          themes={['light', 'dark', 'high-contrast']}
+        >
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <AuthProvider>
+              <ProjectProvider>
+                <PWAManifestRegistrator />
+                <MainLayout>
+                  {children}
+                </MainLayout>
+                <Toaster position="top-right" />
+                <ServiceWorkerRegistration />
+              </ProjectProvider>
+            </AuthProvider>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '../../contexts/auth-context';
-import { Bell, User, LogOut, Menu } from 'lucide-react';
+import { Bell, User, LogOut, Menu, Search } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {
   DropdownMenu,
@@ -13,9 +13,11 @@ import {
 } from '../../components/ui/dropdown-menu';
 import { SimpleLanguageSelector } from '../../components/simple-language-selector';
 import { ProjectSelector } from '../../components/layout/project-selector';
+import { ThemeSelector } from '../../components/ui/theme-selector';
 import { useTranslations } from '../../hooks/useTranslations';
 import { Logo } from '../../components/ui/logo';
 import { PWAInstallButton } from '../../components/pwa/pwa-install-button';
+import { GlobalSearch } from '../../components/ui/global-search';
 import { cn } from '../../lib/utils';
 import { useState, useEffect } from 'react';
 
@@ -29,6 +31,7 @@ export function CoordinatorHeader({ isMobile = false, onMenuClick }: Coordinator
   const { t, locale } = useTranslations();
   const [notifCount, setNotifCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -104,7 +107,7 @@ export function CoordinatorHeader({ isMobile = false, onMenuClick }: Coordinator
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3">
+    <header className="bg-background border-b border-border px-4 py-3 text-foreground">
       <div className="flex items-center justify-between">
         {/* Mobile: Hamburger + Logo */}
         <div className="flex items-center space-x-3">
@@ -117,11 +120,30 @@ export function CoordinatorHeader({ isMobile = false, onMenuClick }: Coordinator
             </button>
           )}
           <Logo size="sm" showText={false} />
-          <span className="hidden md:inline text-sm text-gray-500">/ {t('common.dashboard')}</span>
+          <span className="hidden md:inline text-sm text-muted-foreground">/ {t('common.dashboard')}</span>
+        </div>
+
+        {/* Global Search - Visible en desktop */}
+        <div className="hidden md:flex flex-1 max-w-md mx-4">
+          <GlobalSearch 
+            placeholder={t('common.search') || 'Buscar...'} 
+            className="w-full"
+          />
         </div>
 
         {/* Actions - Compactas en móvil */}
         <div className="flex items-center space-x-2">
+          {/* Botón de búsqueda en móvil */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSearch(!showSearch)}
+              className="touch-target"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
           {/* Ocultar ProjectSelector en móvil muy pequeño */}
           <div className="hidden sm:block">
             <ProjectSelector />
@@ -160,6 +182,11 @@ export function CoordinatorHeader({ isMobile = false, onMenuClick }: Coordinator
             </DropdownMenuContent>
           </DropdownMenu>
           
+          {/* Theme selector - oculto en móvil pequeño */}
+          <div className="hidden md:block">
+            <ThemeSelector />
+          </div>
+
           {/* Language selector - oculto en móvil pequeño */}
           <div className="hidden md:block">
             <SimpleLanguageSelector />
@@ -195,6 +222,17 @@ export function CoordinatorHeader({ isMobile = false, onMenuClick }: Coordinator
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Search overlay en móvil */}
+      {showSearch && (
+        <div className="md:hidden mt-2 px-4 pb-2">
+          <GlobalSearch 
+            placeholder={t('common.search') || 'Buscar...'} 
+            className="w-full"
+            onResultClick={() => setShowSearch(false)}
+          />
+        </div>
+      )}
     </header>
   );
 }

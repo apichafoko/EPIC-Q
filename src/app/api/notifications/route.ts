@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
       
       const limit = parseInt(searchParams.get('limit') || '10');
       const unreadOnly = searchParams.get('unreadOnly') === 'true';
+      const group = searchParams.get('group') === 'true';
 
       // Obtener notificaciones del usuario
       const where: any = {
@@ -130,6 +131,73 @@ export async function GET(request: NextRequest) {
       // Limitar resultados
       const limitedNotifications = allNotifications.slice(0, limit);
 
+      // Agrupación opcional
+      let grouped: any[] | undefined;
+      if (group) {
+        const groupsMap = new Map<string, any>();
+
+        const getPriority = (n: any): number => {
+          if (n.source === 'alert') {
+            const sev = (n.data?.severity || '').toLowerCase();
+            if (sev === 'critical') return 100;
+            if (sev === 'high' || sev === 'alta') return 90;
+            if (sev === 'medium' || sev === 'media') return 70;
+            return 50;
+          }
+          if (n.source === 'communication') return 60;
+          return 40; // system
+        };
+
+        const normalize = (s?: string) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+        for (const n of allNotifications) {
+          const key = [
+            n.source,
+            n.type,
+            normalize(n.title),
+            normalize(n.data?.hospital_name),
+            normalize(n.data?.project_name)
+          ].join('|');
+
+          const existing = groupsMap.get(key);
+          if (!existing) {
+            groupsMap.set(key, {
+              key,
+              source: n.source,
+              type: n.type,
+              title: n.title,
+              sampleMessage: n.message,
+              data: {
+                hospital_name: n.data?.hospital_name,
+                project_name: n.data?.project_name,
+              },
+              count: 1,
+              unreadCount: n.read ? 0 : 1,
+              latest_at: n.created_at,
+              priority: getPriority(n),
+              items: [n],
+            });
+          } else {
+            existing.count += 1;
+            if (!n.read) existing.unreadCount += 1;
+            if (new Date(n.created_at).getTime() > new Date(existing.latest_at).getTime()) {
+              existing.latest_at = n.created_at;
+              existing.sampleMessage = n.message;
+            }
+            existing.priority = Math.max(existing.priority, getPriority(n));
+            if (existing.items.length < 5) existing.items.push(n);
+          }
+        }
+
+        grouped = Array.from(groupsMap.values())
+          .sort((a, b) => {
+            if (b.priority !== a.priority) return b.priority - a.priority;
+            if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
+            return new Date(b.latest_at).getTime() - new Date(a.latest_at).getTime();
+          })
+          .slice(0, limit);
+      }
+
       // Contar total de no leídas (solo comunicaciones + sistema) de forma independiente al límite
       const [systemUnreadTotal, commUnreadTotal] = await Promise.all([
         prisma.notifications.count({ where: { userId: user.id, isRead: false } }),
@@ -139,9 +207,10 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        notifications: limitedNotifications,
+        notifications: grouped ?? limitedNotifications,
         unreadCount,
-        total: allNotifications.length
+        total: allNotifications.length,
+        grouped: !!group
       });
 
     } catch (error) {

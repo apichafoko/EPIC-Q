@@ -212,7 +212,7 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
 
       {/* Sidebar */}
       <aside className={cn(
-        "bg-white border-r border-gray-200 flex flex-col",
+        "bg-background border-r border-border flex flex-col text-foreground",
         // Desktop: Fixed sidebar
         "lg:w-64 lg:fixed lg:inset-y-0",
         // Mobile: Full-screen drawer
@@ -221,12 +221,12 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
         isMobile && isOpen && "translate-x-0"
       )}>
         {/* Logo */}
-        <div className="flex h-16 shrink-0 items-center px-6 border-b border-gray-200">
+        <div className="flex h-16 shrink-0 items-center px-6 border-b border-border">
           <div className="flex items-center space-x-3">
             <Logo size="md" showText={false} />
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">EPIC-Q</h1>
-              <p className="text-xs text-gray-500">Coordinador</p>
+              <h1 className="text-lg font-semibold text-foreground">EPIC-Q</h1>
+              <p className="text-xs text-muted-foreground">Coordinador</p>
             </div>
           </div>
           
@@ -234,7 +234,7 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
           {isMobile && (
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 touch-target"
+              className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground touch-target"
             >
               <X className="h-6 w-6" />
             </button>
@@ -257,12 +257,12 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
                 }}
                 className={cn(
                   'group flex items-center rounded-md px-3 py-2 text-sm font-medium w-full text-left touch-target',
-                  'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  'text-muted-foreground hover:bg-accent hover:text-foreground'
                 )}
               >
                 <div className="flex items-center flex-1">
                   <item.icon
-                    className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
+                    className="mr-3 h-5 w-5 flex-shrink-0 text-muted-foreground group-hover:text-foreground"
                     aria-hidden="true"
                   />
                   <span className="flex-1">{item.name}</span>
@@ -280,14 +280,14 @@ export function CoordinatorSidebar({ isOpen = true, onClose, isMobile = false }:
                 'group flex items-center rounded-md px-3 py-2 text-sm font-medium touch-target',
                 isActive
                   ? 'bg-blue-500 text-white'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
             >
               <div className="flex items-center flex-1">
                 <item.icon
                   className={cn(
                     'mr-3 h-5 w-5 flex-shrink-0',
-                    isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'
+                    isActive ? 'text-white' : 'text-muted-foreground group-hover:text-foreground'
                   )}
                   aria-hidden="true"
                 />

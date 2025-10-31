@@ -28,9 +28,11 @@ interface NotificationBellProps {
 export function NotificationBell({ userId }: NotificationBellProps) {
   const { t } = useTranslations();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [grouped, setGrouped] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [useGrouped, setUseGrouped] = useState(true);
 
   useEffect(() => {
     if (userId) {
@@ -41,11 +43,15 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/notifications?limit=10');
+      const response = await fetch(`/api/notifications?limit=10${useGrouped ? '&group=true' : ''}`);
       const data = await response.json();
       
       if (response.ok) {
-        setNotifications(data.notifications);
+        if (data.grouped) {
+          setGrouped(data.notifications || []);
+        } else {
+          setNotifications(data.notifications || []);
+        }
         setUnreadCount(data.unreadCount);
       }
     } catch (error) {
@@ -144,7 +150,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         variant="ghost"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative"
+        className="relative text-foreground"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -161,7 +167,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         <div className="absolute right-0 top-10 w-80 z-50">
           <Card className="shadow-lg">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between text-foreground">
                 <CardTitle className="text-lg">{t('common.notifications')}</CardTitle>
                 {unreadCount > 0 && (
                   <Button
@@ -174,6 +180,23 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                   </Button>
                 )}
               </div>
+              <CardDescription className="mt-1 text-xs text-gray-500">
+                <div className="flex items-center justify-between">
+                  <span>{useGrouped ? t('common.grouped') || 'Agrupadas' : t('common.all') || 'Todas'}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs" 
+                    onClick={() => {
+                      setUseGrouped(v => !v);
+                      // recargar con el nuevo modo
+                      setTimeout(loadNotifications, 0);
+                    }}
+                  >
+                    {useGrouped ? (t('common.viewAll') || 'Ver todas') : (t('common.viewGrouped') || 'Ver agrupadas')}
+                  </Button>
+                </div>
+              </CardDescription>
             </CardHeader>
             
             <Separator />
@@ -181,54 +204,82 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             <CardContent className="p-0">
               <ScrollArea className="h-80">
                 {loading ? (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-muted-foreground">
                     {t('common.loading')}...
                   </div>
-                ) : notifications.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
+                ) : (useGrouped ? grouped.length === 0 : notifications.length === 0) ? (
+                  <div className="p-4 text-center text-muted-foreground">
                     {t('common.noNotifications')}
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`p-3 hover:bg-gray-50 cursor-pointer border-l-4 ${
-                          notification.read ? 'border-l-transparent' : 'border-l-blue-500'
-                        }`}
-                        onClick={() => !notification.read && markAsRead(notification.id, notification.type)}
-                      >
-                        <div className="flex items-start space-x-2">
-                          <span className="text-lg">
-                            {getTypeIcon(notification.type, notification.source)}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${getTypeColor(notification.type, notification.source)}`}>
-                              {notification.title}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {new Date(notification.created_at).toLocaleString()}
-                            </p>
+                    {useGrouped
+                      ? grouped.map((group: any) => (
+                          <div key={group.key} className="p-3 hover:bg-accent cursor-pointer border-l-4 border-l-transparent">
+                            <div className="flex items-start space-x-2">
+                              <span className="text-lg">
+                                {getTypeIcon(group.type, group.source)}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p className={`text-sm font-medium ${getTypeColor(group.type, group.source)}`}>
+                                    {group.title}
+                                  </p>
+                                  <Badge variant={group.unreadCount > 0 ? 'default' : 'secondary'} className="text-xs">
+                                    {group.unreadCount > 0 ? `${group.unreadCount} nuevas` : `${group.count}`}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 truncate">
+                                  {group.sampleMessage}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {new Date(group.latest_at).toLocaleString()}
+                                  {group.data?.hospital_name ? ` • ${group.data.hospital_name}` : ''}
+                                  {group.data?.project_name ? ` • ${group.data.project_name}` : ''}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          {!notification.read && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markAsRead(notification.id, notification.type);
-                              }}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        ))
+                      : notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-3 hover:bg-accent cursor-pointer border-l-4 ${
+                              notification.read ? 'border-l-transparent' : 'border-l-blue-500'
+                            }`}
+                            onClick={() => !notification.read && markAsRead(notification.id, notification.type)}
+                          >
+                            <div className="flex items-start space-x-2">
+                              <span className="text-lg">
+                                {getTypeIcon(notification.type, notification.source)}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${getTypeColor(notification.type, notification.source)}`}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(notification.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                              {!notification.read && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(notification.id, notification.type);
+                                  }}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                   </div>
                 )}
               </ScrollArea>

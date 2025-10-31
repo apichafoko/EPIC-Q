@@ -184,9 +184,121 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Buscar alertas
+    if (!filters.types || filters.types.includes('alert')) {
+      const alerts = await prisma.alerts.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { message: { contains: query, mode: 'insensitive' } }
+          ],
+          is_resolved: false
+        },
+        take: Math.ceil(limit / 6),
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          severity: true,
+          created_at: true,
+          hospitals: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      alerts.forEach(alert => {
+        results.push({
+          id: alert.id,
+          type: 'alert',
+          title: alert.title,
+          description: alert.message.substring(0, 100) + (alert.message.length > 100 ? '...' : ''),
+          url: `/es/admin/alerts/${alert.id}`,
+          metadata: {
+            severity: alert.severity,
+            created_at: alert.created_at,
+            hospital: alert.hospitals?.name
+          },
+          highlighted: {
+            title: highlightText(alert.title, query),
+            description: highlightText(alert.message, query)
+          },
+          score: Math.max(
+            calculateScore(alert.title, query),
+            calculateScore(alert.message, query) * 0.7
+          )
+        });
+      });
+    }
+
+    // Buscar comunicaciones
+    if (!filters.types || filters.types.includes('communication')) {
+      const communications = await prisma.communications.findMany({
+        where: {
+          OR: [
+            { subject: { contains: query, mode: 'insensitive' } },
+            { body: { contains: query, mode: 'insensitive' } }
+          ]
+        },
+        take: Math.ceil(limit / 6),
+        select: {
+          id: true,
+          subject: true,
+          body: true,
+          type: true,
+          created_at: true,
+          hospitals: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      });
+
+      communications.forEach(comm => {
+        results.push({
+          id: comm.id,
+          type: 'communication',
+          title: comm.subject,
+          description: comm.body.substring(0, 100).replace(/<[^>]*>/g, '') + (comm.body.length > 100 ? '...' : ''),
+          url: `/es/admin/communications/${comm.id}`,
+          metadata: {
+            type: comm.type,
+            created_at: comm.created_at,
+            hospital: comm.hospitals?.name
+          },
+          highlighted: {
+            title: highlightText(comm.subject, query),
+            description: highlightText(comm.body.replace(/<[^>]*>/g, ''), query)
+          },
+          score: Math.max(
+            calculateScore(comm.subject, query),
+            calculateScore(comm.body, query) * 0.5
+          )
+        });
+      });
+    }
+
     // Ordenar por score y limitar resultados
     const sortedResults = results
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        // Ordenar por score descendente
+        if (b.score !== a.score) return b.score - a.score;
+        // Si tienen el mismo score, ordenar por tipo (alertas primero, luego hospitales, etc.)
+        const typePriority: Record<string, number> = {
+          alert: 5,
+          hospital: 4,
+          coordinator: 3,
+          project: 2,
+          communication: 1,
+          user: 0
+        };
+        return (typePriority[b.type] || 0) - (typePriority[a.type] || 0);
+      })
       .slice(0, limit);
 
     return NextResponse.json({ results: sortedResults });
@@ -198,6 +310,23 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Resaltar texto con el query
+ */
+function highlightText(text: string, query: string): string {
+  if (!query || !text) return text;
+  
+  const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+  let highlighted = text;
+  
+  words.forEach(word => {
+    const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    highlighted = highlighted.replace(regex, '<mark class="bg-yellow-200 px-1 rounded font-semibold">$1</mark>');
+  });
+  
+  return highlighted;
 }
 
 function calculateScore(text: string, query: string): number {
