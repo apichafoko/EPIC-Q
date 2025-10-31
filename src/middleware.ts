@@ -4,7 +4,8 @@ import { locales, defaultLocale } from './i18n/config';
 export default createMiddleware({
   locales,
   defaultLocale,
-  localePrefix: 'always'
+  localePrefix: 'always',
+  localeDetection: false // Deshabilitar detección automática de idioma del navegador
 });
 
 export const config = {

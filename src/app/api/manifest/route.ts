@@ -3,21 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   
-  // Intentar obtener el locale de la cookie, query param, o header Accept-Language
+  // Intentar obtener el locale de la cookie o query param
+  // Para PWA, siempre usar español por defecto si no hay preferencia explícita
   const localeCookie = request.cookies.get('NEXT_LOCALE')?.value;
   const localeParam = searchParams.get('locale');
   const startUrlParam = searchParams.get('startUrl');
-  const acceptLanguage = request.headers.get('accept-language') || '';
   
-  // Determinar el locale a usar
+  // Determinar el locale a usar - siempre español por defecto
   let locale = localeCookie || localeParam || 'es';
-  
-  // Si no hay cookie ni parámetro, intentar detectar del Accept-Language
-  if (!localeCookie && !localeParam) {
-    if (acceptLanguage.includes('en')) locale = 'en';
-    else if (acceptLanguage.includes('pt')) locale = 'pt';
-    else locale = 'es';
-  }
   
   // Validar locale
   if (!['es', 'pt', 'en'].includes(locale)) {
