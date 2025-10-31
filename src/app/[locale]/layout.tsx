@@ -82,13 +82,54 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  // Limpiar key antigua "theme" si tiene valor dark o system
+                  const oldTheme = localStorage.getItem('theme');
+                  if (oldTheme === 'dark' || oldTheme === 'system') {
+                    localStorage.removeItem('theme');
+                  }
+                  
+                  // Establecer "light" como valor por defecto si no existe o es inválido
+                  const currentTheme = localStorage.getItem('epic-q-theme');
+                  if (!currentTheme || !['light', 'dark', 'high-contrast'].includes(currentTheme)) {
+                    localStorage.setItem('epic-q-theme', 'light');
+                  }
+                  
+                  // Determinar tema final: usar el guardado o 'light' por defecto
+                  const savedTheme = localStorage.getItem('epic-q-theme');
+                  const finalTheme = (savedTheme && ['light', 'dark', 'high-contrast'].includes(savedTheme)) 
+                    ? savedTheme 
+                    : 'light';
+                  
+                  // Aplicar tema inmediatamente antes de que React se hidrate
+                  const html = document.documentElement;
+                  html.classList.remove('dark', 'high-contrast', 'light');
+                  html.classList.add(finalTheme);
+                } catch (e) {
+                  console.error('Error setting default theme:', e);
+                  // Fallback: asegurar que no esté en modo dark
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange={false}
           themes={['light', 'dark', 'high-contrast']}
+          storageKey="epic-q-theme"
+          forcedTheme={undefined}
         >
           <NextIntlClientProvider locale={locale} messages={messages}>
             <AuthProvider>

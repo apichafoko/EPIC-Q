@@ -114,11 +114,24 @@ export default function HospitalFormPage() {
           }
         : {};
       
+      // Normalizar nombre de provincia para que coincida con el dropdown
+      // Si viene "Autonomous City of Buenos Aires" del paquete, convertir a "Ciudad Autónoma de Buenos Aires"
+      let normalizedProvince = hospital.province || "";
+      if (normalizedProvince) {
+        const provinceLower = normalizedProvince.toLowerCase().trim();
+        if (provinceLower.includes('autonomous city of buenos aires') ||
+            provinceLower === 'autonomous city of buenos aires') {
+          normalizedProvince = 'Ciudad Autónoma de Buenos Aires';
+        } else if (provinceLower === 'caba' || provinceLower.includes('ciudad de buenos aires')) {
+          normalizedProvince = 'Ciudad Autónoma de Buenos Aires';
+        }
+      }
+      
       const newFormData = {
         ...prev,
         // Datos básicos
         name: hospital.name || "",
-        province: hospital.province || "",
+        province: normalizedProvince,
         city: hospital.city || "",
         participatedLasos: hospital.lasos_participation || false,
         // Marcar si los campos de ubicación son editables

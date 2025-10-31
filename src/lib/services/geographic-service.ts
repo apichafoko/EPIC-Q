@@ -197,11 +197,18 @@ function adaptCity(packageCity: ICity, countryCode: string, stateCode?: string):
 
 /**
  * Adaptar IState del paquete a nuestra interfaz State
+ * Traduce nombres de provincias al español cuando sea necesario
  */
 function adaptState(packageState: IState, countryCode: string): State {
+  // Traducir nombre de CABA del inglés al español
+  let stateName = packageState.name || '';
+  if (stateName.includes('Autonomous City of Buenos Aires')) {
+    stateName = 'Ciudad Autónoma de Buenos Aires';
+  }
+  
   return {
     id: packageState.id || 0,
-    name: packageState.name || '',
+    name: stateName,
     country_code: countryCode || packageState.country_code || 'AR',
     country_id: packageState.country_id || 0,
     state_code: packageState.iso2 || undefined,

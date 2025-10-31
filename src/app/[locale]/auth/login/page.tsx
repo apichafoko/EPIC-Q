@@ -116,13 +116,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            <div className="mt-4 text-center text-sm text-gray-600">
-              <p>{t('auth.login.demoCredentials')}</p>
-              <p className="font-mono text-xs mt-2">
-                Admin: demo@epic-q.com / demo123
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
