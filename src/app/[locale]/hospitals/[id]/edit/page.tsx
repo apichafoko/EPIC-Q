@@ -13,6 +13,9 @@ import { Alert, AlertDescription } from '../../../../../components/ui/alert';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLoadingState } from '../../../../../hooks/useLoadingState';
+import { useCitiesByProvince } from '../../../../../hooks/use-cities-by-province';
+import { useStatesByCountry } from '../../../../../hooks/use-states-by-country';
+import { Loader2 } from 'lucide-react';
 
 interface Hospital {
   id: string;
@@ -25,14 +28,6 @@ interface Hospital {
   created_at: string;
   updated_at: string;
 }
-
-const PROVINCES = [
-  'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba',
-  'Corrientes', 'Entre Ríos', 'Formosa', 'Jujuy', 'La Pampa', 'La Rioja',
-  'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 'Salta', 'San Juan',
-  'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero',
-  'Tierra del Fuego', 'Tucumán'
-];
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Activo' },
@@ -57,6 +52,12 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
     participated_lasos: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Cargar provincias desde el API
+  const { states: provinces, loading: loadingProvinces } = useStatesByCountry('AR');
+  
+  // Cargar ciudades basadas en la provincia seleccionada
+  const { cities, loading: loadingCities } = useCitiesByProvince(formData.province);
 
   useEffect(() => {
     loadHospital();
@@ -173,7 +174,14 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Si se cambia la provincia, limpiar la ciudad seleccionada
+      if (field === 'province') {
+        updated.city = '';
+      }
+      return updated;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -257,16 +265,28 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
               <Select
                 value={formData.province}
                 onValueChange={(value) => handleInputChange('province', value)}
+                disabled={loadingProvinces}
               >
                 <SelectTrigger className={errors.province ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Selecciona una provincia" />
+                  <SelectValue placeholder={loadingProvinces ? 'Cargando provincias...' : 'Selecciona una provincia'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVINCES.map((province) => (
-                    <SelectItem key={province} value={province}>
-                      {province}
-                    </SelectItem>
-                  ))}
+                  {loadingProvinces ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Cargando provincias...</span>
+                    </div>
+                  ) : provinces.length > 0 ? (
+                    provinces.map((province) => (
+                      <SelectItem key={province.name} value={province.name}>
+                        {province.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center p-4">
+                      <span className="text-sm text-muted-foreground">No hay provincias disponibles</span>
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
               {errors.province && (
@@ -276,13 +296,48 @@ export default function EditHospitalPage({ params }: { params: Promise<{ id: str
 
             <div className="space-y-3">
               <Label htmlFor="city">Ciudad *</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                placeholder="Ingresa la ciudad"
-                className={errors.city ? 'border-red-500' : ''}
-              />
+              {formData.province ? (
+                <Select
+                  value={formData.city}
+                  onValueChange={(value) => handleInputChange('city', value)}
+                  disabled={loadingCities}
+                >
+                  <SelectTrigger className={errors.city ? 'border-red-500' : ''}>
+                    <SelectValue placeholder={loadingCities ? 'Cargando ciudades...' : 'Seleccionar ciudad'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingCities ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-sm text-muted-foreground">Cargando ciudades...</span>
+                      </div>
+                    ) : cities.length > 0 ? (
+                      cities.map((cityOption) => (
+                        <SelectItem key={cityOption.city} value={cityOption.city}>
+                          {cityOption.city}
+                          {cityOption.hospitalCount > 0 && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({cityOption.hospitalCount} {cityOption.hospitalCount === 1 ? 'hospital' : 'hospitales'})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-center p-4">
+                        <span className="text-sm text-muted-foreground">No hay ciudades disponibles para esta provincia</span>
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="city"
+                  value={formData.city}
+                  disabled
+                  placeholder="Selecciona una provincia primero"
+                  className={errors.city ? 'border-red-500' : ''}
+                />
+              )}
               {errors.city && (
                 <p className="text-sm text-red-600">{errors.city}</p>
               )}

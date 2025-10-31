@@ -23,6 +23,27 @@ const nextConfig = {
   },
   // Forzar rendering dinámico
   skipTrailingSlashRedirect: true,
+  // Configuración para paquetes externos
+  webpack: (config, { isServer }) => {
+    // Permitir que el paquete cargue archivos de datos
+    if (isServer) {
+      // En el servidor, asegurar que puede acceder a archivos del paquete
+      config.resolve.alias = {
+        ...config.resolve.alias,
+      };
+    } else {
+      // En el cliente, marcar módulos Node como falsos
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+    return config;
+  },
+  // Configuración para excluir paquetes del bundling si es necesario
+  serverExternalPackages: ['@countrystatecity/countries'],
   async headers() {
     return [
       {

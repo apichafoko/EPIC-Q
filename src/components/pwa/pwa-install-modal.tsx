@@ -21,7 +21,7 @@ export function PWAInstallModal({
   autoShow = false, 
   onClose 
 }: PWAInstallModalProps) {
-  const { canInstall, isInstalled, shouldShowPrompt, dismissPrompt, promptInstall } = usePWAInstall();
+  const { canInstall, isInstalled, shouldShowPrompt, dismissPrompt, promptInstall, isMobile } = usePWAInstall();
   const { t } = useTranslations();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -36,11 +36,16 @@ export function PWAInstallModal({
       return;
     }
 
+    // Solo mostrar en dispositivos móviles
+    if (!isMobile) {
+      return;
+    }
+
     // Si es autoShow, verificar si debe mostrarse
     if (autoShow && shouldShowPrompt(userId)) {
       setIsVisible(true);
     }
-  }, [userRole, userId, autoShow, isInstalled, shouldShowPrompt]);
+  }, [userRole, userId, autoShow, isInstalled, shouldShowPrompt, isMobile]);
 
   const handleInstall = async () => {
     try {
@@ -64,8 +69,8 @@ export function PWAInstallModal({
     onClose?.();
   };
 
-  // No mostrar si no es visible o no se puede instalar
-  if (!isVisible || !canInstall || isInstalled) {
+  // No mostrar si no es visible, no es mobile, o no se puede instalar
+  if (!isVisible || !isMobile || !canInstall || isInstalled) {
     return null;
   }
 

@@ -356,6 +356,9 @@
     "emailReport": "Enviar Reporte por Email",
     "scheduleReport": "Programar Reporte",
     "reportHistory": "Historial de Reportes",
+    "groupBy": "Agrupar por",
+    "groupByProvince": "Provincia",
+    "groupByCity": "Ciudad",
     "reportName": "Nombre del Reporte",
     "reportType": "Tipo de Reporte",
     "dateRange": "Rango de Fechas",
@@ -1520,5 +1523,18 @@
       "projectDeleted": "Proyecto eliminado exitosamente",
       "invitationSent": "Invitación enviada exitosamente"
     }
+  },
+  "geographic": {
+    "breadcrumb": {
+      "argentina": "Argentina",
+      "province": "Provincia",
+      "city": "Ciudad"
+    },
+    "clickForDetail": "Clic para ver detalle por ciudades",
+    "backToProvinces": "Volver a provincias",
+    "selectProvince": "Seleccionar provincia"
+  },
+  "filters": {
+    "city": "Ciudad"
   }
 }

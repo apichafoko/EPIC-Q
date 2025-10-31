@@ -55,18 +55,19 @@ export default function ReportsPage() {
         if (hospitalsData.success && hospitalsData.hospitals) {
           setHospitals(hospitalsData.hospitals.map((h: any) => ({ id: h.id, name: h.name })));
 
-          // Extraer provincias únicas
-          const uniqueProvinces = Array.from(
+          // Extraer provincias únicas de los hospitales
+          const allProvinces = Array.from(
             new Set(hospitalsData.hospitals.map((h: any) => h.province).filter(Boolean))
           ) as string[];
-          setProvinces(uniqueProvinces);
+          setProvinces(allProvinces);
         }
       } catch {
         // Si falla, obtener provincias del endpoint de analytics
         const analyticsRes = await fetch('/api/analytics?metric=geographic_distribution&distributionType=cases');
         const analyticsData = await analyticsRes.json();
         if (analyticsData.success && analyticsData.data) {
-          setProvinces(analyticsData.data.map((d: any) => d.province));
+          const allProvinces = analyticsData.data.map((d: any) => d.province).filter(Boolean);
+          setProvinces(Array.from(new Set(allProvinces)));
         }
       }
     } catch (error) {

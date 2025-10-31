@@ -18,11 +18,31 @@ export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es dispositivo móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isSmallScreen = window.innerWidth <= 768;
+      setIsMobile(isMobileDevice || isSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
+      return;
+    }
+
+    // Solo mostrar en dispositivos móviles
+    if (!isMobile) {
       return;
     }
 
@@ -47,7 +67,7 @@ export function InstallPrompt() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isMobile]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -71,8 +91,8 @@ export function InstallPrompt() {
     localStorage.setItem('installPromptDismissed', Date.now().toString());
   };
 
-  // Don't show if already installed or if user recently dismissed
-  if (isInstalled || !showInstallPrompt) {
+  // Don't show if already installed, not mobile, or if user recently dismissed
+  if (isInstalled || !isMobile || !showInstallPrompt) {
     return null;
   }
 

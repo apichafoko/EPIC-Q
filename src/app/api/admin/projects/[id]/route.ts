@@ -96,10 +96,33 @@ export async function GET(
         if (prog?.ethics_approved) ethicsApproved++; else if (prog?.ethics_submitted) ethicsSubmitted++; else ethicsPending++;
         if (pct === null || pct === 0) formPending++; else if (pct > 0 && pct < 100) formPartial++; else if (pct >= 100) formComplete++;
 
-        const province = ph.hospitals?.province || 'Sin provincia';
-        if (!byProvinceMap[province]) {
-          byProvinceMap[province] = { 
-            province, 
+        let province = ph.hospitals?.province || 'Sin provincia';
+        
+        // Normalizar nombre de provincia para mapeo consistente
+        // CABA debe aparecer como provincia separada (no se suma a Buenos Aires)
+        const normalizedProvince = province.toLowerCase().trim();
+        let mapProvince = province; // Provincia para el mapa
+        
+        // Normalizar variaciones de CABA a un nombre estándar para el mapa
+        if (normalizedProvince.includes('ciudad autónoma') || 
+            normalizedProvince.includes('ciudad autonoma') ||
+            normalizedProvince.includes('autonomous city of buenos aires') ||
+            normalizedProvince === 'caba' ||
+            normalizedProvince === 'ciudad de buenos aires') {
+          mapProvince = 'Ciudad Autónoma de Buenos Aires'; // Nombre estándar para CABA
+        }
+        // Normalizar "Buenos Aires" (provincia) para evitar confusiones
+        else if (normalizedProvince === 'buenos aires' && 
+                 !normalizedProvince.includes('ciudad') && 
+                 !normalizedProvince.includes('autónoma') &&
+                 !normalizedProvince.includes('autonoma')) {
+          mapProvince = 'Buenos Aires'; // Mantener nombre estándar
+        }
+        
+        // Usar mapProvince para el mapa de provincias
+        if (!byProvinceMap[mapProvince]) {
+          byProvinceMap[mapProvince] = { 
+            province: mapProvince, 
             hospitals: 0, 
             ethicsApproved: 0, 
             formComplete: 0,
@@ -108,9 +131,9 @@ export async function GET(
             completedPeriods: 0
           };
         }
-        byProvinceMap[province].hospitals += 1;
-        if (prog?.ethics_approved) byProvinceMap[province].ethicsApproved += 1;
-        if (pct && pct >= 100) byProvinceMap[province].formComplete += 1;
+        byProvinceMap[mapProvince].hospitals += 1;
+        if (prog?.ethics_approved) byProvinceMap[mapProvince].ethicsApproved += 1;
+        if (pct && pct >= 100) byProvinceMap[mapProvince].formComplete += 1;
         
         // Simular estadísticas de carga de casos (por ahora con datos mock)
         // TODO: Implementar consulta real a case_load_statistics
@@ -118,9 +141,9 @@ export async function GET(
         const mockActiveLoading = Math.random() > 0.7 ? 1 : 0;
         const mockCompletedPeriods = Math.floor(Math.random() * 3);
         
-        byProvinceMap[province].totalCasesLoaded += mockCasesLoaded;
-        byProvinceMap[province].activeLoading += mockActiveLoading;
-        byProvinceMap[province].completedPeriods += mockCompletedPeriods;
+        byProvinceMap[mapProvince].totalCasesLoaded += mockCasesLoaded;
+        byProvinceMap[mapProvince].activeLoading += mockActiveLoading;
+        byProvinceMap[mapProvince].completedPeriods += mockCompletedPeriods;
 
         // upcoming periods within 60 days
         const periods: any[] = ph.recruitment_periods || [];

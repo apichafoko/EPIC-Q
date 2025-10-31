@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReportFilters, ReportFiltersProps } from './report-filters';
+import { GeographicBreadcrumb } from '@/components/ui/geographic-breadcrumb';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { MapPin, Download } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   BarChart,
   Bar,
@@ -21,7 +25,8 @@ import {
 import { toast } from 'sonner';
 
 interface ProvinceComparisonData {
-  province: string;
+  province?: string;
+  city?: string;
   hospitalCount: number;
   totalCases: number;
   averageProgress: number;
@@ -29,6 +34,16 @@ interface ProvinceComparisonData {
   activeHospitals: number;
   totalTargetCases?: number;
   totalLoadedCases?: number;
+}
+
+interface CityComparisonData {
+  city: string;
+  province: string;
+  hospitalCount: number;
+  totalCases: number;
+  averageProgress: number;
+  averageCompletion: number;
+  activeHospitals: number;
 }
 
 interface ProvinceComparisonReportProps {
@@ -44,17 +59,34 @@ export function ProvinceComparisonReport({
   hospitals,
   provinces,
 }: ProvinceComparisonReportProps) {
+  const t = useTranslations();
   const [data, setData] = useState<ProvinceComparisonData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ReportFilters>({});
+  const [groupBy, setGroupBy] = useState<'province' | 'city'>('province');
+  const [selectedProvinceForCities, setSelectedProvinceForCities] = useState<string>('');
 
   const loadData = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      params.append('metric', 'province_comparison');
-      if (filters.projectId) params.append('projectId', filters.projectId);
-      if (filters.province) params.append('province', filters.province);
+      
+      if (groupBy === 'city') {
+        if (!selectedProvinceForCities || !filters.projectId) {
+          setData([]);
+          setLoading(false);
+          return;
+        }
+        params.append('metric', 'city_comparison');
+        params.append('projectId', filters.projectId);
+        params.append('province', selectedProvinceForCities);
+      } else {
+        params.append('metric', 'province_comparison');
+        params.append('groupBy', 'province');
+        if (filters.projectId) params.append('projectId', filters.projectId);
+        if (filters.province) params.append('province', filters.province);
+      }
+      
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
 
@@ -67,7 +99,7 @@ export function ProvinceComparisonReport({
         toast.error('Error al cargar datos del reporte');
       }
     } catch (error) {
-      console.error('Error loading province comparison:', error);
+      console.error('Error loading comparison:', error);
       toast.error('Error al cargar datos del reporte');
     } finally {
       setLoading(false);
@@ -77,7 +109,7 @@ export function ProvinceComparisonReport({
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, groupBy, selectedProvinceForCities]);
 
   const handleFiltersChange = useCallback((newFilters: ReportFilters) => {
     setFilters((prevFilters) => {
@@ -146,10 +178,16 @@ export function ProvinceComparisonReport({
         <div>
           <h2 className="text-2xl font-bold flex items-center space-x-2">
             <MapPin className="h-6 w-6" />
-            <span>Comparativa por Provincias</span>
+            <span>
+              {groupBy === 'city' 
+                ? 'Comparativa por Ciudades'
+                : 'Comparativa por Provincias'}
+            </span>
           </h2>
           <p className="text-muted-foreground mt-1">
-            Análisis comparativo del rendimiento entre provincias
+            {groupBy === 'city'
+              ? 'Análisis comparativo del progreso entre ciudades'
+              : 'Análisis comparativo del rendimiento entre provincias'}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -164,6 +202,60 @@ export function ProvinceComparisonReport({
         </div>
       </div>
 
+      {/* Selector de nivel de agrupación */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Configuración</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>{t('reports.groupBy')}</Label>
+            <Select value={groupBy} onValueChange={(value) => {
+              setGroupBy(value as 'province' | 'city');
+              if (value === 'province') {
+                setSelectedProvinceForCities('');
+              }
+            }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="province">{t('reports.groupByProvince')}</SelectItem>
+                <SelectItem value="city">{t('reports.groupByCity')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {groupBy === 'city' && (
+            <div className="space-y-2">
+              <Label>{t('geographic.selectProvince')}</Label>
+              <Select 
+                value={selectedProvinceForCities} 
+                onValueChange={setSelectedProvinceForCities}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('geographic.selectProvince')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {provinces?.map((province) => (
+                    <SelectItem key={province} value={province}>
+                      {province}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {groupBy === 'city' && selectedProvinceForCities && (
+            <GeographicBreadcrumb
+              province={selectedProvinceForCities}
+              onBack={() => setGroupBy('province')}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       <ReportFilters
         projects={projects}
         hospitals={hospitals}
@@ -175,7 +267,9 @@ export function ProvinceComparisonReport({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Provincias</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total {groupBy === 'city' ? 'Ciudades' : 'Provincias'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.length}</div>
@@ -219,7 +313,7 @@ export function ProvinceComparisonReport({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Casos por Provincia</CardTitle>
+            <CardTitle>Casos por {groupBy === 'city' ? 'Ciudad' : 'Provincia'}</CardTitle>
           </CardHeader>
           <CardContent>
             {sortedData.length > 0 ? (
@@ -227,7 +321,7 @@ export function ProvinceComparisonReport({
                 <BarChart data={sortedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
-                    dataKey="province"
+                    dataKey={groupBy === 'city' ? 'city' : 'province'}
                     angle={-45}
                     textAnchor="end"
                     height={80}
@@ -249,7 +343,7 @@ export function ProvinceComparisonReport({
 
         <Card>
           <CardHeader>
-            <CardTitle>Progreso Promedio por Provincia</CardTitle>
+            <CardTitle>Progreso Promedio por {groupBy === 'city' ? 'Ciudad' : 'Provincia'}</CardTitle>
           </CardHeader>
           <CardContent>
             {sortedData.length > 0 ? (
@@ -257,7 +351,7 @@ export function ProvinceComparisonReport({
                 <BarChart data={sortedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
-                    dataKey="province"
+                    dataKey={groupBy === 'city' ? 'city' : 'province'}
                     angle={-45}
                     textAnchor="end"
                     height={80}
@@ -292,7 +386,12 @@ export function ProvinceComparisonReport({
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-2 font-medium">Provincia</th>
+                  <th className="text-left p-2 font-medium">
+                    {groupBy === 'city' ? 'Ciudad' : 'Provincia'}
+                  </th>
+                  {groupBy === 'city' && (
+                    <th className="text-left p-2 font-medium">Provincia</th>
+                  )}
                   <th className="text-center p-2 font-medium">Hospitales</th>
                   <th className="text-center p-2 font-medium">Activos</th>
                   <th className="text-center p-2 font-medium">Total Casos</th>
@@ -301,9 +400,17 @@ export function ProvinceComparisonReport({
                 </tr>
               </thead>
               <tbody>
-                {sortedData.map((item) => (
-                  <tr key={item.province} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">{item.province}</td>
+                {sortedData.map((item, index) => (
+                  <tr 
+                    key={groupBy === 'city' ? `${item.city}-${index}` : item.province} 
+                    className="border-b hover:bg-muted/50"
+                  >
+                    <td className="p-2 font-medium">
+                      {groupBy === 'city' ? item.city : item.province}
+                    </td>
+                    {groupBy === 'city' && (
+                      <td className="p-2 text-muted-foreground">{item.province}</td>
+                    )}
                     <td className="p-2 text-center">{item.hospitalCount}</td>
                     <td className="p-2 text-center">
                       <Badge variant="secondary">{item.activeHospitals}</Badge>
@@ -325,7 +432,7 @@ export function ProvinceComparisonReport({
                 ))}
                 {sortedData.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={groupBy === 'city' ? 7 : 6} className="p-8 text-center text-muted-foreground">
                       No hay datos disponibles
                     </td>
                   </tr>

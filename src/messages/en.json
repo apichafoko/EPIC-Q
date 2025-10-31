@@ -360,6 +360,9 @@
     "emailReport": "Email Report",
     "scheduleReport": "Schedule Report",
     "reportHistory": "Report History",
+    "groupBy": "Group by",
+    "groupByProvince": "Province",
+    "groupByCity": "City",
     "reportName": "Report Name",
     "reportType": "Report Type",
     "dateRange": "Date Range",
@@ -1278,5 +1281,18 @@
     "progress": "Progress",
     "redcapUsers": "RedCap Users",
     "notifications": "Notifications"
+  },
+  "geographic": {
+    "breadcrumb": {
+      "argentina": "Argentina",
+      "province": "Province",
+      "city": "City"
+    },
+    "clickForDetail": "Click to view details by cities",
+    "backToProvinces": "Back to provinces",
+    "selectProvince": "Select province"
+  },
+  "filters": {
+    "city": "City"
   }
 }

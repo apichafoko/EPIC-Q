@@ -486,7 +486,7 @@ export function CustomReportsBuilder({
                     <SelectValue placeholder="Sin ordenamiento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin ordenamiento</SelectItem>
+                    <SelectItem value="none">Sin ordenamiento</SelectItem>
                     {config.metrics.map((metricId) => {
                       const metric = AVAILABLE_METRICS.find((m) => m.id === metricId);
                       return metric ? (

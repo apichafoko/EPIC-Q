@@ -56,7 +56,7 @@ export function ThemeSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2">
-          {theme === 'light' ? (
+          {(theme === 'system' || theme === 'light') ? (
             <Sun className="h-4 w-4" />
           ) : theme === 'dark' ? (
             <Moon className="h-4 w-4" />
@@ -66,7 +66,7 @@ export function ThemeSelector() {
             <Monitor className="h-4 w-4" />
           )}
           <span className="hidden sm:inline">
-            {theme === 'light'
+            {(theme === 'system' || theme === 'light')
               ? t('common.light') || 'Claro'
               : theme === 'dark'
               ? t('common.dark') || 'Oscuro'
@@ -79,10 +79,10 @@ export function ThemeSelector() {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>{t('common.theme') || 'Tema'}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem onClick={() => setTheme('system')}>
           <Sun className="mr-2 h-4 w-4" />
           <span>{t('common.light') || 'Claro'}</span>
-          {theme === 'light' && <span className="ml-auto">✓</span>}
+          {(theme === 'system' || theme === 'light') && <span className="ml-auto">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme('dark')}>
           <Moon className="mr-2 h-4 w-4" />

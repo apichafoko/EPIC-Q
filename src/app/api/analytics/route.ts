@@ -23,6 +23,8 @@ async function handler(
       let projectId = searchParams.get('projectId') || undefined;
       let hospitalId = searchParams.get('hospitalId') || undefined;
       const province = searchParams.get('province') || undefined;
+      const city = searchParams.get('city') || undefined;
+      const groupBy = searchParams.get('groupBy') as 'province' | 'city' | undefined;
       const dateFrom = searchParams.get('dateFrom')
         ? new Date(searchParams.get('dateFrom')!)
         : undefined;
@@ -80,6 +82,7 @@ async function handler(
         projectId,
         hospitalId,
         province,
+        city,
         dateFrom,
         dateTo,
       };
@@ -132,9 +135,35 @@ async function handler(
           });
           break;
         }
-        case 'province_comparison':
-          data = await AnalyticsService.getProvinceComparison(projectId, filters);
+        case 'province_comparison': {
+          const groupByParam = groupBy || (searchParams.get('groupBy') as 'province' | 'city' | undefined);
+          data = await AnalyticsService.getProvinceComparison(projectId, {
+            ...filters,
+            groupBy: groupByParam,
+          });
           break;
+        }
+        case 'city_comparison': {
+          if (!projectId || !province) {
+            return NextResponse.json(
+              { error: 'Parámetros "projectId" y "province" son requeridos para city_comparison' },
+              { status: 400 }
+            );
+          }
+          data = await AnalyticsService.getCityComparison(projectId, province, filters);
+          break;
+        }
+        case 'cities_by_province': {
+          const provinceParam = searchParams.get('province');
+          if (!provinceParam) {
+            return NextResponse.json(
+              { error: 'Parámetro "province" es requerido para cities_by_province' },
+              { status: 400 }
+            );
+          }
+          data = await AnalyticsService.getCitiesByProvince(provinceParam, projectId);
+          break;
+        }
         case 'completion_prediction': {
           const level = searchParams.get('level') || 'global';
           const predictionDays = parseInt(searchParams.get('days') || '90', 10);

@@ -185,11 +185,13 @@ export default function AnalyticsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las provincias</SelectItem>
-                    {Array.from(new Set(heatmapData.map(h => h.province))).map((province) => (
-                      <SelectItem key={province} value={province}>
-                        {province}
-                      </SelectItem>
-                    ))}
+                    {Array.from(new Set(heatmapData.map(h => h.province)))
+                      .filter((province) => province && province.trim() !== '')
+                      .map((province) => (
+                        <SelectItem key={province} value={province}>
+                          {province}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

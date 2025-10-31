@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../../components/ui/checkbox';
 import { Textarea } from '../../components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { NewHospitalForm, provinces, specialties, financingTypes, preopClinicOptions } from '../../types';
+import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { NewHospitalForm, specialties, financingTypes, preopClinicOptions } from '../../types';
+import { useCitiesByProvince } from '../../hooks/use-cities-by-province';
+import { useStatesByCountry } from '../../hooks/use-states-by-country';
 
 interface NewHospitalWizardProps {
   onComplete: (data: NewHospitalForm) => void;
@@ -49,8 +51,21 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
     { number: 3, title: 'Coordinador Principal', description: 'Contacto principal del estudio' }
   ];
 
+  // Cargar provincias desde el API
+  const { states: provinces, loading: loadingProvinces } = useStatesByCountry('AR');
+  
+  // Cargar ciudades basadas en la provincia seleccionada
+  const { cities, loading: loadingCities } = useCitiesByProvince(formData.province);
+
   const updateFormData = (field: keyof NewHospitalForm, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Si se cambia la provincia, limpiar la ciudad seleccionada
+      if (field === 'province') {
+        updated.city = '';
+      }
+      return updated;
+    });
   };
 
   const nextStep = () => {
@@ -97,16 +112,31 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
         </div>
         <div className="space-y-3">
           <Label htmlFor="province">Provincia *</Label>
-          <Select value={formData.province} onValueChange={(value) => updateFormData('province', value)}>
+          <Select 
+            value={formData.province} 
+            onValueChange={(value) => updateFormData('province', value)}
+            disabled={loadingProvinces}
+          >
             <SelectTrigger>
-              <SelectValue placeholder="Seleccionar provincia" />
+              <SelectValue placeholder={loadingProvinces ? 'Cargando provincias...' : 'Seleccionar provincia'} />
             </SelectTrigger>
             <SelectContent>
-              {provinces.map((province) => (
-                <SelectItem key={province} value={province}>
-                  {province}
-                </SelectItem>
-              ))}
+              {loadingProvinces ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Cargando provincias...</span>
+                </div>
+              ) : provinces.length > 0 ? (
+                provinces.map((province) => (
+                  <SelectItem key={province.name} value={province.name}>
+                    {province.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="flex items-center justify-center p-4">
+                  <span className="text-sm text-muted-foreground">No hay provincias disponibles</span>
+                </div>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -115,12 +145,47 @@ export function NewHospitalWizard({ onComplete }: NewHospitalWizardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-3">
           <Label htmlFor="city">Ciudad *</Label>
-          <Input
-            id="city"
-            value={formData.city}
-            onChange={(e) => updateFormData('city', e.target.value)}
-            placeholder="Ej: Buenos Aires"
-          />
+          {formData.province ? (
+            <Select
+              value={formData.city}
+              onValueChange={(value) => updateFormData('city', value)}
+              disabled={loadingCities}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingCities ? 'Cargando ciudades...' : 'Seleccionar ciudad'} />
+              </SelectTrigger>
+              <SelectContent>
+                {loadingCities ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Cargando ciudades...</span>
+                  </div>
+                ) : cities.length > 0 ? (
+                  cities.map((cityOption) => (
+                    <SelectItem key={cityOption.city} value={cityOption.city}>
+                      {cityOption.city}
+                      {cityOption.hospitalCount > 0 && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({cityOption.hospitalCount} {cityOption.hospitalCount === 1 ? 'hospital' : 'hospitales'})
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center p-4">
+                    <span className="text-sm text-muted-foreground">No hay ciudades disponibles para esta provincia</span>
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="city"
+              value=""
+              disabled
+              placeholder="Selecciona una provincia primero"
+            />
+          )}
         </div>
         <div className="space-y-3">
           <Label htmlFor="status">Estado Inicial</Label>

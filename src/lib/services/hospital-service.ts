@@ -297,6 +297,7 @@ export async function getProvinces() {
       orderBy: { province: 'asc' }
     });
 
+    // Retornar todas las provincias sin filtrar
     return provinces.map(p => p.province).filter(Boolean);
   }
 

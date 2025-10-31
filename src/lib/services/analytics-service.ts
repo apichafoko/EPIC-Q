@@ -35,6 +35,7 @@ export interface AnalyticsFilters {
   projectId?: string;
   hospitalId?: string;
   province?: string;
+  city?: string;
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -376,11 +377,14 @@ export class AnalyticsService {
       });
     });
 
-    return Array.from(provinceMap.entries()).map(([province, data]) => ({
-      province,
-      value: data.value,
-      count: data.count,
-    }));
+    // Retornar todas las provincias sin filtrar
+    return Array.from(provinceMap.entries())
+      .filter(([province]) => province && province.trim() !== '')
+      .map(([province, data]) => ({
+        province,
+        value: data.value,
+        count: data.count,
+      }));
   }
 
   /**
@@ -621,13 +625,14 @@ export class AnalyticsService {
   }
 
   /**
-   * Obtener comparativa por provincias
+   * Obtener comparativa por provincias o ciudades
    */
   static async getProvinceComparison(
     projectId?: string,
-    filters?: AnalyticsFilters
+    filters?: AnalyticsFilters & { groupBy?: 'province' | 'city' }
   ): Promise<Array<{
-    province: string;
+    province?: string;
+    city?: string;
     hospitalCount: number;
     totalCases: number;
     averageProgress: number;
@@ -636,6 +641,7 @@ export class AnalyticsService {
     totalTargetCases?: number;
     totalLoadedCases?: number;
   }>> {
+    const groupBy = filters?.groupBy || 'province';
     const where: any = {};
 
     if (projectId) {
@@ -652,6 +658,20 @@ export class AnalyticsService {
       }
     }
 
+    // Si agrupamos por ciudad, filtrar por provincia si se especifica
+    if (groupBy === 'city' && filters?.province) {
+      where.hospitals = {
+        province: filters.province,
+      };
+    }
+
+    if (filters?.city && groupBy === 'city') {
+      where.hospitals = {
+        ...where.hospitals,
+        city: filters.city,
+      };
+    }
+
     const progressData = await prisma.hospital_progress.findMany({
       where,
       include: {
@@ -660,6 +680,7 @@ export class AnalyticsService {
             id: true,
             name: true,
             province: true,
+            city: true,
             status: true,
           },
         },
@@ -689,8 +710,169 @@ export class AnalyticsService {
       caseMetrics.map((m) => [m.hospital_id, m])
     );
 
-    // Agrupar por provincia
-    const provinceMap = new Map<
+    // Agrupar por provincia o ciudad según groupBy
+    const locationMap = new Map<
+      string,
+      {
+        hospitals: Set<string>;
+        totalProgress: number;
+        totalCompletion: number;
+        totalCases: number;
+        activeHospitals: Set<string>;
+        totalTargetCases: number;
+        totalLoadedCases: number;
+        province?: string;
+        city?: string;
+      }
+    >();
+
+    progressData.forEach((progress) => {
+      const province = progress.hospitals?.province || 'Unknown';
+      const city = progress.hospitals?.city || 'Unknown';
+      const locationKey = groupBy === 'city' ? `${province}:${city}` : province;
+      const hospitalId = progress.hospital_id;
+      const metrics = metricsMap.get(hospitalId);
+      const isActive = progress.hospitals?.status === 'active' || 
+                       progress.hospitals?.status === 'active_recruiting';
+
+      let locationData = locationMap.get(locationKey);
+      if (!locationData) {
+        locationMap.set(locationKey, {
+          hospitals: new Set(),
+          totalProgress: 0,
+          totalCompletion: 0,
+          totalCases: 0,
+          activeHospitals: new Set(),
+          totalTargetCases: 0,
+          totalLoadedCases: 0,
+          province: groupBy === 'city' ? province : undefined,
+          city: groupBy === 'city' ? city : undefined,
+        });
+        locationData = locationMap.get(locationKey)!;
+      }
+
+      locationData.hospitals.add(hospitalId);
+      locationData.totalProgress += progress.progress_percentage || 0;
+      locationData.totalCases += metrics?.cases_created || 0;
+      locationData.totalCompletion += metrics?.completion_percentage || 0;
+
+      if (isActive) {
+        locationData.activeHospitals.add(hospitalId);
+      }
+
+      // Sumar casos esperados y cargados de los períodos
+      progress.project_hospitals?.recruitment_periods?.forEach((period) => {
+        period.case_load_statistics?.forEach((stats) => {
+          locationData!.totalTargetCases += stats.cases_expected || 0;
+          locationData!.totalLoadedCases += stats.cases_loaded || 0;
+        });
+      });
+    });
+
+    return Array.from(locationMap.entries()).map(([locationKey, data]) => {
+      const hospitalCount = data.hospitals.size;
+      return {
+        province: groupBy === 'province' ? locationKey : data.province,
+        city: groupBy === 'city' ? data.city : undefined,
+        hospitalCount,
+        totalCases: data.totalCases,
+        averageProgress:
+          hospitalCount > 0
+            ? Math.round(data.totalProgress / hospitalCount)
+            : 0,
+        averageCompletion:
+          hospitalCount > 0
+            ? Math.round(data.totalCompletion / hospitalCount)
+            : 0,
+        activeHospitals: data.activeHospitals.size,
+        totalTargetCases: data.totalTargetCases || undefined,
+        totalLoadedCases: data.totalLoadedCases || undefined,
+      };
+    });
+  }
+
+  /**
+   * Obtener comparativa por ciudades dentro de una provincia
+   */
+  static async getCityComparison(
+    projectId: string,
+    province: string,
+    filters?: AnalyticsFilters
+  ): Promise<Array<{
+    city: string;
+    province: string;
+    hospitalCount: number;
+    totalCases: number;
+    averageProgress: number;
+    averageCompletion: number;
+    activeHospitals: number;
+    totalTargetCases?: number;
+    totalLoadedCases?: number;
+  }>> {
+    const where: any = {
+      project_id: projectId,
+      hospitals: {
+        province: province,
+      },
+    };
+
+    if (filters?.dateFrom || filters?.dateTo) {
+      where.updated_at = {};
+      if (filters.dateFrom) {
+        where.updated_at.gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        where.updated_at.lte = filters.dateTo;
+      }
+    }
+
+    if (filters?.city) {
+      where.hospitals = {
+        ...where.hospitals,
+        city: filters.city,
+      };
+    }
+
+    const progressData = await prisma.hospital_progress.findMany({
+      where,
+      include: {
+        hospitals: {
+          select: {
+            id: true,
+            name: true,
+            province: true,
+            city: true,
+            status: true,
+          },
+        },
+        project_hospitals: {
+          include: {
+            recruitment_periods: {
+              include: {
+                case_load_statistics: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Obtener métricas de casos
+    const hospitalIds = progressData.map((p) => p.hospital_id);
+    const caseMetrics = await prisma.case_metrics.findMany({
+      where: {
+        hospital_id: { in: hospitalIds },
+      },
+      orderBy: { recorded_date: 'desc' },
+      distinct: ['hospital_id'],
+    });
+
+    const metricsMap = new Map(
+      caseMetrics.map((m) => [m.hospital_id, m])
+    );
+
+    // Agrupar por ciudad
+    const cityMap = new Map<
       string,
       {
         hospitals: Set<string>;
@@ -704,15 +886,15 @@ export class AnalyticsService {
     >();
 
     progressData.forEach((progress) => {
-      const province = progress.hospitals?.province || 'Unknown';
+      const city = progress.hospitals?.city || 'Unknown';
       const hospitalId = progress.hospital_id;
       const metrics = metricsMap.get(hospitalId);
       const isActive = progress.hospitals?.status === 'active' || 
                        progress.hospitals?.status === 'active_recruiting';
 
-      let provinceData = provinceMap.get(province);
-      if (!provinceData) {
-        provinceMap.set(province, {
+      let cityData = cityMap.get(city);
+      if (!cityData) {
+        cityMap.set(city, {
           hospitals: new Set(),
           totalProgress: 0,
           totalCompletion: 0,
@@ -721,30 +903,31 @@ export class AnalyticsService {
           totalTargetCases: 0,
           totalLoadedCases: 0,
         });
-        provinceData = provinceMap.get(province)!;
+        cityData = cityMap.get(city)!;
       }
 
-      provinceData.hospitals.add(hospitalId);
-      provinceData.totalProgress += progress.progress_percentage || 0;
-      provinceData.totalCases += metrics?.cases_created || 0;
-      provinceData.totalCompletion += metrics?.completion_percentage || 0;
+      cityData.hospitals.add(hospitalId);
+      cityData.totalProgress += progress.progress_percentage || 0;
+      cityData.totalCases += metrics?.cases_created || 0;
+      cityData.totalCompletion += metrics?.completion_percentage || 0;
 
       if (isActive) {
-        provinceData.activeHospitals.add(hospitalId);
+        cityData.activeHospitals.add(hospitalId);
       }
 
       // Sumar casos esperados y cargados de los períodos
       progress.project_hospitals?.recruitment_periods?.forEach((period) => {
         period.case_load_statistics?.forEach((stats) => {
-          provinceData!.totalTargetCases += stats.cases_expected || 0;
-          provinceData!.totalLoadedCases += stats.cases_loaded || 0;
+          cityData!.totalTargetCases += stats.cases_expected || 0;
+          cityData!.totalLoadedCases += stats.cases_loaded || 0;
         });
       });
     });
 
-    return Array.from(provinceMap.entries()).map(([province, data]) => {
+    return Array.from(cityMap.entries()).map(([city, data]) => {
       const hospitalCount = data.hospitals.size;
       return {
+        city,
         province,
         hospitalCount,
         totalCases: data.totalCases,
@@ -761,6 +944,482 @@ export class AnalyticsService {
         totalLoadedCases: data.totalLoadedCases || undefined,
       };
     });
+  }
+
+  /**
+   * Obtener lista de ciudades con métricas dentro de una provincia
+   */
+  static async getCitiesByProvince(
+    province: string,
+    projectId?: string
+  ): Promise<Array<{
+    city: string;
+    province: string;
+    hospitalCount: number;
+    totalCases: number;
+    averageProgress: number;
+    averageCompletion: number;
+    activeHospitals: number;
+  }>> {
+    const where: any = {};
+    
+    // Normalizar nombre de provincia
+    const provinceNormalized = province.toLowerCase().trim();
+    
+    // Detectar si es CABA o Buenos Aires
+    const isCABA = provinceNormalized.includes('ciudad autónoma') || 
+                   provinceNormalized.includes('ciudad autonoma') ||
+                   provinceNormalized.includes('autonomous city of buenos aires') ||
+                   provinceNormalized === 'caba' ||
+                   provinceNormalized === 'ciudad de buenos aires';
+    
+    const isBuenosAires = provinceNormalized === 'buenos aires' && !isCABA;
+    
+    // Si es Buenos Aires, también incluir hospitales de CABA
+    // Si es CABA, buscar solo hospitales de CABA
+    const shouldIncludeCABA = isBuenosAires;
+
+    if (projectId) {
+      where.project_id = projectId;
+      // Si es CABA, buscar todas las variaciones de CABA
+      if (isCABA) {
+        where.hospitals = {
+          province: { 
+            in: [
+              'Ciudad Autónoma de Buenos Aires',
+              'Ciudad Autonoma de Buenos Aires',
+              'CABA',
+              'Ciudad de Buenos Aires',
+              'Autonomous City of Buenos Aires'
+            ]
+          }
+        };
+      } 
+      // Si es Buenos Aires, buscar también hospitales de CABA
+      else if (shouldIncludeCABA) {
+        where.hospitals = {
+          OR: [
+            { province: { equals: province } },
+            { 
+              province: { 
+                in: [
+                  'Ciudad Autónoma de Buenos Aires',
+                  'Ciudad Autonoma de Buenos Aires',
+                  'CABA',
+                  'Ciudad de Buenos Aires'
+                ]
+              }
+            }
+          ]
+        };
+      } else {
+        where.hospitals = {
+          province: { equals: province },
+        };
+      }
+    } else {
+      // Si no hay projectId, buscar directamente en hospitals
+      // Si es CABA, buscar todas las variaciones de CABA
+      let hospitalsWhere: any;
+      
+      if (isCABA) {
+        hospitalsWhere = {
+          province: { 
+            in: [
+              'Ciudad Autónoma de Buenos Aires',
+              'Ciudad Autonoma de Buenos Aires',
+              'CABA',
+              'Ciudad de Buenos Aires',
+              'Autonomous City of Buenos Aires'
+            ]
+          }
+        };
+      }
+      // Si es Buenos Aires, incluir también hospitales de CABA
+      else if (shouldIncludeCABA) {
+        hospitalsWhere = {
+          OR: [
+            { province: { equals: province } },
+            { 
+              province: { 
+                in: [
+                  'Ciudad Autónoma de Buenos Aires',
+                  'Ciudad Autonoma de Buenos Aires',
+                  'CABA',
+                  'Ciudad de Buenos Aires'
+                ]
+              }
+            }
+          ]
+        };
+      } else {
+        hospitalsWhere = {
+          province: { equals: province },
+        };
+      }
+      
+      const hospitalsData = await prisma.hospitals.findMany({
+        where: hospitalsWhere,
+        select: {
+          id: true,
+          name: true,
+          province: true,
+          city: true,
+          status: true,
+        },
+      });
+
+      // Retornar agrupación básica por ciudad sin métricas de proyecto
+      const cityMap = new Map<
+        string,
+        {
+          hospitals: Set<string>;
+          activeHospitals: Set<string>;
+        }
+      >();
+
+      hospitalsData.forEach((hospital) => {
+        const city = hospital.city || 'Unknown';
+        let cityData = cityMap.get(city);
+        if (!cityData) {
+          cityMap.set(city, {
+            hospitals: new Set(),
+            activeHospitals: new Set(),
+          });
+          cityData = cityMap.get(city)!;
+        }
+
+        cityData.hospitals.add(hospital.id);
+        if (hospital.status === 'active' || hospital.status === 'active_recruiting') {
+          cityData.activeHospitals.add(hospital.id);
+        }
+      });
+
+      return Array.from(cityMap.entries()).map(([city, data]) => ({
+        city,
+        province,
+        hospitalCount: data.hospitals.size,
+        totalCases: 0,
+        averageProgress: 0,
+        averageCompletion: 0,
+        activeHospitals: data.activeHospitals.size,
+      }));
+    }
+
+    // Si hay projectId, buscar hospitales del proyecto que estén en esa provincia
+    let projectHospitalIds: string[] = [];
+    if (projectId) {
+      const projectHospitals = await prisma.project_hospitals.findMany({
+        where: {
+          project_id: projectId,
+        },
+        select: {
+          hospital_id: true,
+        },
+      });
+      projectHospitalIds = projectHospitals.map(ph => ph.hospital_id);
+      
+      // Verificar específicamente el hospital mencionado por el usuario
+      if (projectHospitalIds.includes('hospital-1760994034179-fxo5mdo5r')) {
+        console.log(`[DEBUG] ✅ Hospital específico encontrado en proyecto: hospital-1760994034179-fxo5mdo5r`);
+      }
+      
+      console.log(`[DEBUG] Hospitales del proyecto ${projectId} en ${province}:`, projectHospitalIds.length);
+    }
+
+    // Obtener TODOS los hospitales de la provincia (incluso sin progreso)
+    // Si hay projectId, solo buscar hospitales que estén en ese proyecto
+    // IMPORTANTE: Si es CABA, buscar todas las variaciones. Si es Buenos Aires, incluir también hospitales de CABA
+    const allHospitalsWhere: any = {};
+    
+    if (isCABA) {
+      allHospitalsWhere.province = { 
+        in: [
+          'Ciudad Autónoma de Buenos Aires',
+          'Ciudad Autonoma de Buenos Aires',
+          'CABA',
+          'Ciudad de Buenos Aires',
+          'Autonomous City of Buenos Aires'
+        ]
+      };
+    } else if (shouldIncludeCABA) {
+      allHospitalsWhere.OR = [
+        { province: { equals: province } },
+        { 
+          province: { 
+            in: [
+              'Ciudad Autónoma de Buenos Aires',
+              'Ciudad Autonoma de Buenos Aires',
+              'CABA',
+              'Ciudad de Buenos Aires'
+            ]
+          }
+        }
+      ];
+    } else {
+      allHospitalsWhere.province = { equals: province };
+    }
+    
+    if (projectId && projectHospitalIds.length > 0) {
+      allHospitalsWhere.id = { in: projectHospitalIds };
+    }
+    
+    const allHospitalsInProvince = await prisma.hospitals.findMany({
+      where: allHospitalsWhere,
+      select: {
+        id: true,
+        name: true,
+        province: true,
+        city: true,
+        status: true,
+      },
+    });
+
+    // Construir where para hospital_progress
+    const whereProgress: any = {
+      hospitals: isCABA ? {
+        province: { 
+          in: [
+            'Ciudad Autónoma de Buenos Aires',
+            'Ciudad Autonoma de Buenos Aires',
+            'CABA',
+            'Ciudad de Buenos Aires',
+            'Autonomous City of Buenos Aires'
+          ]
+        }
+      } : shouldIncludeCABA ? {
+        OR: [
+          { province: { equals: province } },
+          { 
+            province: { 
+              in: [
+                'Ciudad Autónoma de Buenos Aires',
+                'Ciudad Autonoma de Buenos Aires',
+                'CABA',
+                'Ciudad de Buenos Aires'
+              ]
+            }
+          }
+        ]
+      } : {
+        province: { equals: province },
+      },
+    };
+
+    if (projectId && projectHospitalIds.length > 0) {
+      whereProgress.hospital_id = { in: projectHospitalIds };
+      whereProgress.project_id = projectId;
+    }
+
+    const progressData = await prisma.hospital_progress.findMany({
+      where: whereProgress,
+      include: {
+        hospitals: {
+          select: {
+            id: true,
+            name: true,
+            province: true,
+            city: true,
+            status: true,
+          },
+        },
+      },
+    });
+    
+    console.log(`[DEBUG] Hospitales encontrados para ${province}:`, allHospitalsInProvince.length);
+    console.log(`[DEBUG] Hospitales con city:`, allHospitalsInProvince.filter(h => h.city && h.city.trim() !== '').length);
+    
+    if (allHospitalsInProvince.length > 0) {
+      const citiesFound = new Set(
+        allHospitalsInProvince
+          .map(h => h.city)
+          .filter(Boolean)
+          .filter(c => c && c.trim() !== '')
+      );
+      console.log(`[DEBUG] Ciudades únicas encontradas:`, Array.from(citiesFound));
+      console.log(`[DEBUG] Primeros 5 hospitales:`, allHospitalsInProvince.slice(0, 5).map(h => ({ name: h.name, city: h.city, province: h.province })));
+    }
+
+    // Obtener métricas de casos
+    const progressHospitalIds = progressData.map((p) => p.hospital_id);
+    const caseMetrics = await prisma.case_metrics.findMany({
+      where: {
+        hospital_id: { in: progressHospitalIds },
+      },
+      orderBy: { recorded_date: 'desc' },
+      distinct: ['hospital_id'],
+    });
+
+    const metricsMap = new Map(
+      caseMetrics.map((m) => [m.hospital_id, m])
+    );
+
+    const progressMap = new Map(
+      progressData.map((p) => [p.hospital_id, p])
+    );
+
+    // Agrupar por ciudad - incluir TODOS los hospitales, no solo los que tienen progreso
+    const cityMap = new Map<
+      string,
+      {
+        hospitals: Set<string>;
+        totalProgress: number;
+        totalCompletion: number;
+        totalCases: number;
+        activeHospitals: Set<string>;
+      }
+    >();
+
+    // Procesar hospitales con progreso
+    progressData.forEach((progress) => {
+      // Obtener ciudad
+      let city = progress.hospitals?.city;
+      
+      // Si el hospital es de CABA pero no tiene ciudad, usar "CABA" como ciudad
+      const hospitalProvince = progress.hospitals?.province?.toLowerCase().trim() || '';
+      const isCABA = hospitalProvince.includes('ciudad autónoma') || 
+                     hospitalProvince.includes('ciudad autonoma') ||
+                     hospitalProvince.includes('caba') ||
+                     hospitalProvince === 'ciudad de buenos aires';
+      
+      if (!city || city.trim() === '') {
+        if (isCABA) {
+          city = 'CABA'; // Si es de CABA, usar "CABA" como ciudad
+        } else {
+          city = 'Unknown';
+        }
+      } else {
+        city = city.trim();
+        // Si el hospital es de CABA, normalizar la ciudad a "CABA"
+        if (isCABA && (city.toLowerCase() === 'caba' || city.includes('CABA'))) {
+          city = 'CABA';
+        }
+      }
+      
+      const hospitalId = progress.hospital_id;
+      const metrics = metricsMap.get(hospitalId);
+      const isActive = progress.hospitals?.status === 'active' || 
+                       progress.hospitals?.status === 'active_recruiting';
+
+      let cityData = cityMap.get(city);
+      if (!cityData) {
+        cityMap.set(city, {
+          hospitals: new Set(),
+          totalProgress: 0,
+          totalCompletion: 0,
+          totalCases: 0,
+          activeHospitals: new Set(),
+        });
+        cityData = cityMap.get(city)!;
+      }
+
+      cityData.hospitals.add(hospitalId);
+      cityData.totalProgress += progress.progress_percentage || 0;
+      cityData.totalCases += metrics?.cases_created || 0;
+      cityData.totalCompletion += metrics?.completion_percentage || 0;
+
+      if (isActive) {
+        cityData.activeHospitals.add(hospitalId);
+      }
+    });
+
+    // Incluir hospitales SIN progreso para tener el conteo completo
+    allHospitalsInProvince.forEach((hospital) => {
+      if (!progressMap.has(hospital.id)) {
+        // Obtener ciudad
+        let city = hospital.city;
+        
+        // Si el hospital es de CABA pero no tiene ciudad, usar "CABA" como ciudad
+        const hospitalProvince = hospital.province?.toLowerCase().trim() || '';
+        const isCABA = hospitalProvince.includes('ciudad autónoma') || 
+                       hospitalProvince.includes('ciudad autonoma') ||
+                       hospitalProvince.includes('caba') ||
+                       hospitalProvince === 'ciudad de buenos aires';
+        
+        if (!city || city.trim() === '') {
+          if (isCABA) {
+            city = 'CABA'; // Si es de CABA, usar "CABA" como ciudad
+          } else {
+            city = 'Unknown';
+          }
+        } else {
+          city = city.trim();
+          // Si el hospital es de CABA, normalizar la ciudad a "CABA"
+          if (isCABA && (city.toLowerCase() === 'caba' || city.includes('CABA'))) {
+            city = 'CABA';
+          }
+        }
+        let cityData = cityMap.get(city);
+        if (!cityData) {
+          cityMap.set(city, {
+            hospitals: new Set(),
+            totalProgress: 0,
+            totalCompletion: 0,
+            totalCases: 0,
+            activeHospitals: new Set(),
+          });
+          cityData = cityMap.get(city)!;
+        }
+
+        cityData.hospitals.add(hospital.id);
+        if (hospital.status === 'active' || hospital.status === 'active_recruiting') {
+          cityData.activeHospitals.add(hospital.id);
+        }
+      }
+    });
+
+    const result = Array.from(cityMap.entries())
+      .filter(([city]) => {
+        // Filtrar ciudades inválidas pero permitir nombres de ciudades válidos
+        // Permitir "CABA" explícitamente ya que es un caso especial válido
+        const cityTrimmed = city.trim();
+        return cityTrimmed && 
+               cityTrimmed !== '' && 
+               cityTrimmed !== 'null' && 
+               cityTrimmed !== 'undefined' &&
+               cityTrimmed !== 'Unknown';
+      })
+      .map(([city, data]) => {
+        const hospitalCount = data.hospitals.size;
+        return {
+          city: city.trim(),
+          province,
+          hospitalCount,
+          totalCases: data.totalCases,
+          averageProgress:
+            hospitalCount > 0
+              ? Math.round(data.totalProgress / hospitalCount)
+              : 0,
+          averageCompletion:
+            hospitalCount > 0
+              ? Math.round(data.totalCompletion / hospitalCount)
+              : 0,
+          activeHospitals: data.activeHospitals.size,
+        };
+      })
+      .sort((a, b) => b.hospitalCount - a.hospitalCount); // Ordenar por cantidad de hospitales
+    
+    console.log(`[DEBUG] Resultado final de ciudades para ${province}:`, result.length);
+    console.log(`[DEBUG] Ciudades:`, result.map(r => ({ city: r.city, hospitals: r.hospitalCount })));
+    
+    // Si no hay ciudades pero hay hospitales, puede ser que no tengan el campo city completado
+    // O que la ciudad sea el mismo nombre que la provincia (como "CABA" en "Ciudad Autónoma de Buenos Aires")
+    if (result.length === 0 && allHospitalsInProvince.length > 0) {
+      const hospitalsWithoutCity = allHospitalsInProvince.filter(h => !h.city || h.city.trim() === '');
+      const hospitalsWithCity = allHospitalsInProvince.filter(h => h.city && h.city.trim() !== '');
+      
+      console.warn(`[DEBUG] ADVERTENCIA: Hay ${allHospitalsInProvince.length} hospitales en ${province} pero ninguna ciudad pasa el filtro`);
+      console.warn(`[DEBUG] Hospitales sin ciudad:`, hospitalsWithoutCity.length);
+      console.warn(`[DEBUG] Hospitales con ciudad:`, hospitalsWithCity.length, hospitalsWithCity.slice(0, 5).map(h => ({ name: h.name, city: h.city })));
+      
+      // Si hay hospitales con ciudad pero no pasaron el filtro, revisar por qué
+      if (hospitalsWithCity.length > 0) {
+        const filteredCities = Array.from(cityMap.keys());
+        console.warn(`[DEBUG] Ciudades en cityMap antes del filtro:`, filteredCities);
+      }
+    }
+    
+    return result;
   }
 
   /**

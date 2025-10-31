@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../compone
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../../components/ui/table';
 import { DocumentationStackedBar } from '../../../../../components/admin/overview/DocumentationStackedBar';
 import { ProvinceChoropleth } from '../../../../../components/admin/overview/ProvinceChoropleth';
+import { CityDetailMap } from '../../../../../components/admin/overview/CityDetailMap';
+import { GeographicBreadcrumb } from '../../../../../components/ui/geographic-breadcrumb';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../../../../components/ui/dropdown-menu';
 import { Loader2, Plus, Edit, Trash2, UserPlus, Building2, Calendar, Target, Users, AlertTriangle, MoreHorizontal, Mail, Eye, X, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -131,6 +133,20 @@ export default function ProjectDetailPage() {
   const [showCreateHospitalModal, setShowCreateHospitalModal] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [selectedTab, setSelectedTab] = useState('overview');
+  
+  // Estados para navegación geográfica
+  const [geographicLevel, setGeographicLevel] = useState<'province' | 'city'>('province');
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [citiesData, setCitiesData] = useState<Array<{
+    city: string;
+    province: string;
+    hospitalCount: number;
+    totalCases: number;
+    averageProgress: number;
+    averageCompletion: number;
+    activeHospitals: number;
+  }>>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
   
   // Estados de carga usando el hook personalizado
   const { isLoading: isSaving, executeWithLoading: executeWithSaving } = useLoadingState();
@@ -256,6 +272,54 @@ export default function ProjectDetailPage() {
       toast.error('Error al cargar el proyecto');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleProvinceClick = async (province: string) => {
+    setSelectedProvince(province);
+    setGeographicLevel('city');
+    await loadCitiesForProvince(province);
+  };
+
+  const handleBackToProvinces = () => {
+    setGeographicLevel('province');
+    setSelectedProvince(null);
+    setCitiesData([]);
+  };
+
+  const loadCitiesForProvince = async (province: string) => {
+    try {
+      setLoadingCities(true);
+      const params = new URLSearchParams();
+      params.append('metric', 'cities_by_province');
+      params.append('province', province);
+      params.append('projectId', projectId);
+
+      const response = await fetch(`/api/analytics?${params.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cargar ciudades');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        console.log(`[DEBUG] Ciudades cargadas para ${province}:`, result.data);
+        setCitiesData(result.data);
+        
+        if (result.data.length === 0) {
+          toast.info(`No se encontraron ciudades con datos para ${province}`);
+        }
+      } else {
+        console.error('[DEBUG] Error en respuesta API:', result);
+        toast.error('Error al cargar ciudades');
+      }
+    } catch (error) {
+      console.error('Error loading cities:', error);
+      toast.error('Error al cargar ciudades');
+    } finally {
+      setLoadingCities(false);
     }
   };
 
@@ -1370,12 +1434,41 @@ export default function ProjectDetailPage() {
                       </div>
                     </div>
                   )}
+                  {/* Navegación geográfica */}
+                  {geographicLevel === 'city' && selectedProvince && (
+                    <GeographicBreadcrumb
+                      province={selectedProvince}
+                      onBack={handleBackToProvinces}
+                    />
+                  )}
+
                   {/* Provincias / Distribución rápida */}
-                  {project?.summary?.byProvince && (
+                  {geographicLevel === 'province' && project?.summary?.byProvince && (
                     <ProvinceChoropleth
                       data={project.summary.byProvince as any}
                       title="Distribución por provincia"
+                      onProvinceClick={handleProvinceClick}
                     />
+                  )}
+
+                  {/* Detalle de ciudades */}
+                  {geographicLevel === 'city' && selectedProvince && (
+                    loadingCities ? (
+                      <Card>
+                        <CardContent className="py-12">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-muted-foreground">Cargando ciudades...</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <CityDetailMap
+                        province={selectedProvince}
+                        data={citiesData}
+                        onBack={handleBackToProvinces}
+                      />
+                    )
                   )}
 
                   {project?.summary?.byProvince && (

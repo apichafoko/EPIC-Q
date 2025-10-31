@@ -15,6 +15,8 @@ import { Checkbox } from '../../../../components/ui/checkbox';
 import { Progress } from '../../../../components/ui/progress';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { Loader2, Save, CheckCircle } from 'lucide-react';
+import { useCitiesByProvince } from '../../../../hooks/use-cities-by-province';
+import { useStatesByCountry } from '../../../../hooks/use-states-by-country';
 import { LoadingButton } from '../../../../components/ui/loading-button';
 import { useLoadingState } from '../../../../hooks/useLoadingState';
 import { toast } from 'sonner';
@@ -65,6 +67,9 @@ export default function HospitalFormPage() {
 
   const totalSteps = 3;
   const progress = (currentStep / totalSteps) * 100;
+
+  // Cargar provincias desde el API
+  const { states: provinces, loading: loadingProvinces } = useStatesByCountry('AR');
 
   // Debug: Log formData changes (comentado para reducir logs)
   // console.log('🔄 Render - formData.name:', formData.name);
@@ -174,11 +179,21 @@ export default function HospitalFormPage() {
     }
   }, [user]);
 
+  // Cargar ciudades basadas en la provincia seleccionada
+  const { cities, loading: loadingCities } = useCitiesByProvince(
+    formData.province,
+    currentProject?.id
+  );
+
   const handleInputChange = (field: string, value: string | number | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Si se cambia la provincia, limpiar la ciudad seleccionada
+      if (field === 'province') {
+        updated.city = '';
+      }
+      return updated;
+    });
     
     // Limpiar el campo de la lista de pendientes si se está modificando
     if (pendingFields.includes(field)) {
@@ -470,35 +485,31 @@ export default function HospitalFormPage() {
             Provincia {isFieldPending('province') && <span className="text-red-500">*</span>}
           </Label>
           {formData.isLocationEditable ? (
-            <Select value={formData.province} onValueChange={(value) => handleInputChange('province', value)}>
+            <Select 
+              value={formData.province} 
+              onValueChange={(value) => handleInputChange('province', value)}
+              disabled={loadingProvinces || !formData.isLocationEditable}
+            >
               <SelectTrigger className={getFieldClasses('province')}>
-                <SelectValue placeholder="Seleccionar provincia" />
+                <SelectValue placeholder={loadingProvinces ? 'Cargando provincias...' : 'Seleccionar provincia'} />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Buenos Aires">Buenos Aires</SelectItem>
-                <SelectItem value="CABA">Ciudad Autónoma de Buenos Aires</SelectItem>
-                <SelectItem value="Catamarca">Catamarca</SelectItem>
-                <SelectItem value="Chaco">Chaco</SelectItem>
-                <SelectItem value="Chubut">Chubut</SelectItem>
-                <SelectItem value="Córdoba">Córdoba</SelectItem>
-                <SelectItem value="Corrientes">Corrientes</SelectItem>
-                <SelectItem value="Entre Ríos">Entre Ríos</SelectItem>
-                <SelectItem value="Formosa">Formosa</SelectItem>
-                <SelectItem value="Jujuy">Jujuy</SelectItem>
-                <SelectItem value="La Pampa">La Pampa</SelectItem>
-                <SelectItem value="La Rioja">La Rioja</SelectItem>
-                <SelectItem value="Mendoza">Mendoza</SelectItem>
-                <SelectItem value="Misiones">Misiones</SelectItem>
-                <SelectItem value="Neuquén">Neuquén</SelectItem>
-                <SelectItem value="Río Negro">Río Negro</SelectItem>
-                <SelectItem value="Salta">Salta</SelectItem>
-                <SelectItem value="San Juan">San Juan</SelectItem>
-                <SelectItem value="San Luis">San Luis</SelectItem>
-                <SelectItem value="Santa Cruz">Santa Cruz</SelectItem>
-                <SelectItem value="Santa Fe">Santa Fe</SelectItem>
-                <SelectItem value="Santiago del Estero">Santiago del Estero</SelectItem>
-                <SelectItem value="Tierra del Fuego">Tierra del Fuego</SelectItem>
-                <SelectItem value="Tucumán">Tucumán</SelectItem>
+              <SelectContent side="bottom" sideOffset={4} className="max-h-[300px]">
+                {loadingProvinces ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Cargando provincias...</span>
+                  </div>
+                ) : provinces.length > 0 ? (
+                  provinces.map((province) => (
+                    <SelectItem key={province.name} value={province.name}>
+                      {province.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center p-4">
+                    <span className="text-sm text-muted-foreground">No hay provincias disponibles</span>
+                  </div>
+                )}
               </SelectContent>
             </Select>
           ) : (
@@ -522,13 +533,48 @@ export default function HospitalFormPage() {
             Ciudad {isFieldPending('city') && <span className="text-red-500">*</span>}
           </Label>
           {formData.isLocationEditable ? (
-            <Input
-              id="city"
-              value={formData.city}
-              onChange={(e) => handleInputChange('city', e.target.value)}
-              placeholder="Ej: Buenos Aires, Córdoba, Rosario..."
-              className={getFieldClasses('city')}
-            />
+            formData.province ? (
+              <Select
+                value={formData.city}
+                onValueChange={(value) => handleInputChange('city', value)}
+                disabled={loadingCities}
+              >
+                <SelectTrigger className={getFieldClasses('city')}>
+                  <SelectValue placeholder={loadingCities ? 'Cargando ciudades...' : 'Seleccionar ciudad'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingCities ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Cargando ciudades...</span>
+                    </div>
+                  ) : cities.length > 0 ? (
+                    cities.map((cityOption) => (
+                      <SelectItem key={cityOption.city} value={cityOption.city}>
+                        {cityOption.city}
+                        {cityOption.hospitalCount > 0 && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({cityOption.hospitalCount} {cityOption.hospitalCount === 1 ? 'hospital' : 'hospitales'})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center p-4">
+                      <span className="text-sm text-muted-foreground">No hay ciudades disponibles para esta provincia</span>
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="city"
+                value=""
+                disabled
+                placeholder="Selecciona una provincia primero"
+                className={getFieldClasses('city')}
+              />
+            )
           ) : (
             <Input
               id="city"

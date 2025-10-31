@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ export interface ReportFilters {
   projectId?: string;
   hospitalId?: string;
   province?: string;
+  city?: string;
   dateFrom?: string;
   dateTo?: string;
   granularity?: 'day' | 'week' | 'month';
@@ -36,11 +38,14 @@ export function ReportFilters({
   showGranularity = false,
   showLevel = false,
 }: ReportFiltersProps) {
+  const t = useTranslations();
   const [filters, setFilters] = useState<ReportFilters>({
     granularity: 'day',
     level: 'global',
   });
   const [isExpanded, setIsExpanded] = useState(false);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
 
   useEffect(() => {
     onFiltersChange(filters);
@@ -49,11 +54,57 @@ export function ReportFilters({
     filters.projectId,
     filters.hospitalId,
     filters.province,
+    filters.city,
     filters.dateFrom,
     filters.dateTo,
     filters.granularity,
     filters.level,
   ]);
+
+  // Cargar ciudades cuando se selecciona una provincia
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!filters.province) {
+        setCities([]);
+        setFilters((prev) => ({ ...prev, city: undefined }));
+        return;
+      }
+
+      // Si no hay projectId, intentar cargar ciudades sin proyecto (todas las ciudades de la provincia)
+      if (!filters.projectId) {
+        // Puede funcionar sin proyecto, pero mejor tenerlo
+        setCities([]);
+        return;
+      }
+
+      try {
+        setLoadingCities(true);
+        const params = new URLSearchParams();
+        params.append('metric', 'cities_by_province');
+        params.append('province', filters.province);
+        params.append('projectId', filters.projectId);
+
+        const response = await fetch(`/api/analytics?${params.toString()}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const cityNames = Array.from(
+            new Set(result.data.map((d: any) => d.city).filter(Boolean))
+          ) as string[];
+          setCities(cityNames);
+        } else {
+          setCities([]);
+        }
+      } catch (error) {
+        console.error('Error loading cities:', error);
+        setCities([]);
+      } finally {
+        setLoadingCities(false);
+      }
+    };
+
+    loadCities();
+  }, [filters.province, filters.projectId]);
 
   const updateFilter = (key: keyof ReportFilters, value: string | undefined) => {
     setFilters((prev) => {
@@ -70,7 +121,7 @@ export function ReportFilters({
   };
 
   const hasActiveFilters = Boolean(
-    filters.projectId || filters.hospitalId || filters.province || 
+    filters.projectId || filters.hospitalId || filters.province || filters.city ||
     filters.dateFrom || filters.dateTo
   );
 
@@ -162,7 +213,11 @@ export function ReportFilters({
                 <Label htmlFor="province">Provincia</Label>
                 <Select
                   value={filters.province || 'all'}
-                  onValueChange={(value) => updateFilter('province', value === 'all' ? undefined : value)}
+                  onValueChange={(value) => {
+                    updateFilter('province', value === 'all' ? undefined : value);
+                    // Limpiar ciudad cuando cambia la provincia
+                    updateFilter('city', undefined);
+                  }}
                 >
                   <SelectTrigger id="province">
                     <SelectValue placeholder="Todas las provincias" />
@@ -172,6 +227,29 @@ export function ReportFilters({
                     {provinces.map((province) => (
                       <SelectItem key={province} value={province}>
                         {province}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {filters.province && cities.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="city">{t('filters.city')}</Label>
+                <Select
+                  value={filters.city || 'all'}
+                  onValueChange={(value) => updateFilter('city', value === 'all' ? undefined : value)}
+                  disabled={loadingCities}
+                >
+                  <SelectTrigger id="city">
+                    <SelectValue placeholder={loadingCities ? 'Cargando...' : 'Todas las ciudades'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las ciudades</SelectItem>
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
                       </SelectItem>
                     ))}
                   </SelectContent>
