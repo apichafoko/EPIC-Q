@@ -231,8 +231,13 @@ export async function getCitiesByProvince(province: string, country: string = 'A
     // Verificar cache
     if (cache.cities && cache.cities.has(cacheKey)) {
       const cached = cache.cities.get(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        console.log(`[GeographicService] Usando ciudades en caché para ${province}: ${cached.length} ciudades`);
+        return cached;
+      }
     }
+
+    console.log(`[GeographicService] Obteniendo ciudades para provincia: ${province}`);
 
     // Obtener mapeo de provincias a códigos ISO2
     const provinceCodeMap = await getProvinceCodeMap(country);
@@ -243,17 +248,25 @@ export async function getCitiesByProvince(province: string, country: string = 'A
                          provinceCodeMap.get(normalizedProvince.toLowerCase());
 
     if (!provinceCode) {
-      console.warn(`No se encontró código ISO2 para provincia: ${province}`);
-      return getFallbackCities(province, country);
+      console.warn(`[GeographicService] No se encontró código ISO2 para provincia: ${province}, usando fallback`);
+      const fallbackCities = getFallbackCities(province, country);
+      console.log(`[GeographicService] Fallback para ${province}: ${fallbackCities.length} ciudades`);
+      return fallbackCities;
     }
+
+    console.log(`[GeographicService] Código ISO2 encontrado para ${province}: ${provinceCode}`);
 
     // Obtener ciudades usando el paquete
     const packageCities = await getCitiesOfState(country, provinceCode);
 
     if (!Array.isArray(packageCities) || packageCities.length === 0) {
-      console.warn(`No se encontraron ciudades para ${province} con código ${provinceCode}`);
-      return getFallbackCities(province, country);
+      console.warn(`[GeographicService] No se encontraron ciudades del paquete para ${province} (código ${provinceCode}), usando fallback`);
+      const fallbackCities = getFallbackCities(province, country);
+      console.log(`[GeographicService] Fallback para ${province}: ${fallbackCities.length} ciudades`);
+      return fallbackCities;
     }
+
+    console.log(`[GeographicService] Paquete retornó ${packageCities.length} ciudades para ${province}`);
 
     // Adaptar ciudades del paquete a nuestra interfaz
     const cities: City[] = packageCities.map(city => adaptCity(city, country, provinceCode));
@@ -264,10 +277,14 @@ export async function getCitiesByProvince(province: string, country: string = 'A
     }
     cache.cities.set(cacheKey, cities);
 
+    console.log(`[GeographicService] Retornando ${cities.length} ciudades para ${province}`);
     return cities;
   } catch (error) {
-    console.error('Error fetching cities from @countrystatecity/countries:', error);
-    return getFallbackCities(province, country);
+    console.error(`[GeographicService] Error fetching cities from @countrystatecity/countries para ${province}:`, error);
+    console.error(`[GeographicService] Error details:`, error instanceof Error ? error.message : String(error));
+    const fallbackCities = getFallbackCities(province, country);
+    console.log(`[GeographicService] Usando fallback para ${province}: ${fallbackCities.length} ciudades`);
+    return fallbackCities;
   }
 }
 
@@ -375,8 +392,22 @@ function getFallbackCities(province: string, country: string): City[] {
         'Tigre', 'Pilar', 'Merlo', 'Morón', 'San Martín', 'San Miguel',
         'Malvinas Argentinas', 'Ituzaingó', 'Hurlingham', 'Tres de Febrero'
       ],
-      'Ciudad Autónoma de Buenos Aires': ['CABA', 'Buenos Aires'],
-      'CABA': ['CABA', 'Buenos Aires'],
+      'Ciudad Autónoma de Buenos Aires': [
+        'CABA', 'Buenos Aires', 'Palermo', 'Recoleta', 'San Telmo', 'La Boca',
+        'Belgrano', 'Villa Crespo', 'Caballito', 'Almagro', 'Flores', 'Villa Devoto',
+        'Villa Urquiza', 'Nuñez', 'Saavedra', 'Coghlan', 'Villa Pueyrredón',
+        'Villa Ortúzar', 'Chacarita', 'Colegiales', 'Barracas', 'Parque Patricios',
+        'Nueva Pompeya', 'Boedo', 'San Cristóbal', 'Balvanera', 'Monserrat',
+        'San Nicolás', 'Retiro', 'Puerto Madero', 'Constitución'
+      ],
+      'CABA': [
+        'CABA', 'Buenos Aires', 'Palermo', 'Recoleta', 'San Telmo', 'La Boca',
+        'Belgrano', 'Villa Crespo', 'Caballito', 'Almagro', 'Flores', 'Villa Devoto',
+        'Villa Urquiza', 'Nuñez', 'Saavedra', 'Coghlan', 'Villa Pueyrredón',
+        'Villa Ortúzar', 'Chacarita', 'Colegiales', 'Barracas', 'Parque Patricios',
+        'Nueva Pompeya', 'Boedo', 'San Cristóbal', 'Balvanera', 'Monserrat',
+        'San Nicolás', 'Retiro', 'Puerto Madero', 'Constitución'
+      ],
       'Córdoba': [
         'Córdoba', 'Villa María', 'Río Cuarto', 'San Francisco', 'Villa Carlos Paz',
         'Jesús María', 'Villa Allende', 'La Calera', 'Unquillo', 'Morteros'

@@ -21,7 +21,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log(`[API Cities] Obteniendo ciudades para provincia: ${province}, país: ${country}`);
+
     const cities = await GeographicService.getCitiesByProvince(province, country);
+
+    console.log(`[API Cities] Ciudades obtenidas: ${cities.length} para ${province}`);
+    if (cities.length > 0) {
+      console.log(`[API Cities] Primeras 5 ciudades:`, cities.slice(0, 5).map(c => c.name));
+    }
+
+    // Determinar la fuente basándose en la cantidad de ciudades
+    // Si hay muy pocas ciudades, probablemente se usó el fallback
+    const source = cities.length < 10 ? 'fallback' : '@countrystatecity/countries';
 
     return NextResponse.json({
       success: true,
@@ -36,16 +47,44 @@ export async function GET(request: NextRequest) {
       province,
       country,
       count: cities.length,
-      source: '@countrystatecity/countries',
+      source: source,
     });
   } catch (error) {
-    console.error('Error fetching cities:', error);
+    console.error('[API Cities] Error fetching cities:', error);
+    console.error('[API Cities] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('[API Cities] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    
+    // En caso de error, intentar usar fallback directamente
+    try {
+      const province = new URL(request.url).searchParams.get('province');
+      const country = new URL(request.url).searchParams.get('country') || 'AR';
+      if (province) {
+        const fallbackCities = await GeographicService.getCitiesByProvince(province, country);
+        if (fallbackCities.length > 0) {
+          return NextResponse.json({
+            success: true,
+            data: fallbackCities.map(city => ({
+              name: city.name,
+              province: province,
+              country: country,
+            })),
+            province,
+            country,
+            count: fallbackCities.length,
+            source: 'fallback',
+          });
+        }
+      }
+    } catch (fallbackError) {
+      console.error('[API Cities] Error en fallback:', fallbackError);
+    }
+
     return NextResponse.json(
       { 
         success: false,
         error: 'Error al obtener ciudades',
-        data: [], // Retornar lista vacía en caso de error
-        source: 'fallback'
+        data: [],
+        source: 'error'
       },
       { status: 500 }
     );
