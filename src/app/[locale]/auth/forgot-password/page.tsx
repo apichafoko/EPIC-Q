@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { useTranslations } from '../../../../hooks/useTranslations';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
@@ -12,6 +13,8 @@ import Link from 'next/link';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslations();
+  const params = useParams();
+  const locale = params?.locale as string || 'es';
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -28,17 +31,19 @@ export default function ForgotPasswordPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, locale }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setIsSuccess(true);
       } else {
-        const data = await response.json();
-        setError(data.message || t('auth.somethingWentWrong'));
+        setError(data.message || t('auth.somethingWentWrong') || 'Error al enviar solicitud');
       }
     } catch (error) {
-      setError(t('auth.somethingWentWrong'));
+      console.error('Error requesting password reset:', error);
+      setError(t('auth.somethingWentWrong') || 'Error al enviar solicitud');
     } finally {
       setIsLoading(false);
     }
@@ -60,14 +65,9 @@ export default function ForgotPasswordPage() {
                 </p>
                 <div className="space-y-4">
                   <Button asChild className="w-full">
-                    <Link href="/auth/login">
+                    <Link href={`/${locale}/auth/login`}>
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       {t('auth.backToLogin')}
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href="/auth/resend-email">
-                      {t('auth.resendEmail')}
                     </Link>
                   </Button>
                 </div>
@@ -131,7 +131,7 @@ export default function ForgotPasswordPage() {
 
             <div className="mt-6 text-center">
               <Link
-                href="/auth/login"
+                href={`/${locale}/auth/login`}
                 className="text-sm text-blue-600 hover:text-blue-500 flex items-center justify-center"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />

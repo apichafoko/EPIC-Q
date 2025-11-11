@@ -124,9 +124,9 @@ class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, userName?: string) {
+  async sendPasswordResetEmail(email: string, resetToken: string, userName?: string, locale: string = 'es') {
     const baseUrl = getAppBaseUrl();
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${baseUrl}/${locale}/auth/reset-password?token=${resetToken}`;
     
     // Intentar usar template si está disponible
     const template = await EmailTemplateService.getTemplateByName('password_reset');
@@ -177,7 +177,7 @@ class EmailService {
             </div>
             
             <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              Si no solicitaste este cambio, puedes ignorar este correo. El enlace expirará en 24 horas.
+              Si no solicitaste este cambio, puedes ignorar este correo. El enlace expirará en 1 hora.
             </p>
             
             <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
@@ -198,7 +198,7 @@ class EmailService {
         
         Si no solicitaste este cambio, puedes ignorar este correo.
         
-        El enlace expirará en 24 horas.
+        El enlace expirará en 1 hora.
       `,
     });
   }

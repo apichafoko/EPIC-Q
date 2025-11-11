@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../../../../contexts/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from '../../../../hooks/useTranslations';
 import { AuthGuard } from '../../../../components/auth/auth-guard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
@@ -11,11 +11,14 @@ import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const { t } = useTranslations();
   const { login, isLoading } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const locale = params?.locale as string || 'es';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -115,6 +118,15 @@ export default function LoginPage() {
                   t('auth.login.signIn')
                 )}
               </Button>
+
+              <div className="text-center mt-4">
+                <Link
+                  href={`/${locale}/auth/forgot-password`}
+                  className="text-sm text-blue-600 hover:text-blue-500 hover:underline"
+                >
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>

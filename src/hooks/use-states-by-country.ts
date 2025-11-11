@@ -34,15 +34,20 @@ export function useStatesByCountry(country: string = 'AR') {
 
         const url = `/api/geographic/states?${params.toString()}`;
 
-        const response = await fetch(url);
+        console.log('[Hook] Cargando estados desde:', url);
 
-        if (!response.ok) {
-          throw new Error('Error al cargar estados/provincias');
-        }
+        const response = await fetch(url);
 
         const result = await response.json();
 
-        if (result.success && Array.isArray(result.data)) {
+        console.log('[Hook] Respuesta del API:', { 
+          success: result.success, 
+          count: result.data?.length || 0,
+          source: result.source 
+        });
+
+        // Aceptar datos incluso si success es false pero hay datos
+        if (Array.isArray(result.data) && result.data.length > 0) {
           // Mostrar todas las provincias/estados sin filtrar
           const allStates = result.data
             .map((state: any) => ({
@@ -51,12 +56,22 @@ export function useStatesByCountry(country: string = 'AR') {
             }))
             .sort((a: StateOption, b: StateOption) => a.name.localeCompare(b.name));
 
+          console.log('[Hook] Estados procesados:', allStates.length);
           setStates(allStates);
-        } else {
+          setError(null);
+        } else if (!response.ok || !result.success) {
+          // Si no hay datos y la respuesta no es exitosa, mostrar error
+          console.error('[Hook] Error en respuesta:', result.error || 'Error desconocido');
+          setError(result.error || 'Error al cargar provincias');
           setStates([]);
+        } else {
+          // Respuesta exitosa pero sin datos
+          console.warn('[Hook] Respuesta exitosa pero sin datos');
+          setStates([]);
+          setError(null);
         }
       } catch (err) {
-        console.error('Error loading states:', err);
+        console.error('[Hook] Error loading states:', err);
         setError('Error al cargar provincias');
         setStates([]);
       } finally {

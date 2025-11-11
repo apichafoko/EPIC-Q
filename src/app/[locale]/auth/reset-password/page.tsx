@@ -1,37 +1,69 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useTranslations } from '../../../../hooks/useTranslations';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
-import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ResetPasswordPage() {
   const { t } = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const params = useParams();
+  const locale = params?.locale as string || 'es';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
+  const [tokenValid, setTokenValid] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     if (!tokenParam) {
-      setError(t('auth.invalidToken'));
+      setError(t('auth.invalidToken') || 'Token inválido');
+      setIsValidating(false);
+      setTokenValid(false);
     } else {
       setToken(tokenParam);
+      validateToken(tokenParam);
     }
   }, [searchParams, t]);
+
+  const validateToken = async (tokenToValidate: string) => {
+    try {
+      setIsValidating(true);
+      setError('');
+      
+      const response = await fetch(`/api/auth/reset-password?token=${encodeURIComponent(tokenToValidate)}`);
+      const data = await response.json();
+
+      if (data.success && data.valid) {
+        setTokenValid(true);
+        setUserEmail(data.user?.email || '');
+      } else {
+        setTokenValid(false);
+        setError(data.message || t('auth.invalidToken') || 'Token inválido o expirado');
+      }
+    } catch (err) {
+      console.error('Error validating token:', err);
+      setTokenValid(false);
+      setError(t('auth.somethingWentWrong') || 'Error al validar token');
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8;
@@ -58,13 +90,19 @@ export default function ResetPasswordPage() {
     setError('');
 
     if (!passwordValidation.isValid) {
-      setError(t('auth.passwordRequirements'));
+      setError(t('auth.passwordRequirements') || 'La contraseña debe cumplir con todos los requisitos');
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError(t('auth.passwordMismatch'));
+      setError(t('auth.passwordMismatch') || 'Las contraseñas no coinciden');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!token) {
+      setError(t('auth.invalidToken') || 'Token inválido');
       setIsLoading(false);
       return;
     }
@@ -82,21 +120,79 @@ export default function ResetPasswordPage() {
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/auth/login');
+          router.push(`/${locale}/auth/login`);
         }, 3000);
       } else {
-        const data = await response.json();
-        setError(data.message || t('auth.somethingWentWrong'));
+        setError(data.message || t('auth.somethingWentWrong') || 'Error al restablecer contraseña');
       }
     } catch (error) {
-      setError(t('auth.somethingWentWrong'));
+      console.error('Error resetting password:', error);
+      setError(t('auth.somethingWentWrong') || 'Error al restablecer contraseña');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Loader2 className="mx-auto h-12 w-12 text-blue-500 mb-4 animate-spin" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {t('auth.validatingToken') || 'Validando enlace...'}
+                </h2>
+                <p className="text-gray-600">
+                  {t('auth.pleaseWait') || 'Por favor espera un momento'}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tokenValid) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {t('auth.invalidToken') || 'Enlace inválido'}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {error || t('auth.tokenExpired') || 'El enlace de recuperación es inválido o ha expirado. Por favor solicita uno nuevo.'}
+                </p>
+                <div className="space-y-4">
+                  <Button asChild className="w-full">
+                    <Link href={`/${locale}/auth/forgot-password`}>
+                      {t('auth.requestNewLink') || 'Solicitar nuevo enlace'}
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild className="w-full">
+                    <Link href={`/${locale}/auth/login`}>
+                      {t('auth.backToLogin') || 'Volver al inicio de sesión'}
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
@@ -107,14 +203,14 @@ export default function ResetPasswordPage() {
               <div className="text-center">
                 <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {t('auth.passwordReset')}
+                  {t('auth.passwordReset') || 'Contraseña restablecida'}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  {t('auth.passwordResetSuccess')}
+                  {t('auth.passwordResetSuccess') || 'Tu contraseña ha sido restablecida exitosamente'}
                 </p>
                 <Button asChild className="w-full">
-                  <Link href="/auth/login">
-                    {t('auth.continueToLogin')}
+                  <Link href={`/${locale}/auth/login`}>
+                    {t('auth.continueToLogin') || 'Continuar al inicio de sesión'}
                   </Link>
                 </Button>
               </div>
@@ -253,12 +349,18 @@ export default function ResetPasswordPage() {
               </Button>
             </form>
 
+            {userEmail && (
+              <div className="text-center text-sm text-gray-600 mb-4">
+                {t('auth.resettingPasswordFor') || 'Restableciendo contraseña para'}: <strong>{userEmail}</strong>
+              </div>
+            )}
+
             <div className="mt-6 text-center">
               <Link
-                href="/auth/login"
+                href={`/${locale}/auth/login`}
                 className="text-sm text-blue-600 hover:text-blue-500"
               >
-                {t('auth.backToLogin')}
+                {t('auth.backToLogin') || 'Volver al inicio de sesión'}
               </Link>
             </div>
           </CardContent>

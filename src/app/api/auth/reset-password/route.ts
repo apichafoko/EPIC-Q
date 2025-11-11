@@ -2,39 +2,70 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/database';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { emailService } from '../../../../lib/notifications/email-service';
+import { passwordResetRateLimiter, getClientIdentifier } from '../../../../lib/security/rate-limit';
 
-// Email configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SERVER_HOST,
-  port: parseInt(process.env.EMAIL_SERVER_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
-  },
-});
+const getAppBaseUrl = () => {
+  return (
+    process.env.PWA_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    'http://localhost:3000'
+  ).replace(/\/$/, '');
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, locale = 'es' } = await request.json();
 
-    if (!email) {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json(
-        { message: 'Email is required' },
+        { success: false, message: 'Email válido es requerido' },
         { status: 400 }
+      );
+    }
+
+    // Rate limiting por email
+    const rateLimitResult = passwordResetRateLimiter.isAllowed(email.toLowerCase(), 'passwordReset');
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Has excedido el límite de solicitudes. Por favor intenta más tarde.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
+            'X-RateLimit-Limit': '3',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
       );
     }
 
     // Find user by email
     const user = await prisma.users.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isActive: true,
+      },
     });
 
-    if (!user) {
-      // Don't reveal if user exists or not for security
+    // Don't reveal if user exists or not for security
+    // Always return success message even if user doesn't exist
+    if (!user || !user.isActive) {
       return NextResponse.json(
-        { message: 'If an account with that email exists, we sent a password reset link.' },
+        {
+          success: true,
+          message: 'Si existe una cuenta con ese email, se ha enviado un enlace para restablecer la contraseña.',
+        },
         { status: 200 }
       );
     }
@@ -52,59 +83,53 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send reset email
-    const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${resetToken}`;
-    
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: email,
-      subject: 'EPIC-Q - Reset Your Password',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Reset Your Password</h2>
-          <p>You requested a password reset for your EPIC-Q account.</p>
-          <p>Click the button below to reset your password:</p>
-          <a href="${resetUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
-            Reset Password
-          </a>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you didn't request this password reset, please ignore this email.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 14px;">
-            EPIC-Q Management System<br>
-            Estudio Perioperatorio Integral de Cuidados Quirúrgicos
-          </p>
-        </div>
-      `,
-    });
+    // Build reset URL with locale
+    const baseUrl = getAppBaseUrl();
+    const resetUrl = `${baseUrl}/${locale}/auth/reset-password?token=${resetToken}`;
+
+    // Send reset email using EmailService
+    try {
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        user.name || undefined,
+        locale
+      );
+      
+      console.log(`[Password Reset] Email enviado a ${user.email} con token válido por 1 hora`);
+    } catch (emailError) {
+      console.error('[Password Reset] Error al enviar email:', emailError);
+      // No fallar la solicitud si el email falla, pero loguear el error
+      // El usuario ya tiene el token en la BD, puede intentar de nuevo más tarde
+    }
 
     return NextResponse.json(
-      { message: 'If an account with that email exists, we sent a password reset link.' },
+      {
+        success: true,
+        message: 'Si existe una cuenta con ese email, se ha enviado un enlace para restablecer la contraseña.',
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('[Password Reset] Error:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      {
+        success: false,
+        message: 'Error interno del servidor. Por favor intenta más tarde.',
+      },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { token, password, confirmPassword } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get('token');
 
-    if (!token || !password || !confirmPassword) {
+    if (!token) {
       return NextResponse.json(
-        { message: 'Token, password, and confirm password are required' },
-        { status: 400 }
-      );
-    }
-
-    if (password !== confirmPassword) {
-      return NextResponse.json(
-        { message: 'Passwords do not match' },
+        { success: false, valid: false, message: 'Token es requerido' },
         { status: 400 }
       );
     }
@@ -116,12 +141,113 @@ export async function PUT(request: NextRequest) {
         resetTokenExpiry: {
           gt: new Date(),
         },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
       },
     });
 
     if (!user) {
       return NextResponse.json(
-        { message: 'Invalid or expired reset token' },
+        {
+          success: false,
+          valid: false,
+          message: 'Token inválido o expirado',
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      valid: true,
+      user: {
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error) {
+    console.error('[Password Reset] Error validando token:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        valid: false,
+        message: 'Error al validar token',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const { token, password, confirmPassword } = await request.json();
+
+    if (!token || typeof token !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Token es requerido' },
+        { status: 400 }
+      );
+    }
+
+    if (!password || typeof password !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Contraseña es requerida' },
+        { status: 400 }
+      );
+    }
+
+    if (!confirmPassword || typeof confirmPassword !== 'string') {
+      return NextResponse.json(
+        { success: false, message: 'Confirmación de contraseña es requerida' },
+        { status: 400 }
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: 'Las contraseñas no coinciden' },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength
+    const minLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (!minLength || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y caracteres especiales',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Find user with valid reset token
+    const user = await prisma.users.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(),
+        },
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Token inválido o expirado. Por favor solicita un nuevo enlace de recuperación.',
+        },
         { status: 400 }
       );
     }
@@ -136,17 +262,27 @@ export async function PUT(request: NextRequest) {
         password: hashedPassword,
         resetToken: null,
         resetTokenExpiry: null,
+        isTemporaryPassword: false,
+        updated_at: new Date(),
       },
     });
 
+    console.log(`[Password Reset] Contraseña actualizada exitosamente para usuario ${user.email}`);
+
     return NextResponse.json(
-      { message: 'Password reset successfully' },
+      {
+        success: true,
+        message: 'Contraseña restablecida exitosamente',
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('[Password Reset] Error al restablecer contraseña:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      {
+        success: false,
+        message: 'Error interno del servidor. Por favor intenta más tarde.',
+      },
       { status: 500 }
     );
   }

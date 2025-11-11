@@ -272,6 +272,39 @@ export async function getCitiesByProvince(province: string, country: string = 'A
 }
 
 /**
+ * Obtener provincias estáticas de Argentina (fallback)
+ * @returns Lista de estados/provincias de Argentina
+ */
+function getFallbackStates(): State[] {
+  return [
+    { id: 1, name: 'Buenos Aires', country_code: 'AR', state_code: 'B', country_id: 1 },
+    { id: 2, name: 'Ciudad Autónoma de Buenos Aires', country_code: 'AR', state_code: 'C', country_id: 1 },
+    { id: 3, name: 'Catamarca', country_code: 'AR', state_code: 'K', country_id: 1 },
+    { id: 4, name: 'Chaco', country_code: 'AR', state_code: 'H', country_id: 1 },
+    { id: 5, name: 'Chubut', country_code: 'AR', state_code: 'U', country_id: 1 },
+    { id: 6, name: 'Córdoba', country_code: 'AR', state_code: 'X', country_id: 1 },
+    { id: 7, name: 'Corrientes', country_code: 'AR', state_code: 'W', country_id: 1 },
+    { id: 8, name: 'Entre Ríos', country_code: 'AR', state_code: 'E', country_id: 1 },
+    { id: 9, name: 'Formosa', country_code: 'AR', state_code: 'P', country_id: 1 },
+    { id: 10, name: 'Jujuy', country_code: 'AR', state_code: 'Y', country_id: 1 },
+    { id: 11, name: 'La Pampa', country_code: 'AR', state_code: 'L', country_id: 1 },
+    { id: 12, name: 'La Rioja', country_code: 'AR', state_code: 'F', country_id: 1 },
+    { id: 13, name: 'Mendoza', country_code: 'AR', state_code: 'M', country_id: 1 },
+    { id: 14, name: 'Misiones', country_code: 'AR', state_code: 'N', country_id: 1 },
+    { id: 15, name: 'Neuquén', country_code: 'AR', state_code: 'Q', country_id: 1 },
+    { id: 16, name: 'Río Negro', country_code: 'AR', state_code: 'R', country_id: 1 },
+    { id: 17, name: 'Salta', country_code: 'AR', state_code: 'A', country_id: 1 },
+    { id: 18, name: 'San Juan', country_code: 'AR', state_code: 'J', country_id: 1 },
+    { id: 19, name: 'San Luis', country_code: 'AR', state_code: 'D', country_id: 1 },
+    { id: 20, name: 'Santa Cruz', country_code: 'AR', state_code: 'Z', country_id: 1 },
+    { id: 21, name: 'Santa Fe', country_code: 'AR', state_code: 'S', country_id: 1 },
+    { id: 22, name: 'Santiago del Estero', country_code: 'AR', state_code: 'G', country_id: 1 },
+    { id: 23, name: 'Tierra del Fuego', country_code: 'AR', state_code: 'V', country_id: 1 },
+    { id: 24, name: 'Tucumán', country_code: 'AR', state_code: 'T', country_id: 1 },
+  ];
+}
+
+/**
  * Obtener todas las provincias/estados de un país
  * @param country Código del país (ISO 3166-1 alpha-2), default 'AR' para Argentina
  * @returns Lista de estados/provincias
@@ -290,6 +323,17 @@ export async function getStatesByCountry(country: string = 'AR'): Promise<State[
     const packageStates = await getStatesOfCountry(country);
 
     if (!Array.isArray(packageStates) || packageStates.length === 0) {
+      console.warn('No se encontraron estados del paquete, usando fallback');
+      // Si es Argentina, usar fallback estático
+      if (country === 'AR') {
+        const fallbackStates = getFallbackStates();
+        // Guardar en cache
+        if (!cache.states) {
+          cache.states = new Map();
+        }
+        cache.states.set(country, fallbackStates);
+        return fallbackStates;
+      }
       return [];
     }
 
@@ -305,6 +349,17 @@ export async function getStatesByCountry(country: string = 'AR'): Promise<State[
     return states;
   } catch (error) {
     console.error('Error fetching states from @countrystatecity/countries:', error);
+    // Si es Argentina, usar fallback estático
+    if (country === 'AR') {
+      console.log('Usando fallback estático para provincias argentinas');
+      const fallbackStates = getFallbackStates();
+      // Guardar en cache para evitar llamadas repetidas
+      if (!cache.states) {
+        cache.states = new Map();
+      }
+      cache.states.set(country, fallbackStates);
+      return fallbackStates;
+    }
     return [];
   }
 }
