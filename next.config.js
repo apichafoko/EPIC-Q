@@ -18,8 +18,19 @@ const nextConfig = {
     return 'build-' + Date.now();
   },
   // Configuración experimental para evitar prerenderizado de páginas de error
+  // y para incluir archivos JSON del paquete en el bundle de producción
   experimental: {
     skipMiddlewareUrlNormalize: true,
+    // Incluir archivos JSON del paquete en el bundle de producción
+    // Esto asegura que los archivos estén disponibles en entornos serverless
+    outputFileTracingIncludes: {
+      // Incluir todos los archivos JSON del paquete para todas las rutas API
+      '/api/**': [
+        './node_modules/@countrystatecity/countries/dist/**/*.json',
+        './node_modules/@countrystatecity/countries/dist/**/*.js',
+        './node_modules/@countrystatecity/countries/dist/**/*.cjs',
+      ],
+    },
   },
   // Forzar rendering dinámico
   skipTrailingSlashRedirect: true,

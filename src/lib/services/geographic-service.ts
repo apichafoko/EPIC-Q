@@ -6,13 +6,10 @@
  * Este servicio se usa exclusivamente en el servidor (API routes), no requiere 'use server'
  */
 
-// Importación estática directa - el paquete debería funcionar en Next.js
-import { 
-  getStatesOfCountry, 
-  getCitiesOfState,
-  type ICity,
-  type IState
-} from '@countrystatecity/countries';
+// Importación dinámica para mejor compatibilidad con serverless
+// El paquete puede fallar en producción serverless, por lo que usamos importación dinámica
+type ICity = any;
+type IState = any;
 
 interface City {
   id: number;
@@ -60,6 +57,8 @@ async function getProvinceCodeMap(country: string = 'AR'): Promise<Map<string, s
   }
 
   try {
+    // Importación dinámica para mejor compatibilidad con serverless
+    const { getStatesOfCountry } = await import('@countrystatecity/countries');
     const states = await getStatesOfCountry(country);
     const provinceMap = new Map<string, string>();
 
@@ -256,29 +255,54 @@ export async function getCitiesByProvince(province: string, country: string = 'A
 
     console.log(`[GeographicService] Código ISO2 encontrado para ${province}: ${provinceCode}`);
 
-    // Obtener ciudades usando el paquete
-    const packageCities = await getCitiesOfState(country, provinceCode);
+    // Obtener ciudades usando el paquete (importación dinámica)
+    // Con outputFileTracingIncludes configurado, los archivos JSON deberían estar disponibles en producción
+    try {
+      const { getCitiesOfState } = await import('@countrystatecity/countries');
+      const packageCities = await getCitiesOfState(country, provinceCode);
+      
+      if (Array.isArray(packageCities) && packageCities.length > 0) {
+        console.log(`[GeographicService] ✅ Paquete funcionó correctamente: ${packageCities.length} ciudades para ${province}`);
+        
+        // Adaptar ciudades del paquete a nuestra interfaz
+        const cities: City[] = packageCities.map(city => adaptCity(city, country, provinceCode));
 
-    if (!Array.isArray(packageCities) || packageCities.length === 0) {
-      console.warn(`[GeographicService] No se encontraron ciudades del paquete para ${province} (código ${provinceCode}), usando fallback`);
+        // Guardar en cache
+        if (!cache.cities) {
+          cache.cities = new Map();
+        }
+        cache.cities.set(cacheKey, cities);
+
+        console.log(`[GeographicService] Retornando ${cities.length} ciudades del paquete para ${province}`);
+        return cities;
+      } else {
+        console.error(`[GeographicService] ❌ Paquete retornó array vacío para ${province} (código ${provinceCode})`);
+        throw new Error(`Paquete retornó array vacío`);
+      }
+    } catch (packageError) {
+      const errorMessage = packageError instanceof Error ? packageError.message : String(packageError);
+      const errorStack = packageError instanceof Error ? packageError.stack : undefined;
+      
+      console.error(`[GeographicService] ❌ Error al usar paquete @countrystatecity/countries para ${province}:`, errorMessage);
+      if (errorStack) {
+        console.error(`[GeographicService] Stack trace:`, errorStack);
+      }
+      console.error(`[GeographicService] Esto puede indicar que los archivos JSON no están disponibles en producción.`);
+      console.error(`[GeographicService] Verifica que outputFileTracingIncludes esté configurado correctamente en next.config.js`);
+      
+      // Solo usar fallback si realmente falló el paquete
       const fallbackCities = getFallbackCities(province, country);
-      console.log(`[GeographicService] Fallback para ${province}: ${fallbackCities.length} ciudades`);
+      console.warn(`[GeographicService] ⚠️ Usando fallback temporal para ${province}: ${fallbackCities.length} ciudades`);
+      console.warn(`[GeographicService] ⚠️ Esto es una solución temporal. Deberías arreglar el acceso al paquete en producción.`);
+      
+      // Guardar fallback en cache también
+      if (!cache.cities) {
+        cache.cities = new Map();
+      }
+      cache.cities.set(cacheKey, fallbackCities);
+      
       return fallbackCities;
     }
-
-    console.log(`[GeographicService] Paquete retornó ${packageCities.length} ciudades para ${province}`);
-
-    // Adaptar ciudades del paquete a nuestra interfaz
-    const cities: City[] = packageCities.map(city => adaptCity(city, country, provinceCode));
-
-    // Guardar en cache
-    if (!cache.cities) {
-      cache.cities = new Map();
-    }
-    cache.cities.set(cacheKey, cities);
-
-    console.log(`[GeographicService] Retornando ${cities.length} ciudades para ${province}`);
-    return cities;
   } catch (error) {
     console.error(`[GeographicService] Error fetching cities from @countrystatecity/countries para ${province}:`, error);
     console.error(`[GeographicService] Error details:`, error instanceof Error ? error.message : String(error));
@@ -336,7 +360,8 @@ export async function getStatesByCountry(country: string = 'AR'): Promise<State[
       }
     }
 
-    // Obtener estados usando el paquete
+    // Obtener estados usando el paquete (importación dinámica)
+    const { getStatesOfCountry } = await import('@countrystatecity/countries');
     const packageStates = await getStatesOfCountry(country);
 
     if (!Array.isArray(packageStates) || packageStates.length === 0) {
@@ -390,7 +415,14 @@ function getFallbackCities(province: string, country: string): City[] {
         'La Plata', 'Mar del Plata', 'Bahía Blanca', 'Quilmes', 'Lanús',
         'Banfield', 'Temperley', 'Lomas de Zamora', 'Avellaneda', 'San Isidro',
         'Tigre', 'Pilar', 'Merlo', 'Morón', 'San Martín', 'San Miguel',
-        'Malvinas Argentinas', 'Ituzaingó', 'Hurlingham', 'Tres de Febrero'
+        'Malvinas Argentinas', 'Ituzaingó', 'Hurlingham', 'Tres de Febrero',
+        'Berazategui', 'Florencio Varela', 'Moreno', 'San Fernando', 'Vicente López',
+        'Zárate', 'Campana', 'Escobar', 'Pergamino', 'Junín', 'Chivilcoy',
+        'Luján', 'Mercedes', 'San Nicolás', 'Ramallo', 'Baradero', 'Salto',
+        'Rojas', 'Colón', 'Olavarría', 'Tandil', 'Azul', 'Olavarría',
+        'Necochea', 'Balcarce', 'General Pueyrredón', 'Dolores', 'Chascomús',
+        'La Matanza', 'Esteban Echeverría', 'Ezeiza', 'Cañuelas', 'Lobos',
+        'San Vicente', 'Brandsen', 'Ensenada', 'Berisso', 'La Plata'
       ],
       'Ciudad Autónoma de Buenos Aires': [
         'CABA', 'Buenos Aires', 'Palermo', 'Recoleta', 'San Telmo', 'La Boca',
@@ -410,90 +442,159 @@ function getFallbackCities(province: string, country: string): City[] {
       ],
       'Córdoba': [
         'Córdoba', 'Villa María', 'Río Cuarto', 'San Francisco', 'Villa Carlos Paz',
-        'Jesús María', 'Villa Allende', 'La Calera', 'Unquillo', 'Morteros'
+        'Jesús María', 'Villa Allende', 'La Calera', 'Unquillo', 'Morteros',
+        'Marcos Juárez', 'Bell Ville', 'Leones', 'Arroyito', 'Monte Cristo',
+        'Río Segundo', 'Pilar', 'Colonia Caroya', 'Villa del Totoral', 'Jesús María',
+        'Cruz del Eje', 'Deán Funes', 'Villa Dolores', 'San Marcos Sierras', 'La Falda',
+        'Villa General Belgrano', 'Alta Gracia', 'Río Tercero', 'General Cabrera', 'Monte Buey',
+        'Laboulaye', 'Huinca Renancó', 'General Roca', 'Adelia María', 'Vicuña Mackenna'
       ],
       'Santa Fe': [
         'Rosario', 'Santa Fe', 'Rafaela', 'Venado Tuerto', 'Reconquista',
-        'Santo Tomé', 'Sunchales', 'Villa Constitución', 'Esperanza', 'Gálvez'
+        'Santo Tomé', 'Sunchales', 'Villa Constitución', 'Esperanza', 'Gálvez',
+        'Casilda', 'San Lorenzo', 'Villa Gobernador Gálvez', 'Pérez', 'Firmat',
+        'Arroyo Seco', 'Cañada de Gómez', 'Las Parejas', 'Totoras', 'San Jorge',
+        'San Cristóbal', 'Rufino', 'Villa Cañás', 'Funes', 'Granadero Baigorria',
+        'Capitán Bermúdez', 'Puerto General San Martín', 'Alvear', 'Coronda', 'El Trébol'
       ],
       'Mendoza': [
         'Mendoza', 'San Rafael', 'Godoy Cruz', 'Guaymallén', 'Luján de Cuyo',
-        'Maipú', 'Rivadavia', 'Tunuyán', 'San Martín', 'General Alvear'
+        'Maipú', 'Rivadavia', 'Tunuyán', 'San Martín', 'General Alvear',
+        'Las Heras', 'Lavalle', 'Malargüe', 'San Carlos', 'Tupungato',
+        'La Paz', 'Santa Rosa', 'Junín', 'Rivadavia', 'La Consulta',
+        'Villa Nueva', 'Palmira', 'Rodeo del Medio', 'Coquimbito', 'Villa Tulumaya',
+        'Cacheuta', 'Potrerillos', 'Uspallata', 'Los Molles', 'El Sosneado'
       ],
       'Tucumán': [
         'San Miguel de Tucumán', 'Yerba Buena', 'Tafí Viejo', 'Concepción',
-        'Aguilares', 'Monteros', 'Famaillá', 'Banda del Río Salí', 'Simoca'
+        'Aguilares', 'Monteros', 'Famaillá', 'Banda del Río Salí', 'Simoca',
+        'Tafí del Valle', 'Amaicha del Valle', 'Colombres', 'La Cocha', 'Graneros',
+        'Villa Alberdi', 'La Madrid', 'Juan Bautista Alberdi', 'Leales', 'Burruyacú',
+        'Cruz Alta', 'Río Chico', 'San Pedro de Colalao', 'Trancas', 'Villa Quinteros'
       ],
       'Salta': [
         'Salta', 'San Salvador de Jujuy', 'Orán', 'Tartagal', 'General Güemes',
-        'Metán', 'Rosario de la Frontera', 'Cafayate', 'Cerrillos'
+        'Metán', 'Rosario de la Frontera', 'Cafayate', 'Cerrillos',
+        'San Antonio de los Cobres', 'Cachi', 'Molinos', 'Angastaco', 'Animaná',
+        'La Viña', 'Chicoana', 'Cerrillos', 'La Merced', 'El Carril',
+        'Campo Quijano', 'Rosario de Lerma', 'Cachi', 'Payogasta', 'Seclantás'
       ],
       'Misiones': [
         'Posadas', 'Oberá', 'Eldorado', 'Puerto Iguazú', 'Apóstoles',
-        'Leandro N. Alem', 'San Vicente', 'Aristóbulo del Valle'
+        'Leandro N. Alem', 'San Vicente', 'Aristóbulo del Valle',
+        'Puerto Rico', 'Montecarlo', 'Jardín América', 'Candelaria', 'Santa Ana',
+        'San Ignacio', 'Concepción de la Sierra', 'Garupá', 'Capioví', 'El Soberbio',
+        'San Pedro', 'Bernardo de Irigoyen', 'Andresito', 'Wanda', 'Puerto Esperanza'
       ],
       'Entre Ríos': [
         'Paraná', 'Concordia', 'Gualeguaychú', 'Gualeguay', 'Villaguay',
-        'Concepción del Uruguay', 'Nogoyá', 'Federación', 'Colón'
+        'Concepción del Uruguay', 'Nogoyá', 'Federación', 'Colón',
+        'Victoria', 'Diamante', 'La Paz', 'San José de Feliciano', 'Federal',
+        'Federación', 'Chajarí', 'Villa Elisa', 'Basavilbaso', 'Crespo',
+        'San Benito', 'Villa Paranacito', 'Ibicuy', 'General Campos', 'San Salvador'
       ],
       'Corrientes': [
         'Corrientes', 'Goya', 'Mercedes', 'Paso de los Libres', 'Curuzú Cuatiá',
-        'Monte Caseros', 'Esquina', 'Bella Vista', 'Empedrado'
+        'Monte Caseros', 'Esquina', 'Bella Vista', 'Empedrado',
+        'Santo Tomé', 'Ituzaingó', 'Bella Vista', 'San Roque', 'Saladas',
+        'San Luis del Palmar', 'Riachuelo', 'Santa Lucía', 'Yapeyú', 'Loreto',
+        'Mburucuyá', 'Concepción', 'San Cosme', 'Paso de la Patria', 'Itatí'
       ],
       'Chaco': [
         'Resistencia', 'Barranqueras', 'Presidencia Roque Sáenz Peña', 'Villa Ángela',
-        'Charata', 'General San Martín', 'Quitilipi', 'Las Breñas'
+        'Charata', 'General San Martín', 'Quitilipi', 'Las Breñas',
+        'Villa Berthet', 'Machagai', 'La Leonesa', 'General Pinedo', 'Tres Isletas',
+        'Castelli', 'Pampa del Indio', 'Colonia Benítez', 'Fontana', 'Margarita Belén',
+        'Colonia Popular', 'Laguna Blanca', 'Misión Nueva Pompeya', 'El Sauzalito', 'Fuerte Esperanza'
       ],
       'Formosa': [
         'Formosa', 'Clorinda', 'Pirané', 'El Colorado', 'Las Lomitas',
-        'Ibarreta', 'Comandante Fontana'
+        'Ibarreta', 'Comandante Fontana',
+        'Laguna Yema', 'Pozo del Tigre', 'Villa General Güemes', 'Riacho He Hé',
+        'Estanislao del Campo', 'San Martín 2', 'Buena Vista', 'Colonia Pastoril',
+        'Ingeniero Guillermo N. Juárez', 'Laguna Naick Neck', 'Palo Santo', 'Villa Dos Trece'
       ],
       'Neuquén': [
         'Neuquén', 'Cutral-Có', 'Plottier', 'Zapala', 'San Martín de los Andes',
-        'Villa La Angostura', 'Junín de los Andes', 'Chos Malal'
+        'Villa La Angostura', 'Junín de los Andes', 'Chos Malal',
+        'Centenario', 'Añelo', 'Rincón de los Sauces', 'Las Lajas', 'Aluminé',
+        'Villa Traful', 'Caviahue', 'Copahue', 'El Huecú', 'Loncopué',
+        'Buta Ranquil', 'Barrancas', 'Picún Leufú', 'Piedra del Águila', 'Santo Tomé'
       ],
       'Río Negro': [
         'Bariloche', 'Viedma', 'General Roca', 'Cipolletti', 'San Antonio Oeste',
-        'El Bolsón', 'Choele Choel', 'Allen', 'Cinco Saltos'
+        'El Bolsón', 'Choele Choel', 'Allen', 'Cinco Saltos',
+        'Villa Regina', 'Ingeniero Jacobacci', 'Sierra Grande', 'Luis Beltrán',
+        'Comallo', 'Pilcaniyeu', 'Ñorquincó', 'Maquinchao', 'Los Menucos',
+        'Valcheta', 'Ramos Mexía', 'Comallo', 'Dina Huapi', 'Villa Mascardi'
       ],
       'Chubut': [
         'Comodoro Rivadavia', 'Trelew', 'Rawson', 'Puerto Madryn', 'Esquel',
-        'Sarmiento', 'Gaiman', 'Dolavon', 'Trevelin'
+        'Sarmiento', 'Gaiman', 'Dolavon', 'Trevelin',
+        'Rada Tilly', 'Caleta Olivia', 'Pico Truncado', 'Las Heras', 'Perito Moreno',
+        'Gobernador Costa', 'Tecka', 'El Maitén', 'Lago Puelo', 'El Hoyo',
+        'Cholila', 'Epuyén', 'Corcovado', 'Aldea Beleiro', 'Río Mayo'
       ],
       'Santa Cruz': [
         'Río Gallegos', 'Caleta Olivia', 'El Calafate', 'Pico Truncado',
-        'Puerto Deseado', 'Las Heras', 'Perito Moreno', 'Comandante Luis Piedra Buena'
+        'Puerto Deseado', 'Las Heras', 'Perito Moreno', 'Comandante Luis Piedra Buena',
+        'Río Turbio', 'El Chaltén', 'Gobernador Gregores', 'Puerto San Julián',
+        '28 de Noviembre', 'Yacimientos Río Turbio', 'Tres Lagos', 'Los Antiguos',
+        'Pico Truncado', 'Jaramillo', 'Fitz Roy', 'Koluel Kaike', 'Tellier'
       ],
       'Tierra del Fuego': [
-        'Ushuaia', 'Río Grande', 'Tolhuin'
+        'Ushuaia', 'Río Grande', 'Tolhuin',
+        'San Sebastián', 'Lago Escondido', 'Lago Fagnano', 'Estancia Harberton',
+        'Puerto Almanza', 'Bahía Thetis', 'Cabo San Pablo', 'Estancia Moat'
       ],
       'La Pampa': [
         'Santa Rosa', 'General Pico', 'Toay', 'Realicó', 'Eduardo Castex',
-        'Macachín', 'Intendente Alvear', 'Victorica'
+        'Macachín', 'Intendente Alvear', 'Victorica',
+        'General Acha', 'Guatraché', 'Trenel', 'Quemú Quemú', 'Anguil',
+        'Colonia Barón', 'Winifreda', 'Bernasconi', 'Jacinto Arauz', 'Alta Italia',
+        'Bernardo Larroudé', 'Caleufú', 'Ingeniero Luiggi', 'Lonquimay', 'Metileo'
       ],
       'La Rioja': [
         'La Rioja', 'Chilecito', 'Arauco', 'Chamical', 'Aimilco',
-        'Chepes', 'Vinchina', 'Famatina'
+        'Chepes', 'Vinchina', 'Famatina',
+        'Aminga', 'Anillaco', 'Castro Barros', 'Chañar', 'Nonogasta',
+        'Sanagasta', 'Villa Unión', 'Vinchina', 'Guandacol', 'Jagüé',
+        'Olta', 'Malanzán', 'Ulapes', 'Villa Castelli', 'Villa Sanagasta'
       ],
       'San Juan': [
         'San Juan', 'Rivadavia', 'Rawson', 'Chimbas', 'Santa Lucía',
-        'Pocito', 'Caucete', 'Albardón', 'Jáchal'
+        'Pocito', 'Caucete', 'Albardón', 'Jáchal',
+        'San Martín', 'Angaco', '9 de Julio', 'Calingasta', 'Iglesia',
+        'Ullum', 'Zonda', 'Pocito', 'Sarmiento', '25 de Mayo',
+        'Valle Fértil', 'Calingasta', 'Barreal', 'Tamberías', 'Villa Pituil'
       ],
       'San Luis': [
         'San Luis', 'Villa Mercedes', 'Merlo', 'La Toma', 'Concarán',
-        'Tilisarao', 'San Francisco del Monte de Oro', 'Justo Daract'
+        'Tilisarao', 'San Francisco del Monte de Oro', 'Justo Daract',
+        'Villa de la Quebrada', 'Nueva Galia', 'Arizona', 'Buena Esperanza',
+        'Unión', 'Luján', 'Quines', 'San Martín', 'Naschel',
+        'Villa del Carmen', 'El Trapiche', 'Potrero de los Funes', 'La Florida'
       ],
       'Santiago del Estero': [
         'Santiago del Estero', 'La Banda', 'Frías', 'Añatuya', 'Termas de Río Hondo',
-        'Loreto', 'Monte Quemado', 'Suncho Corral'
+        'Loreto', 'Monte Quemado', 'Suncho Corral',
+        'Villa Ojo de Agua', 'Villa Atamisqui', 'Selva', 'Colonia Dora',
+        'Sumampa', 'Villa Unión', 'Pozo Hondo', 'Los Juríes', 'Tintina',
+        'Villa La Punta', 'Villa San Martín', 'El Bobadal', 'Villa General Mitre'
       ],
       'Catamarca': [
         'San Fernando del Valle de Catamarca', 'Valle Viejo', 'San Antonio',
-        'Santa María', 'Fiambalá', 'Andalgalá', 'Belén', 'Tinogasta'
+        'Santa María', 'Fiambalá', 'Andalgalá', 'Belén', 'Tinogasta',
+        'Recreo', 'La Merced', 'El Rodeo', 'Los Varela', 'Icaño',
+        'Ancasti', 'La Puerta', 'Pomán', 'Mutquín', 'Saujil',
+        'Hualfín', 'Antofagasta de la Sierra', 'El Alto', 'Paclín', 'El Rodeo'
       ],
       'Jujuy': [
         'San Salvador de Jujuy', 'Palpalá', 'Ledesma', 'San Pedro', 'Libertador General San Martín',
-        'Perico', 'La Quiaca', 'Humahuaca', 'Tilcara'
+        'Perico', 'La Quiaca', 'Humahuaca', 'Tilcara',
+        'El Carmen', 'Monterrico', 'Yala', 'Volcán', 'Tumbaya',
+        'Purmamarca', 'Maimará', 'Susques', 'Abra Pampa', 'La Esperanza',
+        'Fraile Pintado', 'Calilegua', 'Caimancito', 'Vinalito', 'Santa Clara'
       ],
     };
 
